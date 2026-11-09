@@ -96,6 +96,12 @@ fun AddDrinkForm(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        Text(
+            "Das Getränk wird mit dem aktuellen Zeitpunkt gespeichert.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         state.errorMessage?.let {
             Text(it, color = MaterialTheme.colorScheme.error)
         }

@@ -6,7 +6,8 @@ und **Android (Kotlin/Jetpack Compose)**.
 ## Funktionen
 
 - Getränk erfassen: Name, Kategorie (Wasser, Kaffee, Tee, Saft, Softdrink, Bier, Wein, Cocktail, Sonstiges),
-  Menge in ml und optionale Notiz (iOS zusätzlich mit Zeitpunkt)
+  Menge in ml und optionale Notiz. Der Zeitpunkt ist nicht wählbar – es wird immer der aktuelle
+  Zeitpunkt („jetzt“) gespeichert. Das stellt bereits die Fachlogik sicher (`DrinkDraft` hat kein Zeitfeld).
 - Verlauf aller Getränke, neueste zuerst, mit Löschen
 - **Teilen** eines einzelnen Getränks über das System-Share-Sheet (WhatsApp, Instagram, Signal, Mail …):
   > 🍷 Ich trinke gerade Rotwein (150 ml) um 14:30 Uhr. „Mit Freunden“ Trink mit mir! #DrinkWithMe

@@ -10,7 +10,6 @@ final class AddDrinkViewModel: ObservableObject {
     @Published var category: DrinkCategory = .water
     @Published var volumeInMilliliters = 250
     @Published var note = ""
-    @Published var consumedAt = Date()
     @Published private(set) var errorMessage: String?
 
     private let logDrink: LogDrinkUseCase
@@ -26,8 +25,7 @@ final class AddDrinkViewModel: ObservableObject {
             name: name,
             category: category,
             volumeInMilliliters: volumeInMilliliters,
-            note: note,
-            consumedAt: consumedAt
+            note: note
         )
         do {
             let drink = try logDrink.execute(draft)

@@ -6,6 +6,13 @@ struct FixedDateProvider: DateProviding {
     func now() -> Date { date }
 }
 
+/// Uhr, die im Test „weiterlaufen“ kann.
+final class MutableDateProvider: DateProviding {
+    var date: Date
+    init(date: Date) { self.date = date }
+    func now() -> Date { date }
+}
+
 struct FixedIdentifierGenerator: IdentifierGenerating {
     let identifier: UUID
     func makeIdentifier() -> UUID { identifier }

@@ -11,7 +11,10 @@ import com.drinkwithme.core.usecase.DefaultDeleteDrinkUseCase
 import com.drinkwithme.core.usecase.DefaultFetchDrinksUseCase
 import com.drinkwithme.core.usecase.DefaultLogDrinkUseCase
 import com.drinkwithme.core.usecase.DefaultShareDrinksUseCase
+import java.time.Clock
 import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,6 +32,24 @@ class UseCaseTest {
 
         assertEquals(Drink("id-1", "Cappuccino", DrinkCategory.COFFEE, 200, null, Fixtures.afternoon), drink)
         assertEquals(listOf(drink), repository.allDrinks())
+    }
+
+    @Test
+    fun logDrinkAlwaysUsesCurrentTime() {
+        var now = Fixtures.afternoon
+        val clock = object : Clock() {
+            override fun getZone(): ZoneId = ZoneOffset.UTC
+            override fun withZone(zone: ZoneId): Clock = this
+            override fun instant(): Instant = now
+        }
+        val logDrink = DefaultLogDrinkUseCase(DefaultDrinkValidator(), InMemoryDrinkRepository(), clock)
+
+        val first = logDrink(DrinkDraft("Wasser", DrinkCategory.WATER, 250))
+        now = now.plus(Duration.ofMinutes(45))
+        val second = logDrink(DrinkDraft("Tee", DrinkCategory.TEA, 200))
+
+        assertEquals(Fixtures.afternoon, first.consumedAt)
+        assertEquals(Fixtures.afternoon.plus(Duration.ofMinutes(45)), second.consumedAt)
     }
 
     @Test

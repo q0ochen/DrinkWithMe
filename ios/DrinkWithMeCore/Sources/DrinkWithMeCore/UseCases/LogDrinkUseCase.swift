@@ -1,6 +1,6 @@
 import Foundation
 
-/// Erfasst ein neues Getränk.
+/// Erfasst ein neues Getränk – immer mit dem aktuellen Zeitpunkt.
 public protocol LogDrinkUseCase {
     @discardableResult
     func execute(_ draft: DrinkDraft) throws -> Drink
@@ -35,7 +35,7 @@ public final class DefaultLogDrinkUseCase: LogDrinkUseCase {
             category: draft.category,
             volumeInMilliliters: draft.volumeInMilliliters,
             note: (trimmedNote?.isEmpty ?? true) ? nil : trimmedNote,
-            consumedAt: draft.consumedAt ?? dateProvider.now()
+            consumedAt: dateProvider.now()
         )
         try writer.save(drink)
         return drink

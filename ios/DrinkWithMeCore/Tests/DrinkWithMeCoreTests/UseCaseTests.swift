@@ -18,6 +18,22 @@ final class UseCaseTests: XCTestCase {
         XCTAssertEqual(try repository.allDrinks(), [drink])
     }
 
+    func testLogDrinkAlwaysUsesCurrentTime() throws {
+        let clock = MutableDateProvider(date: Fixtures.afternoon)
+        let useCase = DefaultLogDrinkUseCase(
+            validator: DefaultDrinkValidator(),
+            writer: InMemoryDrinkRepository(),
+            dateProvider: clock
+        )
+
+        let first = try useCase.execute(DrinkDraft(name: "Wasser", category: .water, volumeInMilliliters: 250))
+        clock.date = Fixtures.afternoon.addingTimeInterval(45 * 60)
+        let second = try useCase.execute(DrinkDraft(name: "Tee", category: .tea, volumeInMilliliters: 200))
+
+        XCTAssertEqual(first.consumedAt, Fixtures.afternoon)
+        XCTAssertEqual(second.consumedAt, Fixtures.afternoon.addingTimeInterval(45 * 60))
+    }
+
     func testLogDrinkDoesNotStoreInvalidDraft() {
         let repository = InMemoryDrinkRepository()
         let useCase = DefaultLogDrinkUseCase(validator: DefaultDrinkValidator(), writer: repository)

@@ -39,10 +39,13 @@ struct AddDrinkView: View {
                     }
                 }
 
-                Section("Details") {
-                    DatePicker("Zeitpunkt", selection: $viewModel.consumedAt, in: ...Date())
+                Section {
                     TextField("Notiz (optional)", text: $viewModel.note, axis: .vertical)
                         .lineLimit(1...4)
+                } header: {
+                    Text("Notiz")
+                } footer: {
+                    Text("Das Getränk wird mit dem aktuellen Zeitpunkt gespeichert.")
                 }
 
                 if let errorMessage = viewModel.errorMessage {

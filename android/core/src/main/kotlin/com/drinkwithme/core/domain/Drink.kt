@@ -12,11 +12,15 @@ data class Drink(
     val consumedAt: Instant,
 )
 
-/** Benutzereingabe, bevor daraus ein gültiges [Drink] wird. */
+/**
+ * Benutzereingabe, bevor daraus ein gültiges [Drink] wird.
+ *
+ * Enthält bewusst keinen Zeitpunkt: Ein Getränk wird immer mit dem
+ * aktuellen Zeitpunkt („jetzt“) erfasst, den der Use Case setzt.
+ */
 data class DrinkDraft(
     val name: String,
     val category: DrinkCategory,
     val volumeInMilliliters: Int,
     val note: String? = null,
-    val consumedAt: Instant? = null,
 )

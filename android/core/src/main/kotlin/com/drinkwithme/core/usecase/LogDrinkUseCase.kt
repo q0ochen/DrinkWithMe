@@ -8,7 +8,7 @@ import com.drinkwithme.core.domain.IdGenerator
 import com.drinkwithme.core.domain.RandomIdGenerator
 import java.time.Clock
 
-/** Erfasst ein neues Getränk. */
+/** Erfasst ein neues Getränk – immer mit dem aktuellen Zeitpunkt. */
 fun interface LogDrinkUseCase {
     operator fun invoke(draft: DrinkDraft): Drink
 }
@@ -27,7 +27,7 @@ class DefaultLogDrinkUseCase(
             category = draft.category,
             volumeInMilliliters = draft.volumeInMilliliters,
             note = draft.note?.trim()?.takeIf { it.isNotEmpty() },
-            consumedAt = draft.consumedAt ?: clock.instant(),
+            consumedAt = clock.instant(),
         )
         writer.save(drink)
         return drink
