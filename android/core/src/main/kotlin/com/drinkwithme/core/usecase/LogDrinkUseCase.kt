@@ -28,6 +28,7 @@ class DefaultLogDrinkUseCase(
             volumeInMilliliters = draft.volumeInMilliliters,
             note = draft.note?.trim()?.takeIf { it.isNotEmpty() },
             consumedAt = clock.instant(),
+            visibility = draft.visibility,
         )
         writer.save(drink)
         return drink

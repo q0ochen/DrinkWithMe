@@ -18,5 +18,9 @@ kotlin {
 }
 
 dependencies {
+    // Flow/suspend in den Schnittstellen der Trinkrunden (reines Kotlin, kein Android).
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+
     testImplementation(kotlin("test-junit"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }

@@ -6,6 +6,7 @@ import com.drinkwithme.core.domain.Drink
 import com.drinkwithme.core.domain.DrinkCategory
 import com.drinkwithme.core.domain.DrinkDraft
 import com.drinkwithme.core.domain.DrinkValidationException
+import com.drinkwithme.core.domain.DrinkVisibility
 import com.drinkwithme.core.sharing.GermanShareFormatter
 import com.drinkwithme.core.usecase.DefaultDeleteDrinkUseCase
 import com.drinkwithme.core.usecase.DefaultFetchDrinksUseCase
@@ -50,6 +51,17 @@ class UseCaseTest {
 
         assertEquals(Fixtures.afternoon, first.consumedAt)
         assertEquals(Fixtures.afternoon.plus(Duration.ofMinutes(45)), second.consumedAt)
+    }
+
+    @Test
+    fun logDrinkKeepsVisibility() {
+        val logDrink = DefaultLogDrinkUseCase(DefaultDrinkValidator(), InMemoryDrinkRepository(), Fixtures.clock)
+
+        val privateDrink = logDrink(DrinkDraft("Wasser", DrinkCategory.WATER, 250, visibility = DrinkVisibility.PRIVATE))
+        val sharedDrink = logDrink(DrinkDraft("Tee", DrinkCategory.TEA, 200))
+
+        assertEquals(DrinkVisibility.PRIVATE, privateDrink.visibility)
+        assertEquals(DrinkVisibility.FRIENDS, sharedDrink.visibility)
     }
 
     @Test

@@ -10,7 +10,17 @@ data class Drink(
     val volumeInMilliliters: Int,
     val note: String?,
     val consumedAt: Instant,
+    val visibility: DrinkVisibility = DrinkVisibility.FRIENDS,
 )
+
+/** Wer ein Getränk sehen darf. */
+enum class DrinkVisibility {
+    /** Wird automatisch in allen Trinkrunden des Nutzers geteilt. */
+    FRIENDS,
+
+    /** Bleibt nur auf dem eigenen Gerät. */
+    PRIVATE,
+}
 
 /**
  * Benutzereingabe, bevor daraus ein gültiges [Drink] wird.
@@ -23,4 +33,5 @@ data class DrinkDraft(
     val category: DrinkCategory,
     val volumeInMilliliters: Int,
     val note: String? = null,
+    val visibility: DrinkVisibility = DrinkVisibility.FRIENDS,
 )
