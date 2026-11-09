@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { AuthUserDeleter } from "../../src/accounts/accountService";
@@ -55,8 +56,22 @@ function unknownCode(index: number): string {
   return `ZZZZZZ${INVITE_CODE_ALPHABET.charAt(index % INVITE_CODE_ALPHABET.length)}Z`;
 }
 
-async function joinAttempts(uid: string) {
-  return (await db.doc(`joinAttempts/${uid}`).get()).data();
+async function joinAttempts(key: string) {
+  return (await db.doc(`joinAttempts/${key}`).get()).data();
+}
+
+/** Dokument-ID des Zählers eines Google-Kontos laut Vertrag: SHA-256 (hex) von "google:" + sub. */
+function googleThrottleKey(googleSubject: string): string {
+  return createHash("sha256").update(`google:${googleSubject}`).digest("hex");
+}
+
+/** Der erwartete Zähler – mit expireAt = windowStart + 1 Stunde (TTL). */
+function storedAttempts(windowStartMillis: number, failures: number) {
+  return {
+    windowStart: Timestamp.fromMillis(windowStartMillis),
+    failures,
+    expireAt: Timestamp.fromMillis(windowStartMillis + HOUR),
+  };
 }
 
 async function drinksIn(groupId: string): Promise<string[]> {
@@ -194,7 +209,7 @@ describe("Schutz vor Code-Raten (joinAttempts, steuerbare Uhr)", () => {
       await expect(groups.joinGroup({ uid: "mallory" }, unknownCode(i))).rejects.toMatchObject({ code: "not-found" });
       clock.advance(1_000);
     }
-    expect(await joinAttempts("mallory")).toEqual({ windowStart: Timestamp.fromMillis(START), failures: 10 });
+    expect(await joinAttempts("mallory")).toEqual(storedAttempts(START, 10));
 
     await expect(groups.joinGroup({ uid: "mallory" }, group.inviteCode)).rejects.toMatchObject({
       code: "resource-exhausted",
@@ -220,7 +235,7 @@ describe("Schutz vor Code-Raten (joinAttempts, steuerbare Uhr)", () => {
 
     clock.advance(1);
     await expect(groups.joinGroup({ uid: "mallory" }, unknownCode(99))).rejects.toMatchObject({ code: "not-found" });
-    expect(await joinAttempts("mallory")).toEqual({ windowStart: Timestamp.fromMillis(START + HOUR), failures: 1 });
+    expect(await joinAttempts("mallory")).toEqual(storedAttempts(START + HOUR, 1));
     expect((await groups.joinGroup({ uid: "mallory" }, group.inviteCode)).members.map((m) => m.userId)).toEqual([
       "anna",
       "mallory",
@@ -263,6 +278,24 @@ describe("Schutz vor Code-Raten (joinAttempts, steuerbare Uhr)", () => {
     await expect(groups.joinGroup({ uid: "bob" }, "WWWWWWWW")).rejects.toMatchObject({ code: "not-found" });
 
     expect((await joinAttempts("bob"))?.failures).toBe(1);
+  });
+
+  it("zählt pro Google-Konto – eine neue uid mit derselben Google-Kennung bleibt gesperrt", async () => {
+    const groups = service({ clock: new ManualClock() });
+    const group = await groups.createGroup({ uid: "anna" }, "Stammtisch");
+
+    for (let i = 0; i < 10; i++) {
+      await expect(groups.joinGroup({ uid: "uid-alt", googleSubject: "g-mallory" }, unknownCode(i))).rejects.toMatchObject({
+        code: "not-found",
+      });
+    }
+
+    expect(await joinAttempts(googleThrottleKey("g-mallory"))).toEqual(storedAttempts(START, 10));
+    expect(await joinAttempts("uid-alt")).toBeUndefined();
+    await expect(groups.joinGroup({ uid: "uid-neu", googleSubject: "g-mallory" }, group.inviteCode)).rejects.toMatchObject({
+      code: "resource-exhausted",
+    });
+    expect((await groups.joinGroup({ uid: "uid-bob", googleSubject: "g-bob" }, group.inviteCode)).members).toHaveLength(2);
   });
 
   it("zählt gleichzeitige Fehlversuche vollständig (Transaktion)", async () => {
@@ -309,8 +342,14 @@ describe("FirestoreAccountService (Firestore-Emulator)", () => {
     }
   }
 
+  /** Konto-Löschen mit steuerbarer Uhr (für den Zähler gegen Code-Raten). */
+  function accountService(groups: FirestoreGroupService, clock: ManualClock, logger = new RecordingLogger()) {
+    return new FirestoreAccountService({ db, groups, authUsers: new RecordingAuthUsers(), logger, clock: clock.read });
+  }
+
   it("löscht alle eigenen Getränke seitenweise in allen Runden und den Auth-Nutzer zuletzt", async () => {
-    const groups = service();
+    const clock = new ManualClock();
+    const groups = service({ clock });
     const kept = await groups.createGroup({ uid: "anna" }, "Bleibt");
     await groups.joinGroup({ uid: "bob" }, kept.inviteCode);
     for (const drinkId of ["d1", "d2", "d3"]) await shareDrinkAsAdmin(kept.id, drinkId, "bob");
@@ -320,7 +359,8 @@ describe("FirestoreAccountService (Firestore-Emulator)", () => {
     await shareDrinkAsAdmin("verlassen", "d5", "bob");
     await db.doc("users/bob").set({ displayName: "Bob", photoUrl: null, updatedAt: Timestamp.now() });
     await db.doc("users/bob/tokens/bob-phone").set({ platform: "android", updatedAt: Timestamp.now() });
-    await db.doc("joinAttempts/bob").set({ windowStart: Timestamp.now(), failures: 2 });
+    // Abgelaufenes Fenster: wird sofort gelöscht.
+    await db.doc("joinAttempts/bob").set({ windowStart: Timestamp.fromMillis(START - HOUR), failures: 2 });
     const authUsers = new RecordingAuthUsers();
     const accounts = new FirestoreAccountService({
       db,
@@ -328,6 +368,7 @@ describe("FirestoreAccountService (Firestore-Emulator)", () => {
       authUsers,
       logger: new RecordingLogger(),
       batchSize: 2,
+      clock: clock.read,
     });
 
     await accounts.deleteAccount({ uid: "bob" });
@@ -341,5 +382,59 @@ describe("FirestoreAccountService (Firestore-Emulator)", () => {
 
     await accounts.deleteAccount({ uid: "bob" });
     expect(authUsers.deleted.map((entry) => entry.uid)).toEqual(["bob", "bob"]);
+  });
+
+  it("behält einen Zähler mit laufendem Fenster – Konto löschen + neu anmelden hebt die Sperre nicht auf", async () => {
+    const clock = new ManualClock();
+    const groups = service({ clock });
+    const group = await groups.createGroup({ uid: "anna" }, "Stammtisch");
+    const mallory = { uid: "uid-alt", googleSubject: "g-mallory" };
+    for (let i = 0; i < 10; i++) {
+      await expect(groups.joinGroup(mallory, unknownCode(i))).rejects.toMatchObject({ code: "not-found" });
+    }
+    // Ein alter Zähler unter der uid (vor dem Schlüssel am Google-Konto) wird nicht mehr gelesen.
+    await db.doc("joinAttempts/uid-alt").set({ windowStart: Timestamp.fromMillis(START), failures: 3 });
+    const logger = new RecordingLogger();
+    const accounts = accountService(groups, clock, logger);
+
+    clock.advance(HOUR - 1);
+    await accounts.deleteAccount(mallory);
+
+    expect(await joinAttempts(googleThrottleKey("g-mallory"))).toEqual(storedAttempts(START, 10));
+    expect(await joinAttempts("uid-alt")).toBeUndefined();
+    expect(logger.entries.at(-1)?.data).toMatchObject({ joinAttempts: "kept" });
+    await expect(groups.joinGroup({ uid: "uid-neu", googleSubject: "g-mallory" }, group.inviteCode)).rejects.toMatchObject({
+      code: "resource-exhausted",
+    });
+
+    // Nach Ablauf des Fensters darf deleteAccount den Zähler löschen (sonst erledigt das die TTL).
+    clock.advance(1);
+    await accounts.deleteAccount({ uid: "uid-neu", googleSubject: "g-mallory" });
+
+    expect(await joinAttempts(googleThrottleKey("g-mallory"))).toBeUndefined();
+    expect(logger.entries.at(-1)?.data).toMatchObject({ joinAttempts: "deleted" });
+  });
+
+  it("trägt expireAt bei einem älteren Zähler ohne das Feld nach (sonst griffe die TTL nie)", async () => {
+    const clock = new ManualClock(START + 10 * 60 * 1000);
+    await db.doc("joinAttempts/bob").set({ windowStart: Timestamp.fromMillis(START), failures: 3 });
+
+    await accountService(service({ clock }), clock).deleteAccount({ uid: "bob" });
+
+    expect(await joinAttempts("bob")).toEqual(storedAttempts(START, 3));
+  });
+
+  it("löscht einen unlesbaren Zähler und kommt ohne Zähler aus", async () => {
+    const clock = new ManualClock();
+    await db.doc("joinAttempts/bob").set({ windowStart: "kaputt", failures: 10 });
+    const logger = new RecordingLogger();
+    const accounts = accountService(service({ clock }), clock, logger);
+
+    await accounts.deleteAccount({ uid: "bob" });
+    expect(await joinAttempts("bob")).toBeUndefined();
+    expect(logger.entries.at(-1)?.data).toMatchObject({ joinAttempts: "deleted" });
+
+    await accounts.deleteAccount({ uid: "bob" });
+    expect(logger.entries.at(-1)?.data).toMatchObject({ joinAttempts: "none" });
   });
 });

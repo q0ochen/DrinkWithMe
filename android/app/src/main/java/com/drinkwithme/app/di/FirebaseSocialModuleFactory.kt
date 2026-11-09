@@ -3,10 +3,13 @@ package com.drinkwithme.app.di
 import android.content.Context
 import android.util.Log
 import com.drinkwithme.app.data.SharedPreferencesKeyValueStorage
+import com.drinkwithme.app.social.AuthorAwareDrinkPublisher
+import com.drinkwithme.app.social.CompositeLocalUserDataEraser
 import com.drinkwithme.app.social.DefaultAccountService
 import com.drinkwithme.app.social.PendingUnpublishSync
 import com.drinkwithme.app.social.SocialModule
 import com.drinkwithme.app.social.StoredPendingUnpublishStore
+import com.drinkwithme.app.social.StoredPublishedDrinkAuthors
 import com.drinkwithme.app.social.firebase.CallableFunctions
 import com.drinkwithme.app.social.firebase.CloudFunctions
 import com.drinkwithme.app.social.firebase.CredentialManagerGoogleIdTokenSource
@@ -30,7 +33,7 @@ import com.google.firebase.messaging.messaging
 internal object FirebaseSocialModuleFactory {
     private const val TAG = "DrinkWithMe"
 
-    /** SharedPreferences für die vorgemerkten Löschungen geteilter Getränke. */
+    /** SharedPreferences für die vorgemerkten Löschungen und die Autoren geteilter Getränke. */
     private const val PREFERENCES_NAME = "trinkrunden"
 
     /**
@@ -45,10 +48,16 @@ internal object FirebaseSocialModuleFactory {
         val authenticator = FirebaseGoogleAuthenticator(Firebase.auth)
         val pushTokens = FirestorePushTokenRegistrar(firestore, Firebase.messaging, authenticator)
         val callables = CallableFunctions(Firebase.functions(CloudFunctions.REGION))
-        val pendingUnpublishes = StoredPendingUnpublishStore(
-            SharedPreferencesKeyValueStorage(appContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)),
+        val storage =
+            SharedPreferencesKeyValueStorage(appContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE))
+        val pendingUnpublishes = StoredPendingUnpublishStore(storage)
+        val publishedDrinkAuthors = StoredPublishedDrinkAuthors(storage)
+        val drinkPublisher = AuthorAwareDrinkPublisher(
+            users = authenticator,
+            groupDrinks = FirestoreDrinkPublisher(firestore),
+            authors = publishedDrinkAuthors,
+            pending = pendingUnpublishes,
         )
-        val drinkPublisher = FirestoreDrinkPublisher(firestore, authenticator, pendingUnpublishes)
         return SocialModule(
             currentUserProvider = authenticator,
             signedInUser = authenticator,
@@ -58,7 +67,8 @@ internal object FirebaseSocialModuleFactory {
                 profiles = FirestoreUserProfileWriter(firestore),
                 pushTokens = pushTokens,
                 accountDeleter = FirebaseAccountDeleter(callables),
-                localUserData = pendingUnpublishes,
+                // Beim Löschen des Kontos verschwinden auch die lokal gespeicherten Nutzer-IDs dieses Kontos.
+                localUserData = CompositeLocalUserDataEraser(listOf(pendingUnpublishes, publishedDrinkAuthors)),
                 onBackgroundError = { error -> Log.w(TAG, "Nebenaufgabe bei An-/Abmeldung fehlgeschlagen.", error) },
             ),
             groupReader = FirestoreGroupReader(firestore, authenticator),

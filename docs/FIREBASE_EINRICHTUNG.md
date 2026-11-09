@@ -453,8 +453,9 @@ Gut zu wissen:
   Getränke werden nicht nachträglich geteilt.
 - Ein Getränk wird automatisch in **allen** eigenen Runden geteilt (außer es ist „Privat“).
 - Ohne Internet wird das Getränk trotzdem lokal gespeichert.
-- Löscht man ein geteiltes Getränk, während man **abgemeldet** ist (oder ohne Internet), merkt sich die App das.
-  Sobald man wieder **mit demselben Konto** angemeldet ist und Internet hat, entfernt sie es auch aus den Runden.
+- Löscht man ein geteiltes Getränk, während man **abgemeldet** ist, **mit einem anderen Konto** angemeldet ist oder
+  kein Internet hat, merkt sich die App das. Sobald wieder **das Konto, das es geteilt hat,** angemeldet ist und
+  Internet hat, entfernt sie es auch aus den Runden.
 - **Konto löschen:** Reiter „Runden“ → ganz unten Karte „Konto“ → **„Konto löschen“** → **„Endgültig löschen“**.
   Dann sind Anmeldung, Profil, Mitgliedschaften und **alle** geteilten Getränke dieses Kontos vom Server
   gelöscht; „Meine Getränke“ bleibt auf dem Handy. Zum Ausprobieren also besser ein Zweitkonto nehmen.
@@ -506,7 +507,7 @@ Schritt 4 mit `europe-west3` wiederholen und dann den Workflow erneut starten.
 | „Zu viele falsche Codes …“ | Schutz vor dem Erraten von Codes: Nach **10 falschen Codes innerhalb einer Stunde** kann dieses Konto eine Weile keiner Runde beitreten. Spätestens nach einer Stunde geht es wieder – dann den Code genau prüfen. |
 | „Diese Runde ist voll …“ | Eine Runde hat höchstens 50 Mitglieder. Erst wenn jemand die Runde verlässt, ist wieder Platz – oder ihr gründet eine zweite Runde. |
 | Im Reiter „Freunde“ erscheint nichts | Oben die richtige Runde auswählen. Wurde das Getränk als „Privat“ gespeichert? War der Freund beim Eintragen schon in der Runde? Haben alle die **neueste App-Version** (siehe Hinweis am Ende von Schritt 9)? |
-| Ein gelöschtes Getränk ist bei den Freunden noch zu sehen | Wurde es gelöscht, während man abgemeldet oder offline war, verschwindet es erst, wenn man wieder mit demselben Konto angemeldet ist und Internet hat. Aus Runden, die man schon **verlassen** hat, entfernt die App nichts mehr – dort verschwinden die eigenen Getränke erst mit „Konto löschen“. |
+| Ein gelöschtes Getränk ist bei den Freunden noch zu sehen | Wurde es gelöscht, während man abgemeldet, mit einem anderen Konto angemeldet oder offline war, verschwindet es erst, wenn das Konto, das es geteilt hat, wieder angemeldet ist und Internet hat. Aus Runden, die man schon **verlassen** hat, entfernt die App nichts mehr – dort verschwinden die eigenen Getränke erst mit „Konto löschen“. |
 
 ### Konto löschen klappt nicht
 
@@ -584,7 +585,9 @@ Runde) und eine Sperre gegen das Erraten von Codes (10 falsche Codes pro Stunde)
 **Normalerweise macht das jede Person selbst in der App:** Reiter „Runden“ → ganz unten in der Karte „Konto“
 → **„Konto löschen“** → **„Endgültig löschen“**. Der Server (Funktion `deleteAccount`) verlässt dann alle
 Runden, löscht **alle** geteilten Getränke dieser Person – auch in Runden, die sie längst verlassen hat –,
-ihr Profil samt Push-Tokens, den Zähler für falsche Codes und zuletzt die Anmeldung selbst. Die Getränke unter
+ihr Profil samt Push-Tokens und zuletzt die Anmeldung selbst. Ein noch laufender Zähler für falsche Codes bleibt
+bis zum Ende seiner Stunde bestehen (sonst könnte man die Sperre durch Konto-Löschen umgehen) und wird danach von
+der Datenbank automatisch gelöscht. Die Getränke unter
 „Meine Getränke“ bleiben auf dem Handy; wer auch die loswerden will, deinstalliert die App.
 
 Hat die Person die App nicht mehr, geht es am einfachsten so: App wieder installieren, mit **demselben**
@@ -616,7 +619,9 @@ Reihenfolge:
    die diese Abfrage braucht, spielt der Deploy in Schritt 9 automatisch ein.)
 4. **Profil löschen:** Sammlung **`users`** → Dokument mit der UID → Drei-Punkte-Menü → **Dokument löschen**
    (inklusive der Untersammlung `tokens` mit den Push-Tokens).
-5. Sammlung **`joinAttempts`** → Dokument mit der UID löschen, falls es eins gibt (Zähler für falsche Codes).
+5. Sammlung **`joinAttempts`**: nichts tun. Die Zähler für falsche Codes sind nicht unter der UID abgelegt, sondern
+   unter einem Hashwert der Google-Kennung, und die Datenbank löscht sie nach Ablauf ihrer Stunde automatisch
+   (Feld `expireAt`). Nur ein Dokument, dessen ID genau die UID ist (ältere Version), kann gelöscht werden.
 6. **Anmeldung löschen:** **Authentication** → „Users“ → bei der Person Drei-Punkte-Menü →
    **„Delete account“** („Konto löschen“).
 7. Der Person kurz bestätigen, dass alles gelöscht ist. Die lokalen Getränke auf ihrem Handy verschwinden,

@@ -5,6 +5,11 @@ export interface Caller {
   uid: string;
   /** `request.auth.token.name` – Ersatz, wenn das Profil keinen Anzeigenamen hat. */
   tokenName?: string;
+  /**
+   * Google-Kennung (`sub`) aus `request.auth.token.firebase.identities["google.com"][0]`. Bleibt gleich,
+   * wenn das Firebase-Konto gelöscht und neu angelegt wird – Schlüssel des Schutzes vor Code-Raten.
+   */
+  googleSubject?: string;
 }
 
 /**

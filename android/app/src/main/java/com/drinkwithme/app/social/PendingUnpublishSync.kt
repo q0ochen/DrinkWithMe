@@ -16,10 +16,10 @@ fun interface PendingUnpublishRetrier {
 }
 
 /**
- * Hält fest, wer zuletzt angemeldet war (damit das abgemeldete Löschen weiß, für wen es vormerken muss),
- * und holt vorgemerkte Löschungen nach, sobald genau dieser Nutzer angemeldet ist – beim App-Start und
- * nach jeder Anmeldung. Meldet sich der Nutzer währenddessen ab, wird abgebrochen; die Einträge bleiben
- * dann vorgemerkt.
+ * Hält fest, wer zuletzt angemeldet war (damit das abgemeldete Löschen eines Getränks mit unbekanntem Autor weiß,
+ * für wen es vormerken muss), und holt vorgemerkte Löschungen eines Kontos nach, sobald genau dieses Konto angemeldet
+ * ist – beim App-Start und nach jeder Anmeldung. Meldet sich der Nutzer währenddessen ab, wird abgebrochen; die
+ * Einträge bleiben dann vorgemerkt.
  */
 class PendingUnpublishSync(
     private val users: CurrentUserProvider,

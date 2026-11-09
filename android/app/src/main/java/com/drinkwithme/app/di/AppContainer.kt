@@ -11,6 +11,7 @@ import com.drinkwithme.app.push.DefaultPushMessageHandler
 import com.drinkwithme.app.push.PushMessageHandler
 import com.drinkwithme.app.sharing.DrinkSharer
 import com.drinkwithme.app.sharing.IntentDrinkSharer
+import com.drinkwithme.app.social.ApplicationScopedAccountDeletion
 import com.drinkwithme.app.social.SocialModule
 import com.drinkwithme.app.ui.account.AccountViewModel
 import com.drinkwithme.app.ui.add.AddDrinkViewModel
@@ -48,8 +49,8 @@ interface AppContainer {
     val pushHandler: PushMessageHandler?
 
     /**
-     * Beim App-Start (nur mit Server): Push-Token auffrischen und im abgemeldeten Zustand gelöschte geteilte
-     * Getränke nachholen, sobald derselbe Nutzer (wieder) angemeldet ist.
+     * Beim App-Start (nur mit Server): Push-Token auffrischen und vorgemerkte Löschungen geteilter Getränke
+     * nachholen, sobald das Konto, das sie geteilt hat, (wieder) angemeldet ist.
      */
     fun startSocialBackgroundWork()
 }
@@ -107,7 +108,9 @@ class DefaultAppContainer(
         if (social != null) {
             val observeMyGroups = DefaultObserveMyGroupsUseCase(social.groupReader)
             val membership = social.groupMembershipService
-            initializer { AccountViewModel(social.currentUserProvider, social.accountService) }
+            // Einmal je App: Die Löschung läuft im App-weiten Scope weiter, auch wenn der Bildschirm schließt.
+            val accountDeletion = ApplicationScopedAccountDeletion(social.accountService, applicationScope)
+            initializer { AccountViewModel(social.currentUserProvider, social.accountService, accountDeletion) }
             initializer { FriendsViewModel(observeMyGroups, DefaultObserveFeedUseCase(social.feedReader)) }
             initializer {
                 GroupsViewModel(

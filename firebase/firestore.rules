@@ -133,7 +133,7 @@ service cloud.firestore {
       }
     }
 
-    // ---------- inviteCodes/{code} und joinAttempts/{uid} ----------
+    // ---------- inviteCodes/{code} und joinAttempts/{key} ----------
 
     // Nur für die Cloud Functions – kein Client-Zugriff.
     match /inviteCodes/{code} {
@@ -141,7 +141,8 @@ service cloud.firestore {
     }
 
     // Zähler gegen das Erraten von Codes – auch der eigene ist für Clients tabu.
-    match /joinAttempts/{uid} {
+    // key = SHA-256 (hex) von "google:" + Google-sub, ohne Google-Kennung die uid.
+    match /joinAttempts/{key} {
       allow read, write: if false;
     }
 

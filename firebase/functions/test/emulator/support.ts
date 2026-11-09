@@ -8,7 +8,14 @@ import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import type { FirebaseApp } from "firebase/app";
 import { deleteApp, initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, signInWithCustomToken } from "firebase/auth";
+import type { Auth as ClientAuth } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  connectAuthEmulator,
+  getAuth,
+  signInWithCredential,
+  signInWithCustomToken,
+} from "firebase/auth";
 import type { Functions } from "firebase/functions";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 
@@ -129,9 +136,15 @@ function connectFunctions(app: FirebaseApp): Functions {
   return functions;
 }
 
+function connectAuth(app: FirebaseApp): ClientAuth {
+  const clientAuth = getAuth(app);
+  connectAuthEmulator(clientAuth, `http://${EMULATORS.auth.host}:${EMULATORS.auth.port}`, { disableWarnings: true });
+  return clientAuth;
+}
+
 /**
- * Legt ein Konto im Auth-Emulator an und meldet einen Client damit an.
- * `displayName` landet als `name` im ID-Token.
+ * Legt ein Konto im Auth-Emulator an und meldet einen Client damit an (eigenes Token, also ohne
+ * Google-Identität im ID-Token). `displayName` landet als `name` im ID-Token.
  */
 export async function signedInClient(uid: string, displayName?: string): Promise<SignedInClient> {
   const auth = adminAuth();
@@ -139,10 +152,26 @@ export async function signedInClient(uid: string, displayName?: string): Promise
   const customToken = await auth.createCustomToken(uid);
 
   const app = clientApp();
-  const clientAuth = getAuth(app);
-  connectAuthEmulator(clientAuth, `http://${EMULATORS.auth.host}:${EMULATORS.auth.port}`, { disableWarnings: true });
-  await signInWithCustomToken(clientAuth, customToken);
+  await signInWithCustomToken(connectAuth(app), customToken);
   return { uid, functions: connectFunctions(app), close: () => deleteApp(app) };
+}
+
+/**
+ * Meldet einen Client wie die App mit Google an. Der Auth-Emulator nimmt dafür ein unsigniertes
+ * Google-Token als JSON; `googleSubject` landet als `firebase.identities["google.com"][0]` im ID-Token.
+ * Gibt es zu dieser Google-Kennung kein Konto (mehr), legt der Emulator eines mit **neuer** uid an –
+ * wie Firebase nach „Konto löschen“.
+ */
+export async function googleSignedInClient(googleSubject: string, displayName?: string): Promise<SignedInClient> {
+  const claims = {
+    sub: googleSubject,
+    email: `${googleSubject}@example.com`,
+    email_verified: true,
+    ...(displayName === undefined ? {} : { name: displayName }),
+  };
+  const app = clientApp();
+  const { user } = await signInWithCredential(connectAuth(app), GoogleAuthProvider.credential(JSON.stringify(claims)));
+  return { uid: user.uid, functions: connectFunctions(app), close: () => deleteApp(app) };
 }
 
 /** Ein Client ohne Anmeldung. */

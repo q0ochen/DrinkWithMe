@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { FunctionsError } from "firebase/functions";
 import { httpsCallable } from "firebase/functions";
@@ -11,6 +12,7 @@ import {
   anonymousClient,
   clearAuth,
   clearFirestore,
+  googleSignedInClient,
   shareDrinkAsAdmin,
   signedInClient,
   waitFor,
@@ -40,6 +42,13 @@ async function user(uid: string, options: { profileName?: string; tokenName?: st
     });
   }
   const client = await signedInClient(uid, options.tokenName);
+  openClients.push(client);
+  return client;
+}
+
+/** Ein mit Google angemeldeter Client (wie die App); dieselbe Kennung nach „Konto löschen“ → neue uid. */
+async function googleUser(googleSubject: string, displayName?: string) {
+  const client = await googleSignedInClient(googleSubject, displayName);
   openClients.push(client);
   return client;
 }
@@ -101,6 +110,22 @@ async function authUserExists(uid: string): Promise<boolean> {
     if ((error as { code?: unknown }).code === "auth/user-not-found") return false;
     throw error;
   }
+}
+
+/** Dokument-ID des Zählers laut Vertrag: SHA-256 (hex) von "google:" + Google-sub. */
+function googleThrottleKey(googleSubject: string): string {
+  return createHash("sha256").update(`google:${googleSubject}`).digest("hex");
+}
+
+async function joinAttempts(key: string) {
+  return (await db.doc(`joinAttempts/${key}`).get()).data();
+}
+
+/** expireAt muss genau eine Stunde nach windowStart liegen (Feld der TTL-Richtlinie). */
+function expectExpireAtOneHourAfterWindowStart(attempts: Record<string, unknown> | undefined): void {
+  const windowStart = attempts?.windowStart as Timestamp;
+  const expireAt = attempts?.expireAt as Timestamp;
+  expect(expireAt.toMillis() - windowStart.toMillis()).toBe(60 * 60 * 1000);
 }
 
 /** Ein Code im richtigen Format, den es nicht gibt. */
@@ -273,10 +298,14 @@ describe("joinGroup", () => {
       const miss = await callFailure(mallory, "joinGroup", { code: unknownCode(i) });
       expect(miss.code).toBe("functions/not-found");
     }
-    expect((await db.doc("joinAttempts/mallory").get()).data()).toEqual({
+    // Ohne Google-Identität (eigenes Token) zählt der Server pro uid.
+    const attempts = await joinAttempts("mallory");
+    expect(attempts).toEqual({
       windowStart: expect.any(Timestamp) as unknown,
       failures: 10,
+      expireAt: expect.any(Timestamp) as unknown,
     });
+    expectExpireAtOneHourAfterWindowStart(attempts);
 
     const blocked = await callFailure(mallory, "joinGroup", { code: group.inviteCode });
 
@@ -388,7 +417,8 @@ describe("deleteAccount", () => {
     await shareDrinkAsAdmin(shared.id, "annas", "anna");
     await shareDrinkAsAdmin(solo.id, "allein", "bob");
     await db.doc("users/bob/tokens/bob-phone").set({ platform: "android", updatedAt: FieldValue.serverTimestamp() });
-    await db.doc("joinAttempts/bob").set({ windowStart: Timestamp.now(), failures: 4 });
+    // Abgelaufenes Fenster: Der Zähler wird sofort mit gelöscht.
+    await db.doc("joinAttempts/bob").set({ windowStart: Timestamp.fromMillis(Date.now() - 61 * 60 * 1000), failures: 4 });
 
     expect(await deleteAccount(bob)).toEqual({});
 
@@ -420,11 +450,98 @@ describe("deleteAccount", () => {
     expect(await authUserExists("bob")).toBe(false);
   });
 
+  it("behält einen Zähler mit laufendem Fenster (bis expireAt, dann TTL) – auch einen ohne expireAt", async () => {
+    const bob = await user("bob", { profileName: "Bob" });
+    const windowStart = Timestamp.fromMillis(Date.now() - 10 * 60 * 1000);
+    await db.doc("joinAttempts/bob").set({ windowStart, failures: 4 });
+
+    expect(await deleteAccount(bob)).toEqual({});
+
+    expect(await joinAttempts("bob")).toEqual({
+      windowStart,
+      failures: 4,
+      expireAt: Timestamp.fromMillis(windowStart.toMillis() + 60 * 60 * 1000),
+    });
+    expect((await db.doc("users/bob").get()).exists).toBe(false);
+    expect(await authUserExists("bob")).toBe(false);
+  });
+
   it("gelingt auch für ein Konto ohne Daten", async () => {
     const nobody = await user("nobody");
 
     expect(await deleteAccount(nobody)).toEqual({});
 
     expect(await authUserExists("nobody")).toBe(false);
+  });
+});
+
+describe("Schutz vor Code-Raten über „Konto löschen“ hinweg (Google-Anmeldung)", () => {
+  it("zählt pro Google-Konto – unter dem Hash der Google-Kennung, nicht unter der uid", async () => {
+    const anna = await user("anna", { profileName: "Anna" });
+    await createGroup(anna, "Stammtisch");
+    const mallory = await googleUser("google-sub-mallory", "Mallory");
+
+    const miss = await callFailure(mallory, "joinGroup", { code: unknownCode(0) });
+
+    expect(miss.code).toBe("functions/not-found");
+    const attempts = await joinAttempts(googleThrottleKey("google-sub-mallory"));
+    expect(attempts).toMatchObject({ failures: 1 });
+    expectExpireAtOneHourAfterWindowStart(attempts);
+    expect(await joinAttempts(mallory.uid)).toBeUndefined();
+  });
+
+  it("die Sperre übersteht deleteAccount und die erneute Anmeldung mit demselben Google-Konto", async () => {
+    const anna = await user("anna", { profileName: "Anna" });
+    const group = await createGroup(anna, "Stammtisch");
+    const mallory = await googleUser("google-sub-mallory", "Mallory");
+    const key = googleThrottleKey("google-sub-mallory");
+    for (let i = 0; i < 10; i++) {
+      expect((await callFailure(mallory, "joinGroup", { code: unknownCode(i) })).code).toBe("functions/not-found");
+    }
+    const blockedAttempts = await joinAttempts(key);
+
+    expect(await deleteAccount(mallory)).toEqual({});
+
+    // Das Konto ist weg, der Zähler bleibt bis expireAt (danach löscht ihn die TTL-Richtlinie).
+    expect(await authUserExists(mallory.uid)).toBe(false);
+    expect(await joinAttempts(key)).toEqual(blockedAttempts);
+    // Mit dem alten, noch gültigen ID-Token: weiterhin gesperrt.
+    expect((await callFailure(mallory, "joinGroup", { code: group.inviteCode })).code).toBe(
+      "functions/resource-exhausted",
+    );
+    // Neu angemeldet: neue uid, aber dasselbe Google-Konto – weiterhin gesperrt, auch mit richtigem Code.
+    const again = await googleUser("google-sub-mallory", "Mallory");
+    expect(again.uid).not.toBe(mallory.uid);
+    const blocked = await callFailure(again, "joinGroup", { code: group.inviteCode });
+
+    expect(blocked.code).toBe("functions/resource-exhausted");
+    expect((await storedGroup(group.id))?.memberIds).toEqual(["anna"]);
+    expect((await joinAttempts(key))?.failures).toBe(10);
+  });
+
+  it("ein anderes Google-Konto hat seinen eigenen Zähler", async () => {
+    const anna = await user("anna", { profileName: "Anna" });
+    const group = await createGroup(anna, "Stammtisch");
+    const mallory = await googleUser("google-sub-mallory", "Mallory");
+    for (let i = 0; i < 10; i++) await callFailure(mallory, "joinGroup", { code: unknownCode(i) });
+
+    const bob = await googleUser("google-sub-bob", "Bob");
+    const joined = await joinGroup(bob, group.inviteCode);
+
+    expect(joined.members.map((member) => member.userId)).toEqual(["anna", bob.uid]);
+  });
+
+  it("deleteAccount löscht einen abgelaufenen Zähler des Google-Kontos sofort", async () => {
+    const mallory = await googleUser("google-sub-mallory", "Mallory");
+    const key = googleThrottleKey("google-sub-mallory");
+    await db.doc(`joinAttempts/${key}`).set({
+      windowStart: Timestamp.fromMillis(Date.now() - 61 * 60 * 1000),
+      failures: 10,
+      expireAt: Timestamp.fromMillis(Date.now() - 60 * 1000),
+    });
+
+    expect(await deleteAccount(mallory)).toEqual({});
+
+    expect(await joinAttempts(key)).toBeUndefined();
   });
 });

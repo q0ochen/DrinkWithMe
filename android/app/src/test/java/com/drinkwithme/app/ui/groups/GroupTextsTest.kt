@@ -60,6 +60,29 @@ class GroupTextsTest {
     }
 
     @Test
+    fun pastedInviteMessageIgnoresCodeLikeWordsInTheGroupName() {
+        // „Saufbude“ besteht nur aus Zeichen des Code-Alphabets und steht vor dem echten Code.
+        listOf("Die Saufbude Crew", "Saufbude", "Einladungscode: SAUFBUDE").forEach { name ->
+            val group = DrinkGroup("g1", name, InviteCode.parse("K7MX2QAB")!!, "u1", emptyList())
+            assertEquals("K7MX2QAB", InviteCodeText.sanitizeInput(GermanInviteMessageFormatter().message(group)), name)
+        }
+    }
+
+    @Test
+    fun codeAfterTheLabelMayBeFormattedOrSplit() {
+        assertEquals("K7MX2QAB", InviteCodeText.sanitizeInput("Saufbude! einladungscode: k7mx-2qab."))
+        assertEquals("K7MX2QAB", InviteCodeText.sanitizeInput("Saufbude Einladungscode: K7MX 2QAB"))
+        assertEquals("K7MX2QAB", InviteCodeText.sanitizeInput("Einladungscode:K7MX2QAB"))
+    }
+
+    @Test
+    fun withoutLabelOnlyAUniqueCandidateIsTaken() {
+        assertEquals("K7MX2QAB", InviteCodeText.sanitizeInput("Hier der Code: „K7MX2QAB“, bis gleich!"))
+        assertEquals("K7MX2QAB", InviteCodeText.sanitizeInput("K7MX2QAB oder K7MX-2QAB"))
+        assertEquals("", InviteCodeText.sanitizeInput("Komm in die Saufbude, Code K7MX2QAB"))
+    }
+
+    @Test
     fun sanitizedInputIsAcceptedByTheParser() {
         listOf("k7mx2qab", "K7MX-2QAB", " K7MX 2QAB ").forEach { raw ->
             assertEquals("K7MX2QAB", InviteCode.parse(InviteCodeText.sanitizeInput(raw))?.value, raw)

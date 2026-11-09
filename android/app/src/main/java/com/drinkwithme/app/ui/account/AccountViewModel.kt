@@ -3,6 +3,8 @@ package com.drinkwithme.app.ui.account
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.drinkwithme.app.social.AccountDeletion
+import com.drinkwithme.app.social.AccountDeletionState
 import com.drinkwithme.app.social.AccountService
 import com.drinkwithme.app.social.SignInCancelledException
 import com.drinkwithme.app.ui.common.userMessage
@@ -33,10 +35,16 @@ data class AccountUiState(
     val isAccountActionRunning: Boolean get() = isSigningOut || isDeletingAccount
 }
 
-/** Anmeldung und Konto – kennt nur den Port [CurrentUserProvider] und den [AccountService]. */
+/**
+ * Anmeldung und Konto – kennt nur den Port [CurrentUserProvider], den [AccountService] und die [AccountDeletion].
+ *
+ * Die Kontolöschung läuft App-weit (nicht im [viewModelScope]): Sie wird auch dann zu Ende geführt, wenn dieser
+ * Bildschirm schließt. Das ViewModel startet sie nur und zeigt ihren Stand an.
+ */
 class AccountViewModel(
     currentUserProvider: CurrentUserProvider,
     private val accountService: AccountService,
+    private val accountDeletion: AccountDeletion,
 ) : ViewModel() {
     private val _state = MutableStateFlow(AccountUiState())
     val state: StateFlow<AccountUiState> = _state.asStateFlow()
@@ -46,6 +54,9 @@ class AccountViewModel(
             currentUserProvider.currentUser
                 .catch { emit(null) }
                 .collect { user -> _state.update { it.copy(user = user, isCheckingUser = false) } }
+        }
+        viewModelScope.launch {
+            accountDeletion.state.collect { deletion -> showDeletion(deletion) }
         }
     }
 
@@ -88,15 +99,25 @@ class AccountViewModel(
     /** Löscht das Konto auf dem Server und meldet ab; bei einem Fehler bleibt man angemeldet und sieht die Meldung. */
     fun deleteAccount() {
         if (_state.value.isAccountActionRunning) return
+        // Sofort sperren (nicht erst, wenn der Stand ankommt), damit kein Abmelden dazwischenkommt.
         _state.update { it.copy(isDeletingAccount = true, errorMessage = null) }
-        viewModelScope.launch {
-            try {
-                accountService.deleteAccount()
-                _state.update { it.copy(isDeletingAccount = false, noticeMessage = ACCOUNT_DELETED) }
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (error: Exception) {
-                _state.update { it.copy(isDeletingAccount = false, errorMessage = error.userMessage(DELETE_FAILED)) }
+        accountDeletion.start()
+    }
+
+    /** Übernimmt den Stand der App-weiten Löschung; ein Ergebnis wird einmalig angezeigt und dann quittiert. */
+    private fun showDeletion(deletion: AccountDeletionState) {
+        when (deletion) {
+            AccountDeletionState.Idle -> _state.update { it.copy(isDeletingAccount = false) }
+            AccountDeletionState.Running -> _state.update { it.copy(isDeletingAccount = true) }
+            AccountDeletionState.Deleted -> {
+                _state.update { it.copy(isDeletingAccount = false, errorMessage = null, noticeMessage = ACCOUNT_DELETED) }
+                accountDeletion.resultShown()
+            }
+            is AccountDeletionState.Failed -> {
+                _state.update {
+                    it.copy(isDeletingAccount = false, errorMessage = deletion.error.userMessage(DELETE_FAILED))
+                }
+                accountDeletion.resultShown()
             }
         }
     }

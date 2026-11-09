@@ -11,8 +11,9 @@ firebase/
 ├── firebase.json            Regeln, Indizes, Functions (Quelle "functions", Build vor dem Deploy), Emulatoren
 ├── .firebaserc              Standardprojekt "demo-drinkwithme" (nur Platzhalter für die Emulatoren)
 ├── firestore.rules          Sicherheitsregeln
-├── firestore.indexes.json   keine zusammengesetzten Indizes; eine Feld-Ausnahme: Collection-Group-Index für
-│                            drinks.authorId (für deleteAccount) – die App kommt mit den automatischen Indizes aus
+├── firestore.indexes.json   keine zusammengesetzten Indizes; zwei Feld-Ausnahmen: Collection-Group-Index für
+│                            drinks.authorId (für deleteAccount) und TTL-Richtlinie für joinAttempts.expireAt
+│                            (ohne Index) – die App kommt mit den automatischen Indizes aus
 ├── package.json             Firebase CLI in fester Version (für Emulatoren und Deploy)
 └── functions/               Cloud Functions: TypeScript, Node 22, 2nd gen, Region europe-west3
     ├── src/
@@ -25,7 +26,7 @@ firebase/
     │   │                    GroupCleanup + FirestoreGroupCleanup (Getränke aufgelöster Runden)
     │   ├── accounts/        AccountService + FirestoreAccountService (Konto löschen), Auth-Adapter
     │   ├── notifications/   DrinkNotifier + Ports, FCM-Sender, Emulator-Sender, ungültige Tokens
-    │   ├── firestore/       Firestore-Adapter (Tokens, Runden, Profile, Sammlungsnamen)
+    │   ├── firestore/       Firestore-Adapter (Tokens, Runden, Profile, joinAttempts-Dokument, Sammlungsnamen)
     │   └── handlers/        Callable-Adapter: Anmeldung prüfen, Fehler in HttpsError übersetzen
     └── test/
         ├── unit/            Unit-Tests ohne Emulatoren (npm test)
@@ -50,19 +51,29 @@ Verlässt das letzte Mitglied die Runde, löscht die Transaktion Runde und Code;
 Trigger `onGroupDeleted` auf (wird bei Fehlern wiederholt, sodass nichts liegen bleibt). Verlässt der Besitzer
 die Runde, übernimmt das am längsten dabei gewesene Mitglied.
 
-**Schutz vor Code-Raten:** `joinGroup` zählt pro Nutzer unbekannte Codes in `joinAttempts/{uid}`
-(`windowStart`, `failures`; nur für die Functions zugänglich). Ab **10 Fehlversuchen innerhalb einer Stunde**
+**Schutz vor Code-Raten:** `joinGroup` zählt pro Google-Konto unbekannte Codes in `joinAttempts/{key}`
+(`windowStart`, `failures`, `expireAt`; nur für die Functions zugänglich). `key` ist der SHA-256 (hex) von
+`"google:" + sub` – `sub` ist die Google-Kennung aus `request.auth.token.firebase.identities["google.com"][0]`;
+ohne Google-Identität im Token (z. B. eigene Tokens im Emulator) ist `key` die uid. So bekommt auch ein Konto,
+das gelöscht und mit demselben Google-Konto neu angelegt wurde (neue uid), keinen frischen Zähler, und die
+Google-Kennung steht nicht im Klartext in der Datenbank. Ab **10 Fehlversuchen innerhalb einer Stunde**
 (festes Fenster ab dem ersten Fehlversuch) wird jeder weitere Versuch mit `resource-exhausted` abgelehnt –
 noch bevor der Code nachgeschlagen wird, also auch ein richtiger Code. Formatfehler zählen nicht, ein
 erfolgreicher Beitritt setzt den Zähler nicht zurück (sonst ließe er sich mit dem Code einer eigenen Runde
-zurücksetzen). Zusammen mit 31⁸ ≈ 8,5 · 10¹¹ möglichen Codes ist Raten damit aussichtslos.
+zurücksetzen). Mit jeder Änderung des Zählers wird `expireAt = windowStart + 1 h` geschrieben; die
+TTL-Richtlinie auf diesem Feld (`firestore.indexes.json`) lässt Firestore abgelaufene Zähler selbst löschen.
+Zusammen mit 31⁸ ≈ 8,5 · 10¹¹ möglichen Codes ist Raten damit aussichtslos.
 **App Check** wird bewusst nicht verwendet: Die App wird als APK direkt verteilt (nicht über Google Play),
 die Play-Integrity-Prüfung würde solche Installationen ablehnen.
 
 **Konto löschen (`deleteAccount`):** verlässt alle Runden (gleiche Logik wie `leaveGroup`), löscht danach
 per Collection-Group-Abfrage `drinks where authorId == uid` **alle** eigenen geteilten Getränke – auch in
-Runden, die man längst verlassen hat –, dann `users/{uid}` samt `tokens`, `joinAttempts/{uid}` und zuletzt
-den Firebase-Auth-Nutzer (ein bereits gelöschter Nutzer ist kein Fehler).
+Runden, die man längst verlassen hat –, dann `users/{uid}` samt `tokens` und zuletzt den Firebase-Auth-Nutzer
+(ein bereits gelöschter Nutzer ist kein Fehler). Den Zähler `joinAttempts/{key}` löscht es nur, wenn sein
+Fenster schon abgelaufen ist. Läuft das Fenster noch, bleibt er bis `expireAt` liegen (fehlt das Feld bei einem
+älteren Zähler, wird es nachgetragen) und wird dann per TTL gelöscht – sonst ließe sich die Sperre mit „Konto
+löschen und neu anmelden“ beliebig aufheben. Ein älterer Zähler unter der uid (aus der Zeit vor dem Schlüssel
+am Google-Konto) wird nicht mehr gelesen und deshalb immer gelöscht.
 
 **Push:** Reine Daten-Nachrichten (kein `notification`-Block), je Empfänger ein `sendEachForMulticast` an
 höchstens seine **5 neuesten** Tokens (`orderBy("updatedAt", "desc").limit(5)`), `android.priority = "high"`,
@@ -127,9 +138,11 @@ Die Emulator-Tests prüfen:
 - `firestore.rules.test.ts` – jede Regel mit erlaubten und verbotenen Fällen (`@firebase/rules-unit-testing`),
   u. a. Token-IDs, vertragsgemäße Getränke-IDs, „Besetzen“ fremder IDs, kein Zugriff auf `joinAttempts`,
 - `groupService.test.ts` – Code-Kollisionen, gleichzeitige Beitritte, Mitgliederlimit, Schutz vor Code-Raten mit
-  steuerbarer Uhr, `leaveAllGroups`, Aufräumen aufgelöster Runden, seitenweises Löschen beim Konto-Löschen,
+  steuerbarer Uhr (pro Google-Konto, `expireAt`), `leaveAllGroups`, Aufräumen aufgelöster Runden, seitenweises
+  Löschen beim Konto-Löschen (Zähler mit laufendem Fenster bleibt),
 - `callables.test.ts` – `createGroup`, `joinGroup`, `leaveGroup`, `deleteAccount` über den Functions-Emulator,
-  wie die App sie aufruft (inkl. Sperre nach 10 falschen Codes und Löschen des Auth-Nutzers),
+  wie die App sie aufruft (inkl. Sperre nach 10 falschen Codes, die auch `deleteAccount` und die erneute
+  Google-Anmeldung übersteht, und Löschen des Auth-Nutzers),
 - `drinkTrigger.test.ts` – `onGroupDrinkCreated` (je Empfänger eine Daten-Nachricht, höchstens 5 Tokens,
   Aufräumen ungültiger Tokens) und `onGroupDeleted` Ende-zu-Ende.
 
@@ -154,6 +167,12 @@ Wichtig für den Deploy:
 - `--force` löscht im Projekt Functions und Indizes, die hier nicht (mehr) definiert sind.
 - Der Collection-Group-Index für `drinks.authorId` wird beim Deploy mit `--only firestore` angelegt und ist nach
   einigen Minuten fertig; bis dahin scheitert `deleteAccount` (die App kann es einfach erneut versuchen).
+- Die **TTL-Richtlinie** für `joinAttempts.expireAt` legt derselbe Deploy an (`"ttl": true` in den
+  `fieldOverrides`; die Firebase CLI 15.35.0 unterstützt das). Ein Schritt in der Konsole ist nicht nötig.
+  Bis die Richtlinie aktiv ist, können einige Minuten vergehen; danach löscht Firestore abgelaufene Zähler
+  meist innerhalb von 24 Stunden nach `expireAt` (TTL-Löschungen sind nicht sofort). Kontrolle:
+  `gcloud firestore fields ttls list --project <PROJEKT-ID>` zeigt `joinAttempts` / `expireAt` mit Status
+  `ACTIVE` (oder Google Cloud Console → Firestore → „Time-to-live (TTL)“).
 - `deleteAccount` löscht den Auth-Nutzer mit dem Laufzeit-Dienstkonto der Functions
   (`PROJEKTNUMMER-compute@developer.gserviceaccount.com`); es braucht die Berechtigung
   `firebaseauth.users.delete` (in der Standardrolle „Editor“ enthalten).

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
@@ -52,6 +53,8 @@ function fcmToken(prefix: string): string {
 
 const ALICE_TOKEN = fcmToken("alice");
 const BOB_TOKEN = fcmToken("bob");
+/** Zähler gegen Code-Raten eines Google-Kontos: SHA-256 (hex) von "google:" + sub. */
+const ALICE_GOOGLE_KEY = createHash("sha256").update("google:alice-google-sub").digest("hex");
 
 // Je Test eigene Runden-IDs: Das Leeren des Emulators löst onGroupDeleted für die Runden des
 // vorigen Tests aus. Mit festen IDs könnte dieses verspätete Aufräumen die neu angelegten
@@ -73,6 +76,7 @@ beforeEach(async () => {
     [`users/alice/tokens/${ALICE_TOKEN}`]: { platform: "android", updatedAt: Timestamp.now() },
     "inviteCodes/K7MX2QAB": { groupId: g1 },
     "joinAttempts/alice": { windowStart: Timestamp.now(), failures: 3 },
+    [`joinAttempts/${ALICE_GOOGLE_KEY}`]: { windowStart: Timestamp.now(), failures: 10, expireAt: Timestamp.now() },
   });
 });
 
@@ -478,7 +482,7 @@ describe("groups/{groupId}/drinks/{docId} – Lesen, Ändern, Löschen", () => {
 
 // ---------- inviteCodes und alles andere ----------
 
-describe("inviteCodes/{code}, joinAttempts/{uid} und übrige Pfade", () => {
+describe("inviteCodes/{code}, joinAttempts/{key} und übrige Pfade", () => {
   it("verbietet jeden Client-Zugriff auf Einladungscodes", async () => {
     await assertFails(getDoc(doc(as("alice"), "inviteCodes/K7MX2QAB")));
     await assertFails(getDocs(collection(as("alice"), "inviteCodes")));
@@ -495,6 +499,14 @@ describe("inviteCodes/{code}, joinAttempts/{uid} und übrige Pfade", () => {
     await assertFails(deleteDoc(doc(as("alice"), "joinAttempts/alice")));
     await assertFails(setDoc(doc(as("bob"), "joinAttempts/bob"), { windowStart: Timestamp.now(), failures: 0 }));
     await assertFails(getDoc(doc(anonymous(), "joinAttempts/alice")));
+  });
+
+  it("verbietet auch den Zugriff auf Zähler unter dem Hash der Google-Kennung", async () => {
+    const path = `joinAttempts/${ALICE_GOOGLE_KEY}`;
+    await assertFails(getDoc(doc(as("alice"), path)));
+    await assertFails(updateDoc(doc(as("alice"), path), { failures: 0 }));
+    await assertFails(deleteDoc(doc(as("alice"), path)));
+    await assertFails(setDoc(doc(as("alice"), path), { windowStart: Timestamp.now(), failures: 0 }));
   });
 
   it("verbietet alle anderen Pfade", async () => {

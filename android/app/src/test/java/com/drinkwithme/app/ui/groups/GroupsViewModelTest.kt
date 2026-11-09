@@ -77,14 +77,14 @@ class GroupsViewModelTest {
 
         viewModel.create("Neu")
 
-        assertTrue(viewModel.state.value.closeDialog)
+        assertEquals(GroupDialog.CREATE, viewModel.state.value.closeDialog)
         assertFalse(viewModel.state.value.isWorking)
         assertEquals(true, viewModel.state.value.message?.contains("„Neu“"))
         assertEquals(true, viewModel.state.value.message?.contains("K7MX-2QAB"))
-        assertNull(viewModel.state.value.dialogErrorMessage)
+        assertNull(viewModel.state.value.dialogError)
 
         viewModel.dialogClosed()
-        assertFalse(viewModel.state.value.closeDialog)
+        assertNull(viewModel.state.value.closeDialog)
     }
 
     @Test
@@ -102,7 +102,7 @@ class GroupsViewModelTest {
         advanceTimeBy(10_000)
         backgroundScope.launch { viewModel.state.collect {} }
 
-        assertTrue(viewModel.state.value.closeDialog)
+        assertEquals(GroupDialog.CREATE, viewModel.state.value.closeDialog)
     }
 
     @Test
@@ -111,7 +111,7 @@ class GroupsViewModelTest {
 
         viewModel.join("K7MX2QAB")
 
-        assertTrue(viewModel.state.value.closeDialog)
+        assertEquals(GroupDialog.JOIN, viewModel.state.value.closeDialog)
         assertEquals("Willkommen in der Runde „Beigetreten“!", viewModel.state.value.message)
     }
 
@@ -122,8 +122,10 @@ class GroupsViewModelTest {
 
         viewModel.create(" ")
 
-        assertFalse(viewModel.state.value.closeDialog)
-        assertEquals("Bitte gib der Runde einen Namen.", viewModel.state.value.dialogErrorMessage)
+        assertNull(viewModel.state.value.closeDialog)
+        assertEquals("Bitte gib der Runde einen Namen.", viewModel.state.value.dialogErrorFor(GroupDialog.CREATE))
+        assertNull(viewModel.state.value.dialogErrorFor(GroupDialog.JOIN), "Nur im auslösenden Dialog.")
+        assertNull(viewModel.state.value.message)
     }
 
     @Test
@@ -133,8 +135,9 @@ class GroupsViewModelTest {
 
         viewModel.join("K7MX2QAB")
 
-        assertFalse(viewModel.state.value.closeDialog)
-        assertEquals("Zu diesem Code gibt es keine Runde.", viewModel.state.value.dialogErrorMessage)
+        assertNull(viewModel.state.value.closeDialog)
+        assertEquals("Zu diesem Code gibt es keine Runde.", viewModel.state.value.dialogErrorFor(GroupDialog.JOIN))
+        assertNull(viewModel.state.value.dialogErrorFor(GroupDialog.CREATE))
     }
 
     @Test
@@ -144,7 +147,52 @@ class GroupsViewModelTest {
 
         viewModel.join("K7MX2QAB")
 
-        assertEquals(false, viewModel.state.value.dialogErrorMessage?.contains("socket"))
+        assertEquals(false, viewModel.state.value.dialogErrorFor(GroupDialog.JOIN)?.contains("socket"))
+    }
+
+    @Test
+    fun resultOfACreateStartedEarlierDoesNotCloseTheJoinDialog() = runTest(dispatcher) {
+        backgroundScope.launch { viewModel.state.collect {} }
+        val pending = CompletableDeferred<DrinkGroup>()
+        createResult = { pending.await() }
+
+        viewModel.create("Neu")
+        viewModel.dialogDismissed(GroupDialog.CREATE) // „Abbrechen“, während der Server noch arbeitet
+        viewModel.dialogOpened() // Beitreten-Dialog geöffnet
+        pending.complete(group("Neu"))
+
+        assertNull(viewModel.state.value.closeDialog, "Der Beitreten-Dialog bleibt offen.")
+        assertFalse(viewModel.state.value.isWorking)
+        assertEquals(true, viewModel.state.value.message?.contains("„Neu“"))
+    }
+
+    @Test
+    fun errorOfAClosedDialogGoesToTheSnackbar() = runTest(dispatcher) {
+        backgroundScope.launch { viewModel.state.collect {} }
+        val pending = CompletableDeferred<DrinkGroup>()
+        createResult = { pending.await() }
+
+        viewModel.create("Neu")
+        viewModel.dialogDismissed(GroupDialog.CREATE)
+        viewModel.dialogOpened()
+        pending.completeExceptionally(SocialValidationException.EmptyGroupName)
+
+        assertNull(viewModel.state.value.dialogError, "Kein Fehler im Beitreten-Dialog.")
+        assertEquals("Bitte gib der Runde einen Namen.", viewModel.state.value.message)
+        assertNull(viewModel.state.value.closeDialog)
+    }
+
+    @Test
+    fun dismissingADialogDropsItsErrorButNotThatOfTheOther() = runTest(dispatcher) {
+        backgroundScope.launch { viewModel.state.collect {} }
+        joinResult = { throw GroupNotFoundException() }
+        viewModel.join("K7MX2QAB")
+
+        viewModel.dialogDismissed(GroupDialog.CREATE)
+        assertEquals("Zu diesem Code gibt es keine Runde.", viewModel.state.value.dialogErrorFor(GroupDialog.JOIN))
+
+        viewModel.dialogDismissed(GroupDialog.JOIN)
+        assertNull(viewModel.state.value.dialogError)
     }
 
     @Test

@@ -120,14 +120,15 @@ private fun GroupsContent(
         }
     }
 
-    // Erstellen/Beitreten hat geklappt: Der Dialog wird hier – im aktuellen Bildschirm – geschlossen. So klappt das
-    // auch, wenn das Gerät währenddessen gedreht wurde (kein Rückruf in eine alte Oberfläche).
+    // Erstellen/Beitreten hat geklappt: Der auslösende Dialog wird hier – im aktuellen Bildschirm – geschlossen. So
+    // klappt das auch, wenn das Gerät währenddessen gedreht wurde (kein Rückruf in eine alte Oberfläche).
     LaunchedEffect(state.closeDialog) {
-        if (state.closeDialog) {
-            showCreateDialog = false
-            showJoinDialog = false
-            viewModel.dialogClosed()
+        when (state.closeDialog) {
+            GroupDialog.CREATE -> showCreateDialog = false
+            GroupDialog.JOIN -> showJoinDialog = false
+            null -> return@LaunchedEffect
         }
+        viewModel.dialogClosed()
     }
 
     LazyColumn(
@@ -137,11 +138,11 @@ private fun GroupsContent(
         item {
             GroupActions(
                 onCreate = {
-                    viewModel.clearDialogError()
+                    viewModel.dialogOpened()
                     showCreateDialog = true
                 },
                 onJoin = {
-                    viewModel.clearDialogError()
+                    viewModel.dialogOpened()
                     showJoinDialog = true
                 },
             )
@@ -186,17 +187,23 @@ private fun GroupsContent(
     if (showCreateDialog) {
         CreateGroupDialog(
             isWorking = state.isWorking,
-            errorMessage = state.dialogErrorMessage,
+            errorMessage = state.dialogErrorFor(GroupDialog.CREATE),
             onCreate = viewModel::create,
-            onDismiss = { showCreateDialog = false },
+            onDismiss = {
+                showCreateDialog = false
+                viewModel.dialogDismissed(GroupDialog.CREATE)
+            },
         )
     }
     if (showJoinDialog) {
         JoinGroupDialog(
             isWorking = state.isWorking,
-            errorMessage = state.dialogErrorMessage,
+            errorMessage = state.dialogErrorFor(GroupDialog.JOIN),
             onJoin = viewModel::join,
-            onDismiss = { showJoinDialog = false },
+            onDismiss = {
+                showJoinDialog = false
+                viewModel.dialogDismissed(GroupDialog.JOIN)
+            },
         )
     }
     state.groups.firstOrNull { it.id == groupIdToLeave }?.let { group ->

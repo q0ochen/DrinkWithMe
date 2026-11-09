@@ -20,6 +20,9 @@ class SocialModule(
     val feedReader: FeedReader,
     val drinkPublisher: DrinkPublisher,
     val pushTokenRegistrar: PushTokenRegistrar,
-    /** Holt im abgemeldeten Zustand gelöschte geteilte Getränke beim nächsten Anmelden nach. */
+    /**
+     * Holt vorgemerkte Löschungen geteilter Getränke (abgemeldet, offline oder unter einem anderen Konto gelöscht)
+     * beim nächsten Anmelden des teilenden Kontos nach.
+     */
     val pendingUnpublishSync: PendingUnpublishSync,
 )

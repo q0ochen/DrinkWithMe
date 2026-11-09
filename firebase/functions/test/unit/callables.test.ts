@@ -7,6 +7,7 @@ import type { GroupDto } from "../../src/domain/group";
 import type { Caller, GroupService } from "../../src/groups/groupService";
 import {
   INTERNAL_ERROR_MESSAGE,
+  callerOf,
   createGroupHandler,
   deleteAccountHandler,
   joinGroupHandler,
@@ -67,6 +68,11 @@ function request(data: unknown, auth?: { uid: string; name?: string }): Callable
     rawRequest: {},
     acceptsStreaming: false,
   } as unknown as CallableRequest<unknown>;
+}
+
+/** Eine Anfrage mit frei gewähltem ID-Token-Inhalt (z. B. `firebase.identities`). */
+function requestWithToken(uid: string, token: Record<string, unknown>): CallableRequest<unknown> {
+  return { data: {}, auth: { uid, token }, rawRequest: {}, acceptsStreaming: false } as unknown as CallableRequest<unknown>;
 }
 
 async function rejection(promise: Promise<unknown>): Promise<HttpsError> {
@@ -147,6 +153,42 @@ describe("Callable-Handler", () => {
     }
     expect(service.calls).toEqual([]);
     expect(accounts.callers).toEqual([]);
+  });
+
+  it("übernimmt die Google-Kennung aus dem ID-Token (Schlüssel des Schutzes vor Code-Raten)", async () => {
+    const service = new FakeGroupService();
+    const googleToken = {
+      name: "Bob",
+      firebase: {
+        sign_in_provider: "google.com",
+        identities: { "google.com": ["109876543210987654321"], email: ["bob@example.com"] },
+      },
+    };
+
+    await joinGroupHandler(service, new RecordingLogger())({
+      ...requestWithToken("bob", googleToken),
+      data: { code: "K7MX2QAB" },
+    });
+
+    expect(service.calls).toEqual([
+      {
+        method: "joinGroup",
+        caller: { uid: "bob", tokenName: "Bob", googleSubject: "109876543210987654321" },
+        input: "K7MX2QAB",
+      },
+    ]);
+  });
+
+  it.each([
+    ["ohne firebase-Block", {}],
+    ["ohne Google-Identität (z. B. eigenes Token)", { firebase: { identities: { email: ["bob@example.com"] } } }],
+    ["mit leerer Liste", { firebase: { identities: { "google.com": [] } } }],
+    ["mit leerer Kennung", { firebase: { identities: { "google.com": [""] } } }],
+    ["mit Zahl statt Text", { firebase: { identities: { "google.com": [42] } } }],
+    ["mit Text statt Liste", { firebase: { identities: { "google.com": "109876543210987654321" } } }],
+    ["mit identities = null", { firebase: { identities: null } }],
+  ])("lässt die Google-Kennung %s weg (Zähler dann pro uid)", (_, token) => {
+    expect(callerOf(requestWithToken("bob", token))).toEqual({ uid: "bob" });
   });
 
   it("übergibt fehlende Felder als undefined (Validierung im Service)", async () => {

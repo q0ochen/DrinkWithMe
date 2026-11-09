@@ -68,9 +68,14 @@ groups/{groupId}/drinks/{authorId}_{drinkId}   – vom Client erstellt
 inviteCodes/{code}                   – NUR Cloud Functions; kein Client-Zugriff
   groupId: string
 
-joinAttempts/{uid}                   – NUR Cloud Functions; kein Client-Zugriff (Schutz vor Code-Raten)
+joinAttempts/{key}                   – NUR Cloud Functions; kein Client-Zugriff (Schutz vor Code-Raten)
+                                     key = SHA-256 (hex) von "google:" + Google-sub
+                                     (request.auth.token.firebase.identities["google.com"][0]); ohne Google-Identität
+                                     die uid – so überdauert der Zähler „Konto löschen + neu anmelden“ (neue uid)
   windowStart: timestamp
   failures:    int
+  expireAt:    timestamp (== windowStart + 1 h, mit jeder Änderung geschrieben; TTL-Richtlinie in
+               firestore.indexes.json → Firestore löscht abgelaufene Zähler selbst)
 ```
 
 Kategorien: `WATER, COFFEE, TEA, JUICE, SOFT_DRINK, BEER, WINE, COCKTAIL, OTHER`.
@@ -96,9 +101,9 @@ Aufrufbare Funktionen (`onCall`, Anmeldung erforderlich, sonst `unauthenticated`
 | Name | Eingabe | Antwort | Fehler |
 |---|---|---|---|
 | `createGroup` | `{ name: string }` | `{ group: GroupDto }` | `invalid-argument` (Name leer/> 30) |
-| `joinGroup` | `{ code: string }` | `{ group: GroupDto }` | `invalid-argument` (Format), `not-found` (unbekannter Code), `failed-precondition` (Runde voll: 50 Mitglieder), `resource-exhausted` (zu viele falsche Codes: ab 10 Fehlversuchen pro Nutzer innerhalb 1 Stunde) |
+| `joinGroup` | `{ code: string }` | `{ group: GroupDto }` | `invalid-argument` (Format), `not-found` (unbekannter Code), `failed-precondition` (Runde voll: 50 Mitglieder), `resource-exhausted` (zu viele falsche Codes: ab 10 Fehlversuchen pro Nutzer – Google-Konto, sonst uid – innerhalb 1 Stunde) |
 | `leaveGroup` | `{ groupId: string }` | `{}` | idempotent; verlässt das letzte Mitglied die Runde, werden Runde und Code in der Transaktion gelöscht (die Getränke räumt der Trigger `onGroupDeleted` auf); verlässt der Besitzer, wird `ownerId` an ein verbleibendes Mitglied übertragen |
-| `deleteAccount` | `{}` | `{}` | Timeout 540 s (App wartet ebenso lange); idempotent; verlässt alle Runden (gleiche Logik wie `leaveGroup`), löscht **alle** eigenen geteilten Getränke in allen Runden (Collection-Group-Abfrage `drinks where authorId == uid`), `users/{uid}` samt `tokens`, `joinAttempts/{uid}` und zuletzt den Firebase-Auth-Nutzer |
+| `deleteAccount` | `{}` | `{}` | Timeout 540 s (App wartet ebenso lange); idempotent; verlässt alle Runden (gleiche Logik wie `leaveGroup`), löscht **alle** eigenen geteilten Getränke in allen Runden (Collection-Group-Abfrage `drinks where authorId == uid`), `users/{uid}` samt `tokens`, `joinAttempts/{key}` **nur bei abgelaufenem Fenster** (läuft es noch, bleibt der Zähler bis `expireAt` und wird per TTL gelöscht – sonst hebt „Konto löschen + neu anmelden“ die Sperre auf; ein alter Zähler unter `joinAttempts/{uid}` wird immer gelöscht) und zuletzt den Firebase-Auth-Nutzer |
 
 `GroupDto = { id, name, inviteCode, ownerId, members: [{ userId, displayName }] }`.
 Anzeigename eines Mitglieds: `users/{uid}.displayName`, sonst `request.auth.token.name`, sonst `"Unbekannt"`.
@@ -141,9 +146,12 @@ löscht die Unter-Sammlung `drinks` vollständig (`recursiveDelete`); idempotent
   passender `recipientId`), Kanal `"drinks"`, Laufzeit-Berechtigung `POST_NOTIFICATIONS` (Android 13+).
 - Abmelden: Token-Dokument löschen **ohne** auf die Server-Bestätigung zu warten, dann immer
   `FirebaseMessaging.deleteToken()` (eigener Timeout), dann Firebase-Abmeldung.
-- Löschen eines geteilten Getränks im abgemeldeten Zustand: die Drink-ID wird zusammen mit der Nutzer-ID lokal
-  vorgemerkt und beim nächsten Anmelden **desselben** Nutzers aus seinen Runden entfernt.
-- Konto löschen: Karte „Konto“ → „Konto löschen“ (mit Bestätigung) → Callable `deleteAccount` → Abmelden.
+- Autor eines geteilten Getränks: Beim Teilen wird lokal `drinkId → authorId` gespeichert (vor dem Batch-Commit,
+  höchstens 500 Einträge). Beim Löschen eines geteilten Getränks wird sofort entfernt, wenn der Autor angemeldet ist;
+  sonst (abgemeldet oder anderes Konto angemeldet) wird `(authorId, drinkId)` lokal vorgemerkt und beim nächsten
+  Anmelden **des Autors** aus seinen Runden entfernt. Ohne bekannten Autor: aktueller bzw. zuletzt angemeldeter Nutzer.
+- Konto löschen: Karte „Konto“ → „Konto löschen“ (mit Bestätigung) → Callable `deleteAccount` → lokales Aufräumen →
+  Abmelden; läuft im anwendungsweiten Scope, damit es auch nach Schließen des Bildschirms fertig wird.
   Lokale Getränke bleiben auf dem Gerät.
 - Zustände der Trinkrunden-ViewModels sind an die Nutzer-ID gebunden (kein Anzeigen alter Daten nach Kontowechsel).
 - Signatur: fester Debug-Schlüssel `android/app/debug.keystore` – in Firebase als SHA-1/SHA-256 hinterlegen:

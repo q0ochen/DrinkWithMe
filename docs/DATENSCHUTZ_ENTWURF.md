@@ -63,9 +63,11 @@ Menge, optionale Notiz, Zeitpunkt, Einstellung „Privat“). Diese Daten werden
   Anmeldung und keine Trinkrunden und überträgt keine Daten an Server.
 
 Hast du die Trinkrunden genutzt, speichert die Android-App außerdem lokal, welches Konto zuletzt angemeldet war
-(die Nutzer-ID), und gegebenenfalls eine Liste geteilter Getränke, die du abgemeldet oder ohne Internet gelöscht
-hast und die noch aus deinen Runden entfernt werden müssen (siehe Abschnitt 7). Auch diese Angaben bleiben auf
-deinem Gerät.
+(die Nutzer-ID), zu jedem geteilten Getränk die Nutzer-ID des Kontos, mit dem du es geteilt hast (damit es beim
+Löschen auch nach einem Kontowechsel aus den richtigen Runden entfernt wird), und gegebenenfalls eine Liste geteilter
+Getränke, die du abgemeldet, mit einem anderen Konto oder ohne Internet gelöscht hast und die noch aus den Runden
+entfernt werden müssen (siehe Abschnitt 7). Auch diese Angaben bleiben auf deinem Gerät; löschst du dein Konto,
+entfernt die App die Nutzer-ID dieses Kontos daraus.
 
 ### 3.2 Anmeldung mit Google (nur für Trinkrunden, Android)
 
@@ -99,10 +101,12 @@ Wer den Einladungscode kennt, kann der Runde beitreten – gib ihn also nur an P
 Getränke sehen dürfen. Eine Runde hat höchstens 50 Mitglieder.
 
 **Schutz vor dem Erraten von Codes:** Gibst du beim Beitreten einen Code ein, zu dem es keine Runde gibt,
-speichern wir zu deiner Nutzer-ID die Zahl dieser Fehlversuche und den Beginn des laufenden Zeitfensters von
-einer Stunde. Nach 10 Fehlversuchen innerhalb dieser Stunde kannst du bis zum Ende des Zeitfensters keiner
-Runde beitreten. Der Eintrag wird beim nächsten Fehlversuch nach Ablauf der Stunde neu begonnen und mit
-deinem Konto gelöscht.
+speichern wir die Zahl dieser Fehlversuche, den Beginn des laufenden Zeitfensters von einer Stunde und dessen
+Ablaufzeitpunkt. Der Eintrag ist nicht unter deinem Namen oder deiner E-Mail-Adresse abgelegt, sondern unter
+einem nicht umkehrbaren Hashwert (SHA-256) deiner Google-Konto-Kennung – so greift die Sperre auch dann, wenn
+jemand sein Konto löscht und sich sofort neu anmeldet. Nach 10 Fehlversuchen innerhalb dieser Stunde kannst du
+bis zum Ende des Zeitfensters keiner Runde beitreten. Nach Ablauf der Stunde löscht die Datenbank den Eintrag
+automatisch (in der Regel innerhalb von 24 Stunden danach).
 
 ### 3.4 Geteilte Getränke
 
@@ -196,8 +200,10 @@ gespeichert und nach etwa **30 Tagen** automatisch gelöscht. [Prüfen: Standard
   die Runde und ihr Einladungscode sofort und alle darin geteilten Getränke kurz danach automatisch gelöscht.
 - **Konto und Profil (Name, Profilbild-URL):** bis zur Löschung deines Kontos.
 - **Push-Tokens:** bis zum Abmelden, bis sie ungültig werden oder bis zur Löschung deines Kontos.
-- **Zähler für falsche Einladungscodes:** wird nach Ablauf der Stunde beim nächsten Fehlversuch neu begonnen
-  und spätestens mit deinem Konto gelöscht.
+- **Zähler für falsche Einladungscodes:** höchstens eine Stunde ab dem ersten Fehlversuch; danach löscht die
+  Datenbank ihn automatisch (in der Regel innerhalb von 24 Stunden). Löschst du dein Konto, wird ein abgelaufener
+  Zähler sofort gelöscht; ein noch laufender bleibt bis zu seinem Ablauf bestehen, damit die Sperre nicht durch
+  Konto-Löschen umgangen werden kann.
 - **Vorgemerkte Löschungen auf deinem Gerät** (siehe Abschnitt 7): bis sie beim nächsten Anmelden erledigt
   sind, bis du dein Konto löschst oder die App deinstallierst.
 - **Protokolle:** etwa 30 Tage, siehe Abschnitt 3.6.
@@ -230,11 +236,11 @@ Du hast es weitgehend selbst in der Hand:
 
 | Was du tun willst | So geht's |
 |---|---|
-| Ein geteiltes Getränk entfernen | Das Getränk in „Meine Getränke“ **löschen** – es wird auch aus allen Runden entfernt, in denen du gerade Mitglied bist. Bist du dabei **abgemeldet** (oder ohne Internet), merkt sich die App das Getränk zusammen mit deiner Nutzer-ID auf deinem Gerät und entfernt es aus deinen Runden, sobald du wieder **mit demselben Konto** angemeldet bist und Internet hast. |
+| Ein geteiltes Getränk entfernen | Das Getränk in „Meine Getränke“ **löschen** – es wird auch aus allen Runden entfernt, in denen du mit dem Konto, mit dem du es geteilt hast, gerade Mitglied bist. Ist dieses Konto dabei **nicht angemeldet** (du bist abgemeldet oder mit einem anderen Konto angemeldet) oder bist du ohne Internet, merkt sich die App das Getränk zusammen mit der Nutzer-ID dieses Kontos auf deinem Gerät und entfernt es aus dessen Runden, sobald du wieder **mit diesem Konto** angemeldet bist und Internet hast. |
 | Eine Runde verlassen | Im Reiter „Runden“ die Runde **verlassen**. **Achtung:** Deine bisher dort geteilten Getränke bleiben für die übrigen Mitglieder sichtbar. Willst du sie entfernen, **lösche sie vor dem Verlassen** – oder lösche später dein Konto, dann werden sie überall entfernt. |
 | Keine Push-Nachrichten mehr | In der App **abmelden** (das Push-Token wird gelöscht und ungültig gemacht; die App zeigt danach keine Nachrichten für dein Konto mehr an, siehe Abschnitt 3.5) oder in den Android-Einstellungen die Benachrichtigungen ausschalten. |
 | Alle lokalen Daten löschen | Die App deinstallieren oder in den Android-Einstellungen die App-Daten löschen. |
-| **Dein Konto komplett löschen** | **Direkt in der App:** Reiter „Runden“ → ganz unten in der Karte „Konto“ → **„Konto löschen“** → bestätigen. Gelöscht werden sofort: deine Anmeldung (Firebase-Konto mit E-Mail-Adresse), dein Profil, deine Push-Tokens, deine Mitgliedschaften in allen Runden, **alle** Getränke, die du geteilt hast – auch in Runden, die du schon verlassen hast –, und der Zähler für falsche Einladungscodes. Warst du das letzte Mitglied einer Runde, wird die Runde aufgelöst. Danach wirst du abgemeldet. Deine Getränke unter „Meine Getränke“ bleiben **auf deinem Gerät**; sie verschwinden, wenn du die App deinstallierst. |
+| **Dein Konto komplett löschen** | **Direkt in der App:** Reiter „Runden“ → ganz unten in der Karte „Konto“ → **„Konto löschen“** → bestätigen. Gelöscht werden sofort: deine Anmeldung (Firebase-Konto mit E-Mail-Adresse), dein Profil, deine Push-Tokens, deine Mitgliedschaften in allen Runden, **alle** Getränke, die du geteilt hast – auch in Runden, die du schon verlassen hast. Ein noch laufender Zähler für falsche Einladungscodes bleibt bis zum Ende seiner Stunde bestehen und wird dann automatisch gelöscht (siehe Abschnitt 3.3). Warst du das letzte Mitglied einer Runde, wird die Runde aufgelöst. Danach wirst du abgemeldet. Deine Getränke unter „Meine Getränke“ bleiben **auf deinem Gerät**; sie verschwinden, wenn du die App deinstallierst. |
 | Konto löschen ohne App | Schreib eine E-Mail an **[kontakt@beispiel.de]** mit der E-Mail-Adresse deines Google-Kontos. Wir löschen dann dieselben Daten wie die Funktion in der App, in der Regel innerhalb von [30] Tagen, und bestätigen dir die Löschung. [Für den Play Store: Link zur Lösch-Webseite ergänzen, siehe Checkliste.] |
 
 Nicht sofort gelöscht werden die Server-Protokolle (Abschnitt 3.6) – sie verfallen nach etwa 30 Tagen – sowie

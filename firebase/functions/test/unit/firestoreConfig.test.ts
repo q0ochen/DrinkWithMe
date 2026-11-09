@@ -9,6 +9,7 @@ const FIREBASE_DIR = resolve(__dirname, "../../..");
 interface FieldOverride {
   collectionGroup: string;
   fieldPath: string;
+  ttl?: boolean;
   indexes: { order?: string; arrayConfig?: string; queryScope?: string }[];
 }
 
@@ -36,6 +37,22 @@ describe("firestore.indexes.json", () => {
         { arrayConfig: "CONTAINS", queryScope: "COLLECTION" },
       ]),
     );
+  });
+
+  it("löscht abgelaufene Zähler gegen Code-Raten per TTL-Richtlinie auf joinAttempts.expireAt", () => {
+    const expireAt = spec.fieldOverrides.find(
+      (field) => field.collectionGroup === "joinAttempts" && field.fieldPath === "expireAt",
+    );
+
+    expect(expireAt?.ttl).toBe(true);
+    // Firestore empfiehlt, das TTL-Feld nicht zu indizieren (stetig wachsende Zeitstempel).
+    expect(expireAt?.indexes).toEqual([]);
+  });
+
+  it("schaltet keine TTL-Richtlinie für andere Felder ein", () => {
+    const ttlFields = spec.fieldOverrides.filter((field) => field.ttl === true).map((field) => field.fieldPath);
+
+    expect(ttlFields).toEqual(["expireAt"]);
   });
 
   it("braucht keine zusammengesetzten Indizes", () => {

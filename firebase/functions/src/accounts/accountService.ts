@@ -5,8 +5,10 @@ export interface AccountService {
   /**
    * Löscht alles, was der Server über den Aufrufer speichert – idempotent, ein erneuter Aufruf
    * räumt Reste auf: alle Runden verlassen, alle eigenen geteilten Getränke in allen Runden
-   * (auch in bereits verlassenen), `users/{uid}` samt `tokens`, `joinAttempts/{uid}` und
-   * zuletzt den Firebase-Auth-Nutzer.
+   * (auch in bereits verlassenen), `users/{uid}` samt `tokens`, den Zähler `joinAttempts/{key}`
+   * (nur mit abgelaufenem Fenster – ein laufendes Fenster bleibt bis `expireAt` und wird dann per
+   * TTL gelöscht, damit „Konto löschen“ die Sperre gegen Code-Raten nicht aufhebt) und zuletzt den
+   * Firebase-Auth-Nutzer.
    */
   deleteAccount(caller: Caller): Promise<void>;
 }

@@ -1,16 +1,12 @@
 package com.drinkwithme.app.social
 
-/** Lokale Daten, die zu einer Nutzer-ID gehören und beim Löschen des Kontos mit verschwinden. */
-fun interface LocalUserDataEraser {
-    fun eraseUser(userId: String)
-}
-
 /**
  * Vorgemerkte Löschungen geteilter Getränke (Nutzer-ID + Drink-ID).
  *
- * Wird ein geteiltes Getränk im abgemeldeten Zustand gelöscht, fehlt die Berechtigung, es aus den Runden
- * zu entfernen. Es wird dann für den zuletzt angemeldeten Nutzer vorgemerkt und beim nächsten Anmelden
- * **desselben** Nutzers nachgeholt (siehe [PendingUnpublishSync]).
+ * Aus den Runden entfernen darf ein geteiltes Getränk nur das Konto, das es geteilt hat. Wird es gelöscht,
+ * während dieses Konto nicht angemeldet ist (abgemeldet oder ein anderes Konto angemeldet), wird es für dieses
+ * Konto vorgemerkt und beim nächsten Anmelden **desselben** Kontos nachgeholt (siehe [PendingUnpublishSync]).
+ * Ist das teilende Konto unbekannt, gilt das zuletzt angemeldete ([addForLastSignedInUser]).
  */
 interface PendingUnpublishStore : LocalUserDataEraser {
     /** Zuletzt angemeldeter Nutzer – bleibt auch nach dem Abmelden bekannt. */
@@ -31,14 +27,6 @@ interface PendingUnpublishStore : LocalUserDataEraser {
     fun remove(userId: String, drinkId: String)
 }
 
-/** Minimaler Schlüssel-Wert-Speicher (auf Android: SharedPreferences) – so bleibt die Logik ohne Android testbar. */
-interface KeyValueStorage {
-    fun getString(key: String): String?
-
-    /** `null` entfernt den Eintrag. */
-    fun putString(key: String, value: String?)
-}
-
 /**
  * [PendingUnpublishStore] in einem [KeyValueStorage]: eine Zeile je Eintrag, `Nutzer-ID<TAB>Drink-ID`.
  * Höchstens [maximumEntries] Einträge (die ältesten fallen weg), damit der Speicher nicht unbegrenzt wächst.
@@ -48,21 +36,25 @@ class StoredPendingUnpublishStore(
     private val maximumEntries: Int = DEFAULT_MAXIMUM_ENTRIES,
 ) : PendingUnpublishStore {
 
+    /** Paare `Nutzer-ID to Drink-ID`. */
+    private val entries = StoredPairList(storage, KEY_ENTRIES)
+
     @Synchronized
-    override fun lastSignedInUserId(): String? = storage.getString(KEY_LAST_USER)?.takeIf { isStorable(it) }
+    override fun lastSignedInUserId(): String? =
+        storage.getString(KEY_LAST_USER)?.takeIf { StoredPairList.isStorable(it) }
 
     @Synchronized
     override fun rememberSignedInUser(userId: String) {
-        if (isStorable(userId) && lastSignedInUserId() != userId) storage.putString(KEY_LAST_USER, userId)
+        if (StoredPairList.isStorable(userId) && lastSignedInUserId() != userId) storage.putString(KEY_LAST_USER, userId)
     }
 
     @Synchronized
     override fun add(userId: String, drinkId: String) {
-        if (!isStorable(userId) || !isStorable(drinkId)) return
-        val entry = Entry(userId, drinkId)
-        val entries = readEntries()
-        if (entry in entries) return
-        writeEntries((entries + entry).takeLast(maximumEntries))
+        if (!StoredPairList.isStorable(userId) || !StoredPairList.isStorable(drinkId)) return
+        val entry = userId to drinkId
+        val current = entries.read()
+        if (entry in current) return
+        entries.write((current + entry).takeLast(maximumEntries))
     }
 
     @Synchronized
@@ -74,47 +66,26 @@ class StoredPendingUnpublishStore(
 
     @Synchronized
     override fun drinkIdsFor(userId: String): List<String> =
-        readEntries().filter { it.userId == userId }.map { it.drinkId }
+        entries.read().filter { (entryUserId, _) -> entryUserId == userId }.map { (_, drinkId) -> drinkId }
 
     @Synchronized
     override fun remove(userId: String, drinkId: String) {
-        val entries = readEntries()
-        val remaining = entries - Entry(userId, drinkId)
-        if (remaining.size != entries.size) writeEntries(remaining)
+        val current = entries.read()
+        val remaining = current - (userId to drinkId)
+        if (remaining.size != current.size) entries.write(remaining)
     }
 
     @Synchronized
     override fun eraseUser(userId: String) {
-        val entries = readEntries()
-        val remaining = entries.filterNot { it.userId == userId }
-        if (remaining.size != entries.size) writeEntries(remaining)
+        val current = entries.read()
+        val remaining = current.filterNot { (entryUserId, _) -> entryUserId == userId }
+        if (remaining.size != current.size) entries.write(remaining)
         if (lastSignedInUserId() == userId) storage.putString(KEY_LAST_USER, null)
     }
-
-    private fun readEntries(): List<Entry> =
-        storage.getString(KEY_ENTRIES).orEmpty()
-            .split(LINE_SEPARATOR)
-            .mapNotNull { line ->
-                val parts = line.split(FIELD_SEPARATOR)
-                if (parts.size == 2 && parts.all { isStorable(it) }) Entry(parts[0], parts[1]) else null
-            }
-
-    private fun writeEntries(entries: List<Entry>) {
-        val encoded = entries.joinToString(LINE_SEPARATOR) { "${it.userId}$FIELD_SEPARATOR${it.drinkId}" }
-        storage.putString(KEY_ENTRIES, encoded.ifEmpty { null })
-    }
-
-    /** Firebase-UIDs und Drink-IDs (UUIDs) enthalten keine Trennzeichen – alles andere wird nicht gespeichert. */
-    private fun isStorable(value: String): Boolean =
-        value.isNotBlank() && FIELD_SEPARATOR !in value && LINE_SEPARATOR !in value
-
-    private data class Entry(val userId: String, val drinkId: String)
 
     companion object {
         const val DEFAULT_MAXIMUM_ENTRIES = 200
         private const val KEY_LAST_USER = "lastSignedInUserId"
         private const val KEY_ENTRIES = "pendingUnpublishes"
-        private const val FIELD_SEPARATOR = "\t"
-        private const val LINE_SEPARATOR = "\n"
     }
 }

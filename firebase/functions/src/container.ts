@@ -55,6 +55,7 @@ export function createContainer(environment: ContainerEnvironment): Container {
     groups: groupService,
     authUsers: new FirebaseAuthUserDeleter(auth),
     logger,
+    clock,
   });
 
   const sender: NotificationSender = isEmulator

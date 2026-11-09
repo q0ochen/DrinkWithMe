@@ -21,21 +21,29 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Die Dialoge, die eine Server-Aktion auslösen. */
+enum class GroupDialog { CREATE, JOIN }
+
+/** Fehlermeldung, die nur in dem Dialog erscheint, der die Aktion ausgelöst hat. */
+data class GroupDialogError(val dialog: GroupDialog, val message: String)
+
 data class GroupsUiState(
     val isLoading: Boolean = true,
     val groups: List<DrinkGroup> = emptyList(),
     /** Erstellen, Beitreten oder Verlassen läuft gerade. */
     val isWorking: Boolean = false,
-    /** Fehler im offenen Dialog (Erstellen/Beitreten). */
-    val dialogErrorMessage: String? = null,
+    /** Fehler für den noch offenen Dialog, der die Aktion ausgelöst hat – siehe [dialogErrorFor]. */
+    val dialogError: GroupDialogError? = null,
     /** Einmalige Meldung für die Snackbar. */
     val message: String? = null,
     /**
-     * Erstellen bzw. Beitreten hat geklappt: Die Oberfläche schließt ihren Dialog selbst und bestätigt das mit
+     * Erstellen bzw. Beitreten hat geklappt: Die Oberfläche schließt **diesen** Dialog selbst und bestätigt das mit
      * [GroupsViewModel.dialogClosed]. Als Zustand (statt Rückruf) übersteht das auch eine Drehung des Geräts.
      */
-    val closeDialog: Boolean = false,
-)
+    val closeDialog: GroupDialog? = null,
+) {
+    fun dialogErrorFor(dialog: GroupDialog): String? = dialogError?.takeIf { it.dialog == dialog }?.message
+}
 
 /** Eigene Trinkrunden verwalten – kennt nur die Use Cases aus dem Kern. */
 class GroupsViewModel(
@@ -63,7 +71,7 @@ class GroupsViewModel(
             isLoading = groups == null,
             groups = groups.orEmpty(),
             isWorking = action.isWorking,
-            dialogErrorMessage = action.dialogErrorMessage,
+            dialogError = action.dialogError,
             message = action.message,
             closeDialog = action.closeDialog,
         )
@@ -73,14 +81,14 @@ class GroupsViewModel(
         GroupsUiState(),
     )
 
-    /** Erstellt eine Runde; bei Erfolg wird [GroupsUiState.closeDialog] gesetzt. */
-    fun create(name: String) = runDialogAction {
+    /** Erstellt eine Runde aus dem Erstellen-Dialog; bei Erfolg wird [GroupsUiState.closeDialog] gesetzt. */
+    fun create(name: String) = runDialogAction(GroupDialog.CREATE) {
         val group = createGroup(name)
         "Runde „${group.name}“ erstellt. Teile jetzt den Code ${InviteCodeText.display(group.inviteCode)} mit deinen Freunden."
     }
 
-    /** Tritt per Code bei; bei Erfolg wird [GroupsUiState.closeDialog] gesetzt. */
-    fun join(rawCode: String) = runDialogAction {
+    /** Tritt aus dem Beitreten-Dialog per Code bei; bei Erfolg wird [GroupsUiState.closeDialog] gesetzt. */
+    fun join(rawCode: String) = runDialogAction(GroupDialog.JOIN) {
         val group = joinGroup(rawCode)
         "Willkommen in der Runde „${group.name}“!"
     }
@@ -106,30 +114,68 @@ class GroupsViewModel(
     fun messageShown() = actions.update { it.copy(message = null) }
 
     /** Die Oberfläche hat ihren Dialog nach [GroupsUiState.closeDialog] geschlossen. */
-    fun dialogClosed() = actions.update { it.copy(closeDialog = false) }
+    fun dialogClosed() = actions.update { it.copy(closeDialog = null) }
 
-    fun clearDialogError() = actions.update { it.copy(dialogErrorMessage = null) }
+    /** Ein Dialog wird geöffnet: Eine alte Fehlermeldung gehört nicht mehr dazu. */
+    fun dialogOpened() = actions.update { it.copy(dialogError = null) }
 
-    private fun runDialogAction(action: suspend () -> String) {
+    /**
+     * Der Nutzer hat [dialog] geschlossen (Abbrechen, Zurück, daneben getippt). Das Ergebnis einer noch laufenden
+     * Aktion dieses Dialogs schließt dann keinen anderen Dialog mehr; ein Fehler erscheint in der Snackbar.
+     */
+    fun dialogDismissed(dialog: GroupDialog) = actions.update { state ->
+        state.copy(
+            dialogOfRunningAction = state.dialogOfRunningAction.takeUnless { it == dialog },
+            dialogError = state.dialogError.takeUnless { it?.dialog == dialog },
+            closeDialog = state.closeDialog.takeUnless { it == dialog },
+        )
+    }
+
+    private fun runDialogAction(dialog: GroupDialog, action: suspend () -> String) {
         if (actions.value.isWorking) return
-        actions.update { it.copy(isWorking = true, dialogErrorMessage = null, closeDialog = false) }
+        actions.update {
+            it.copy(isWorking = true, dialogOfRunningAction = dialog, dialogError = null, closeDialog = null)
+        }
         viewModelScope.launch {
             try {
                 val message = action()
-                actions.update { it.copy(isWorking = false, message = message, closeDialog = true) }
+                actions.update { state ->
+                    // Nur den auslösenden Dialog schließen – und nur, wenn er noch offen ist.
+                    state.copy(
+                        isWorking = false,
+                        dialogOfRunningAction = null,
+                        message = message,
+                        closeDialog = state.dialogOfRunningAction,
+                    )
+                }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
-                actions.update { it.copy(isWorking = false, dialogErrorMessage = error.userMessage(ACTION_FAILED)) }
+                val errorMessage = error.userMessage(ACTION_FAILED)
+                actions.update { state ->
+                    val openDialog = state.dialogOfRunningAction
+                    if (openDialog != null) {
+                        state.copy(
+                            isWorking = false,
+                            dialogOfRunningAction = null,
+                            dialogError = GroupDialogError(openDialog, errorMessage),
+                        )
+                    } else {
+                        // Der Dialog ist schon zu: Die Meldung darf nicht verloren gehen.
+                        state.copy(isWorking = false, message = errorMessage)
+                    }
+                }
             }
         }
     }
 
     private data class ActionState(
         val isWorking: Boolean = false,
-        val dialogErrorMessage: String? = null,
+        /** Dialog, der die laufende Aktion ausgelöst hat – `null`, sobald der Nutzer ihn geschlossen hat. */
+        val dialogOfRunningAction: GroupDialog? = null,
+        val dialogError: GroupDialogError? = null,
         val message: String? = null,
-        val closeDialog: Boolean = false,
+        val closeDialog: GroupDialog? = null,
     )
 
     private companion object {

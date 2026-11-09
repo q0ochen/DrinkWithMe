@@ -1,5 +1,5 @@
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import type { DocumentData, Firestore } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
+import type { Firestore } from "firebase-admin/firestore";
 import { resolveDisplayName } from "../domain/displayName";
 import { SocialErrors } from "../domain/errors";
 import type { GroupDto, GroupState } from "../domain/group";
@@ -7,10 +7,11 @@ import { parseGroupId, parseGroupState, toGroupDto } from "../domain/group";
 import { validateGroupName } from "../domain/groupName";
 import type { InviteCodeGenerator } from "../domain/inviteCode";
 import { parseInviteCode } from "../domain/inviteCode";
-import type { Clock, JoinAttempts, JoinThrottlePolicy } from "../domain/joinThrottle";
-import { JOIN_THROTTLE_POLICY, isJoinBlocked, recordFailedJoin } from "../domain/joinThrottle";
+import type { Clock, JoinThrottlePolicy } from "../domain/joinThrottle";
+import { JOIN_THROTTLE_POLICY, isJoinBlocked, joinThrottleKey, recordFailedJoin } from "../domain/joinThrottle";
 import { newGroup, planJoin, planLeave } from "../domain/membership";
 import type { Member } from "../domain/membership";
+import { parseJoinAttempts, toJoinAttemptsDocument } from "../firestore/joinAttemptsDocument";
 import { Collections } from "../firestore/paths";
 import type { Caller, GroupService, ProfileReader } from "./groupService";
 
@@ -75,7 +76,8 @@ export class FirestoreGroupService implements GroupService {
     const code = parseInviteCode(rawCode);
     if (code === null) throw SocialErrors.invalidInviteCode();
     const member = await this.memberFor(caller);
-    const attemptsRef = this.joinAttempts().doc(caller.uid);
+    // Gezählt wird pro Google-Konto (sonst pro uid) – so bringt „Konto löschen + neu anmelden“ keinen neuen Zähler.
+    const attemptsRef = this.joinAttempts().doc(joinThrottleKey(caller));
     const { clock, joinThrottle } = this.options;
 
     const outcome = await this.db.runTransaction(async (transaction): Promise<JoinOutcome> => {
@@ -92,7 +94,7 @@ export class FirestoreGroupService implements GroupService {
       const group = groupRef === null ? null : parseGroupState((await transaction.get(groupRef)).data());
       if (groupRef === null || group === null) {
         // Fehlversuch zählen und committen – deshalb wird `not-found` erst nach der Transaktion geworfen.
-        transaction.set(attemptsRef, toJoinAttemptsDocument(recordFailedJoin(attempts, now, joinThrottle)));
+        transaction.set(attemptsRef, toJoinAttemptsDocument(recordFailedJoin(attempts, now, joinThrottle), joinThrottle));
         return { kind: "not-found" };
       }
 
@@ -171,19 +173,4 @@ export class FirestoreGroupService implements GroupService {
 
 function updatedMembership(group: GroupState) {
   return { ownerId: group.ownerId, memberIds: group.memberIds, members: group.members };
-}
-
-/** `joinAttempts/{uid}` laut Vertrag: `{ windowStart: timestamp, failures: int }`. */
-function toJoinAttemptsDocument(attempts: JoinAttempts): DocumentData {
-  return { windowStart: Timestamp.fromMillis(attempts.windowStartMillis), failures: attempts.failures };
-}
-
-function parseJoinAttempts(data: DocumentData | undefined): JoinAttempts | null {
-  if (data === undefined) return null;
-  const windowStart: unknown = data.windowStart;
-  const failures: unknown = data.failures;
-  if (!(windowStart instanceof Timestamp) || typeof failures !== "number" || !Number.isInteger(failures)) {
-    return null;
-  }
-  return { windowStartMillis: windowStart.toMillis(), failures };
 }

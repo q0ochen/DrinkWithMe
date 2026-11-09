@@ -56,12 +56,28 @@ export function deleteAccountHandler(
   });
 }
 
-/** Der angemeldete Aufrufer; ohne Anmeldung `unauthenticated`. */
+/**
+ * Der angemeldete Aufrufer; ohne Anmeldung `unauthenticated`. Neben der uid kommen aus dem ID-Token
+ * der Name (`name`) und die Google-Kennung (`firebase.identities["google.com"][0]`) – Letztere bleibt
+ * auch nach dem Löschen und Neuanlegen des Firebase-Kontos gleich (Schutz vor Code-Raten).
+ */
 export function callerOf(request: CallableRequest<unknown>): Caller {
   const auth = request.auth;
   if (!auth) throw SocialErrors.unauthenticated();
   const tokenName: unknown = auth.token.name;
-  return typeof tokenName === "string" ? { uid: auth.uid, tokenName } : { uid: auth.uid };
+  const googleSubject = googleSubjectOf(auth.token);
+  return {
+    uid: auth.uid,
+    ...(typeof tokenName === "string" ? { tokenName } : {}),
+    ...(googleSubject === undefined ? {} : { googleSubject }),
+  };
+}
+
+/** `token.firebase.identities["google.com"][0]`, falls vorhanden und ein nicht leerer Text. */
+function googleSubjectOf(token: unknown): string | undefined {
+  const googleIds = field(field(field(token, "firebase"), "identities"), "google.com");
+  const subject: unknown = Array.isArray(googleIds) ? googleIds[0] : undefined;
+  return typeof subject === "string" && subject.length > 0 ? subject : undefined;
 }
 
 /** Übersetzt Fehler in `HttpsError`: fachliche Fehler 1:1, alles Unerwartete als `internal`. */
