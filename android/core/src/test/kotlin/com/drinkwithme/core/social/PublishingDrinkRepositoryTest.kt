@@ -3,12 +3,14 @@ package com.drinkwithme.core.social
 import com.drinkwithme.core.Fixtures
 import com.drinkwithme.core.data.InMemoryDrinkRepository
 import com.drinkwithme.core.domain.DrinkVisibility
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PublishingDrinkRepositoryTest {
     private val local = InMemoryDrinkRepository()
 
