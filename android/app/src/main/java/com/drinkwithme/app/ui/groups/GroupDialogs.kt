@@ -65,8 +65,8 @@ fun JoinGroupDialog(
         text = {
             DialogTextField(
                 value = code,
-                onValueChange = { code = it.uppercase() },
-                label = "Einladungscode, z. B. K7MX2Q",
+                onValueChange = { code = InviteCodeText.sanitizeInput(it) },
+                label = "Einladungscode, z. B. ${InviteCodeText.EXAMPLE}",
                 supportingText = "Den ${InviteCode.LENGTH}-stelligen Code bekommst du von deinen Freunden.",
                 errorMessage = errorMessage,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),

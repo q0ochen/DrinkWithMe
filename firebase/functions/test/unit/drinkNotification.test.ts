@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildDrinkNotification,
+  buildDrinkMessage,
+  drinkBody,
+  drinkTitle,
   parseSharedDrink,
   selectRecipients,
 } from "../../src/domain/drinkNotification";
 import type { SharedDrink } from "../../src/domain/drinkNotification";
 
 const drink: SharedDrink = {
+  drinkId: "d1",
   authorId: "anna",
   authorName: "Anna",
   name: "Helles",
@@ -14,32 +17,42 @@ const drink: SharedDrink = {
   volumeInMilliliters: 500,
 };
 
-describe("buildDrinkNotification", () => {
-  it("baut Titel, Text, Android-Kanal/Tag und Daten laut Vertrag", () => {
-    expect(buildDrinkNotification(drink, { groupId: "g1", drinkId: "d1" }, "Stammtisch")).toEqual({
-      notification: {
+describe("buildDrinkMessage", () => {
+  it("baut eine reine Daten-Nachricht laut Vertrag – mit recipientId, ohne notification-Block", () => {
+    const message = buildDrinkMessage(drink, { groupId: "g1", docId: "anna_d1" }, "Stammtisch", "bob");
+
+    expect(message).toEqual({
+      android: { priority: "high" },
+      data: {
+        type: "drink",
+        groupId: "g1",
+        drinkId: "d1",
+        docId: "anna_d1",
+        recipientId: "bob",
         title: "Anna trinkt gerade",
         body: "🍺 Helles (500 ml) · Stammtisch",
       },
-      android: { notification: { channelId: "drinks", tag: "d1" } },
-      data: { type: "drink", groupId: "g1", drinkId: "d1" },
     });
+    expect(Object.keys(message)).toEqual(["android", "data"]);
+  });
+
+  it("enthält in data nur Zeichenketten (Vorgabe von FCM)", () => {
+    const message = buildDrinkMessage(drink, { groupId: "g1", docId: "anna_d1" }, "Stammtisch", "bob");
+
+    for (const value of Object.values(message.data)) expect(typeof value).toBe("string");
   });
 
   it("formatiert Liter wie der VolumeFormatter", () => {
     const water = { ...drink, name: "Wasser", category: "WATER", volumeInMilliliters: 1_500 };
 
-    expect(buildDrinkNotification(water, { groupId: "g", drinkId: "d" }, "Büro").notification.body).toBe(
-      "💧 Wasser (1,5 l) · Büro",
-    );
+    expect(drinkBody(water, "Büro")).toBe("💧 Wasser (1,5 l) · Büro");
   });
 
   it("nutzt die Kategorie-Emojis des Kotlin-Kerns", () => {
     const coffee = { ...drink, name: "Espresso", category: "COFFEE", volumeInMilliliters: 30 };
 
-    expect(buildDrinkNotification(coffee, { groupId: "g", drinkId: "d" }, "R").notification.body).toBe(
-      "☕️ Espresso (30 ml) · R",
-    );
+    expect(drinkBody(coffee, "R")).toBe("☕️ Espresso (30 ml) · R");
+    expect(drinkTitle(coffee)).toBe("Anna trinkt gerade");
   });
 });
 
@@ -60,6 +73,7 @@ describe("parseSharedDrink", () => {
 
   it.each([
     ["undefined", undefined],
+    ["ohne drinkId", { ...data, drinkId: undefined }],
     ["ohne Autor", { ...data, authorId: undefined }],
     ["Menge als Text", { ...data, volumeInMilliliters: "500" }],
     ["Menge mit Nachkommastellen", { ...data, volumeInMilliliters: 0.5 }],

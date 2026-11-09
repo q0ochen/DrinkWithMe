@@ -9,13 +9,9 @@ const BATCH_LIMIT = 500;
 export class FirestoreDeviceTokenStore implements DeviceTokenStore {
   constructor(private readonly db: Firestore) {}
 
-  async tokensOf(userIds: readonly string[]): Promise<DeviceToken[]> {
-    const snapshots = await Promise.all(
-      userIds.map((userId) => this.tokenCollection(userId).get()),
-    );
-    return snapshots.flatMap((snapshot, index) =>
-      snapshot.docs.map((doc) => ({ userId: userIds[index] ?? "", token: doc.id })),
-    );
+  async newestTokensOf(userId: string, limit: number): Promise<string[]> {
+    const snapshot = await this.tokenCollection(userId).orderBy("updatedAt", "desc").limit(limit).get();
+    return snapshot.docs.map((doc) => doc.id);
   }
 
   async remove(tokens: readonly DeviceToken[]): Promise<void> {

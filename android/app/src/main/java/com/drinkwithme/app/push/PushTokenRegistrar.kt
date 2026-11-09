@@ -8,6 +8,15 @@ interface PushTokenRegistrar {
     /** Meldet ein neues Token an (z. B. nach einem Token-Wechsel). Ohne Anmeldung passiert nichts. */
     suspend fun registerToken(token: String)
 
-    /** Entfernt das Token des Geräts beim angemeldeten Nutzer – vor dem Abmelden aufrufen. */
-    suspend fun unregisterCurrentToken()
+    /**
+     * Startet das Löschen des Token-Dokuments beim angemeldeten Nutzer, **ohne** auf die Bestätigung des
+     * Servers zu warten (offline würde das nie fertig). Vor dem Abmelden aufrufen – danach fehlt die Berechtigung.
+     */
+    suspend fun removeCurrentTokenDocument()
+
+    /**
+     * Macht das Push-Token dieses Geräts ungültig, damit es keine Nachrichten mehr bekommt – unabhängig davon,
+     * ob das Löschen des Token-Dokuments schon beim Server angekommen ist. Ein neues Token entsteht bei Bedarf.
+     */
+    suspend fun invalidateToken()
 }

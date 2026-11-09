@@ -22,10 +22,16 @@ data class AccountUiState(
     val isCheckingUser: Boolean = true,
     val isSigningIn: Boolean = false,
     val isSigningOut: Boolean = false,
+    val isDeletingAccount: Boolean = false,
     val errorMessage: String? = null,
+    /** Hinweis ohne Fehler, z. B. nach dem Löschen des Kontos (wird auf der Anmeldekarte angezeigt). */
+    val noticeMessage: String? = null,
     /** Nach erfolgreicher Anmeldung einmalig nach der Benachrichtigungs-Berechtigung fragen. */
     val requestNotificationPermission: Boolean = false,
-)
+) {
+    /** Abmelden oder Konto löschen läuft – dann keine weitere Konto-Aktion starten. */
+    val isAccountActionRunning: Boolean get() = isSigningOut || isDeletingAccount
+}
 
 /** Anmeldung und Konto – kennt nur den Port [CurrentUserProvider] und den [AccountService]. */
 class AccountViewModel(
@@ -49,7 +55,7 @@ class AccountViewModel(
      */
     fun signIn(activityContext: Context) {
         if (_state.value.isSigningIn) return
-        _state.update { it.copy(isSigningIn = true, errorMessage = null) }
+        _state.update { it.copy(isSigningIn = true, errorMessage = null, noticeMessage = null) }
         viewModelScope.launch {
             try {
                 accountService.signInWithGoogle(activityContext)
@@ -65,7 +71,7 @@ class AccountViewModel(
     }
 
     fun signOut() {
-        if (_state.value.isSigningOut) return
+        if (_state.value.isAccountActionRunning) return
         _state.update { it.copy(isSigningOut = true, errorMessage = null) }
         viewModelScope.launch {
             try {
@@ -79,10 +85,29 @@ class AccountViewModel(
         }
     }
 
+    /** Löscht das Konto auf dem Server und meldet ab; bei einem Fehler bleibt man angemeldet und sieht die Meldung. */
+    fun deleteAccount() {
+        if (_state.value.isAccountActionRunning) return
+        _state.update { it.copy(isDeletingAccount = true, errorMessage = null) }
+        viewModelScope.launch {
+            try {
+                accountService.deleteAccount()
+                _state.update { it.copy(isDeletingAccount = false, noticeMessage = ACCOUNT_DELETED) }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                _state.update { it.copy(isDeletingAccount = false, errorMessage = error.userMessage(DELETE_FAILED)) }
+            }
+        }
+    }
+
     fun onNotificationPermissionRequested() = _state.update { it.copy(requestNotificationPermission = false) }
 
     private companion object {
         const val SIGN_IN_FAILED = "Die Anmeldung ist fehlgeschlagen. Bitte versuche es erneut."
         const val SIGN_OUT_FAILED = "Die Abmeldung ist fehlgeschlagen. Bitte versuche es erneut."
+        const val DELETE_FAILED = "Dein Konto konnte nicht gelöscht werden. Bitte versuche es erneut."
+        const val ACCOUNT_DELETED =
+            "Dein Konto wurde gelöscht. Deine Getränke unter „Meine Getränke“ sind weiterhin auf diesem Handy."
     }
 }

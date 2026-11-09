@@ -51,7 +51,7 @@ fun GroupCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        group.inviteCode.value,
+                        InviteCodeText.display(group.inviteCode),
                         style = MaterialTheme.typography.titleLarge,
                         fontFamily = FontFamily.Monospace,
                         letterSpacing = 2.sp,

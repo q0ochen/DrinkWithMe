@@ -1,5 +1,5 @@
 import type { BatchResponse, MulticastMessage } from "firebase-admin/messaging";
-import type { DrinkNotification } from "../domain/drinkNotification";
+import type { DrinkMessage } from "../domain/drinkNotification";
 import type { NotificationSender, SendResult } from "./ports";
 
 /** Höchstzahl an Tokens pro `sendEachForMulticast`-Aufruf (Grenze von FCM). */
@@ -10,16 +10,12 @@ export interface MulticastMessaging {
   sendEachForMulticast(message: MulticastMessage): Promise<BatchResponse>;
 }
 
-/** Baut die FCM-Nachricht für einen Block von Tokens. */
-export function toMulticastMessage(
-  tokens: readonly string[],
-  notification: DrinkNotification,
-): MulticastMessage {
+/** Baut die FCM-Nachricht für einen Block von Tokens – nur `android` und `data`, kein `notification`. */
+export function toMulticastMessage(tokens: readonly string[], message: DrinkMessage): MulticastMessage {
   return {
     tokens: [...tokens],
-    notification: { ...notification.notification },
-    android: { notification: { ...notification.android.notification } },
-    data: { ...notification.data },
+    android: { ...message.android },
+    data: { ...message.data },
   };
 }
 
@@ -30,17 +26,21 @@ export class FcmNotificationSender implements NotificationSender {
     private readonly batchSize: number = FCM_MULTICAST_LIMIT,
   ) {}
 
-  async send(tokens: readonly string[], notification: DrinkNotification): Promise<SendResult[]> {
+  async send(tokens: readonly string[], message: DrinkMessage): Promise<SendResult[]> {
     const results: SendResult[] = [];
     for (let start = 0; start < tokens.length; start += this.batchSize) {
       const batch = tokens.slice(start, start + this.batchSize);
-      const response = await this.messaging.sendEachForMulticast(toMulticastMessage(batch, notification));
+      const response = await this.messaging.sendEachForMulticast(toMulticastMessage(batch, message));
       response.responses.forEach((sendResponse, index) => {
         const token = batch[index];
         if (token === undefined) return;
-        results.push(
-          sendResponse.success ? { token } : { token, errorCode: sendResponse.error?.code ?? "unknown" },
-        );
+        if (sendResponse.success) {
+          results.push({ token });
+          return;
+        }
+        const errorCode = sendResponse.error?.code ?? "unknown";
+        const errorMessage = sendResponse.error?.message;
+        results.push(errorMessage === undefined ? { token, errorCode } : { token, errorCode, errorMessage });
       });
     }
     return results;

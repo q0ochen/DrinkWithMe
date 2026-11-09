@@ -6,6 +6,7 @@ import * as functions from "../../src/index";
 interface Endpoint {
   platform: string;
   region?: string[];
+  timeoutSeconds?: number;
   callableTrigger?: unknown;
   eventTrigger?: {
     eventType: string;
@@ -24,8 +25,10 @@ describe("Functions-Registrierung", () => {
   it("exportiert genau die Funktionen aus dem Vertrag", () => {
     expect(Object.keys(endpoints()).sort()).toEqual([
       "createGroup",
+      "deleteAccount",
       "joinGroup",
       "leaveGroup",
+      "onGroupDeleted",
       "onGroupDrinkCreated",
     ]);
   });
@@ -37,19 +40,34 @@ describe("Functions-Registrierung", () => {
     }
   });
 
-  it("stellt createGroup, joinGroup und leaveGroup als Callables bereit", () => {
+  it("stellt createGroup, joinGroup, leaveGroup und deleteAccount als Callables bereit", () => {
     const all = endpoints();
-    for (const name of ["createGroup", "joinGroup", "leaveGroup"]) {
+    for (const name of ["createGroup", "joinGroup", "leaveGroup", "deleteAccount"]) {
       expect(all[name]?.callableTrigger, name).toBeDefined();
     }
   });
 
-  it("triggert onGroupDrinkCreated beim Anlegen von groups/{groupId}/drinks/{drinkId}", () => {
+  it("gibt deleteAccount 540 s Zeit (viele Getränke)", () => {
+    expect(endpoints().deleteAccount?.timeoutSeconds).toBe(540);
+  });
+
+  it("triggert onGroupDrinkCreated beim Anlegen von groups/{groupId}/drinks/{docId}", () => {
     const trigger = endpoints().onGroupDrinkCreated?.eventTrigger;
 
     expect(trigger?.eventType).toBe("google.cloud.firestore.document.v1.created");
-    expect(trigger?.eventFilterPathPatterns).toEqual({ document: "groups/{groupId}/drinks/{drinkId}" });
+    expect(trigger?.eventFilterPathPatterns).toEqual({ document: "groups/{groupId}/drinks/{docId}" });
     expect(trigger?.eventFilters.database).toBe("(default)");
     expect(trigger?.retry).toBe(false);
+  });
+
+  it("triggert onGroupDeleted beim Löschen von groups/{groupId} – mit Wiederholung und 540 s", () => {
+    const endpoint = endpoints().onGroupDeleted;
+    const trigger = endpoint?.eventTrigger;
+
+    expect(trigger?.eventType).toBe("google.cloud.firestore.document.v1.deleted");
+    expect(trigger?.eventFilterPathPatterns).toEqual({ document: "groups/{groupId}" });
+    expect(trigger?.eventFilters.database).toBe("(default)");
+    expect(trigger?.retry).toBe(true);
+    expect(endpoint?.timeoutSeconds).toBe(540);
   });
 });

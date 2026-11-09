@@ -19,12 +19,18 @@ export interface GroupService {
    * Idempotent: Wer schon Mitglied ist, bekommt die Runde zurück.
    *
    * @throws SocialError `invalid-argument` (Format), `not-found` (unbekannter Code),
-   *   `resource-exhausted` (Runde voll).
+   *   `failed-precondition` (Runde voll), `resource-exhausted` (zu viele falsche Codes).
    */
   joinGroup(caller: Caller, code: unknown): Promise<GroupDto>;
 
-  /** Idempotent: Nicht-Mitglieder und unbekannte Runden sind kein Fehler. */
+  /**
+   * Idempotent: Nicht-Mitglieder und unbekannte Runden sind kein Fehler. Verlässt das letzte
+   * Mitglied die Runde, werden Runde und Code gelöscht; die Getränke räumt `onGroupDeleted` auf.
+   */
   leaveGroup(caller: Caller, groupId: unknown): Promise<void>;
+
+  /** Verlässt alle Runden des Aufrufers (gleiche Logik wie `leaveGroup`). @returns die Anzahl der Runden. */
+  leaveAllGroups(caller: Caller): Promise<number>;
 }
 
 /** Liest den Anzeigenamen aus dem Profil (`users/{uid}.displayName`). */

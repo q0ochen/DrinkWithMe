@@ -15,7 +15,7 @@ class GroupMapperTest {
             id = "g1",
             data = mapOf(
                 "name" to "Stammtisch",
-                "inviteCode" to "K7MX2Q",
+                "inviteCode" to "K7MX2QAB",
                 "ownerId" to "u1",
                 "memberIds" to listOf("u2", "u1"),
                 "members" to mapOf("u1" to mapOf("displayName" to "Anna"), "u2" to mapOf("displayName" to "Ben")),
@@ -25,7 +25,7 @@ class GroupMapperTest {
 
         assertEquals("g1", group.id)
         assertEquals("Stammtisch", group.name)
-        assertEquals("K7MX2Q", group.inviteCode.value)
+        assertEquals("K7MX2QAB", group.inviteCode.value)
         assertEquals("u1", group.ownerId)
         assertEquals(listOf(GroupMember("u2", "Ben"), GroupMember("u1", "Anna")), group.members)
     }
@@ -34,7 +34,7 @@ class GroupMapperTest {
     fun missingMemberNameBecomesUnknown() {
         val group = GroupMapper.fromDocument(
             "g1",
-            mapOf("name" to "Runde", "inviteCode" to "K7MX2Q", "ownerId" to "u1", "memberIds" to listOf("u1")),
+            mapOf("name" to "Runde", "inviteCode" to "K7MX2QAB", "ownerId" to "u1", "memberIds" to listOf("u1")),
         )!!
         assertEquals(listOf(GroupMember("u1", "Unbekannt")), group.members)
     }
@@ -51,7 +51,7 @@ class GroupMapperTest {
             "group" to mapOf(
                 "id" to "g1",
                 "name" to "Stammtisch",
-                "inviteCode" to "K7MX2Q",
+                "inviteCode" to "K7MX2QAB",
                 "ownerId" to "u1",
                 "members" to listOf(mapOf("userId" to "u1", "displayName" to "Anna"), mapOf("displayName" to "ohne ID")),
             ),
@@ -60,7 +60,7 @@ class GroupMapperTest {
         val group = GroupMapper.fromCallableResult(result)
 
         assertEquals("g1", group.id)
-        assertEquals("K7MX2Q", group.inviteCode.value)
+        assertEquals("K7MX2QAB", group.inviteCode.value)
         assertEquals(listOf(GroupMember("u1", "Anna")), group.members)
     }
 

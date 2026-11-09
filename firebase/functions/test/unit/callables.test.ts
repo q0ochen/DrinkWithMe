@@ -1,12 +1,14 @@
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { HttpsError } from "firebase-functions/v2/https";
 import { describe, expect, it } from "vitest";
+import type { AccountService } from "../../src/accounts/accountService";
 import { SocialErrors } from "../../src/domain/errors";
 import type { GroupDto } from "../../src/domain/group";
 import type { Caller, GroupService } from "../../src/groups/groupService";
 import {
   INTERNAL_ERROR_MESSAGE,
   createGroupHandler,
+  deleteAccountHandler,
   joinGroupHandler,
   leaveGroupHandler,
 } from "../../src/handlers/callables";
@@ -15,7 +17,7 @@ import { RecordingLogger } from "./fakes";
 const group: GroupDto = {
   id: "g1",
   name: "Stammtisch",
-  inviteCode: "K7MX2Q",
+  inviteCode: "K7MX2QAB",
   ownerId: "anna",
   members: [{ userId: "anna", displayName: "Anna" }],
 };
@@ -37,9 +39,24 @@ class FakeGroupService implements GroupService {
     return this.record("leaveGroup", caller, groupId, undefined);
   }
 
+  leaveAllGroups(caller: Caller) {
+    return this.record("leaveAllGroups", caller, undefined, 0);
+  }
+
   private record<T>(method: string, caller: Caller, input: unknown, result: T): Promise<T> {
     this.calls.push({ method, caller, input });
     return this.failure === undefined ? Promise.resolve(result) : Promise.reject(this.failure);
+  }
+}
+
+/** Merkt sich die Aufrufer; Fehler pro Test einstellbar. */
+class FakeAccountService implements AccountService {
+  readonly callers: Caller[] = [];
+  failure: Error | undefined = undefined;
+
+  deleteAccount(caller: Caller): Promise<void> {
+    this.callers.push(caller);
+    return this.failure === undefined ? Promise.resolve() : Promise.reject(this.failure);
   }
 }
 
@@ -79,10 +96,10 @@ describe("Callable-Handler", () => {
   it("joinGroup reicht den Code weiter", async () => {
     const service = new FakeGroupService();
 
-    const response = await joinGroupHandler(service, new RecordingLogger())(request({ code: "k7mx2q" }, { uid: "bob" }));
+    const response = await joinGroupHandler(service, new RecordingLogger())(request({ code: "k7mx2qab" }, { uid: "bob" }));
 
     expect(response).toEqual({ group });
-    expect(service.calls).toEqual([{ method: "joinGroup", caller: { uid: "bob" }, input: "k7mx2q" }]);
+    expect(service.calls).toEqual([{ method: "joinGroup", caller: { uid: "bob" }, input: "k7mx2qab" }]);
   });
 
   it("leaveGroup antwortet mit {}", async () => {
@@ -94,23 +111,49 @@ describe("Callable-Handler", () => {
     expect(service.calls).toEqual([{ method: "leaveGroup", caller: { uid: "bob" }, input: "g1" }]);
   });
 
+  it("deleteAccount reicht den Aufrufer weiter und antwortet mit {}", async () => {
+    const service = new FakeAccountService();
+
+    const response = await deleteAccountHandler(service, new RecordingLogger())(request({}, { uid: "bob", name: "Bob" }));
+
+    expect(response).toEqual({});
+    expect(service.callers).toEqual([{ uid: "bob", tokenName: "Bob" }]);
+  });
+
+  it("deleteAccount ignoriert die Eingabe", async () => {
+    const service = new FakeAccountService();
+
+    await deleteAccountHandler(service, new RecordingLogger())(request({ uid: "anna" }, { uid: "bob" }));
+    await deleteAccountHandler(service, new RecordingLogger())(request(null, { uid: "bob" }));
+
+    expect(service.callers).toEqual([{ uid: "bob" }, { uid: "bob" }]);
+  });
+
   it("verlangt eine Anmeldung (unauthenticated)", async () => {
     const service = new FakeGroupService();
+    const accounts = new FakeAccountService();
     const logger = new RecordingLogger();
 
-    for (const handler of [createGroupHandler, joinGroupHandler, leaveGroupHandler]) {
-      const error = await rejection(handler(service, logger)(request({ name: "x", code: "x", groupId: "x" })));
+    const handlers = [
+      createGroupHandler(service, logger),
+      joinGroupHandler(service, logger),
+      leaveGroupHandler(service, logger),
+      deleteAccountHandler(accounts, logger),
+    ];
+    for (const handler of handlers) {
+      const error = await rejection(handler(request({ name: "x", code: "x", groupId: "x" })));
       expect(error.code).toBe("unauthenticated");
       expect(error.message).toBe("Bitte melde dich zuerst an.");
     }
     expect(service.calls).toEqual([]);
+    expect(accounts.callers).toEqual([]);
   });
 
   it("übergibt fehlende Felder als undefined (Validierung im Service)", async () => {
     const service = new FakeGroupService();
 
     await createGroupHandler(service, new RecordingLogger())(request(null, { uid: "anna" }));
-    await joinGroupHandler(service, new RecordingLogger())(request("K7MX2Q", { uid: "anna" }));
+    await joinGroupHandler(service, new RecordingLogger())(request("K7MX2QAB", { uid: "anna" }));
 
     expect(service.calls.map((call) => call.input)).toEqual([undefined, undefined]);
   });
@@ -119,10 +162,35 @@ describe("Callable-Handler", () => {
     const service = new FakeGroupService();
     service.failure = SocialErrors.groupNotFound();
 
-    const error = await rejection(joinGroupHandler(service, new RecordingLogger())(request({ code: "K7MX2Q" }, { uid: "bob" })));
+    const error = await rejection(joinGroupHandler(service, new RecordingLogger())(request({ code: "K7MX2QAB" }, { uid: "bob" })));
 
     expect(error.code).toBe("not-found");
     expect(error.message).toBe("Zu diesem Code gibt es keine Runde.");
+  });
+
+  it.each([
+    ["Runde voll", SocialErrors.groupFull(50), "failed-precondition"],
+    ["zu viele falsche Codes", SocialErrors.tooManyJoinAttempts(), "resource-exhausted"],
+  ])("übersetzt %s in %s", async (_, failure, code) => {
+    const service = new FakeGroupService();
+    service.failure = failure;
+
+    const error = await rejection(joinGroupHandler(service, new RecordingLogger())(request({ code: "K7MX2QAB" }, { uid: "bob" })));
+
+    expect(error.code).toBe(code);
+    expect(error.message).toBe(failure.message);
+  });
+
+  it("meldet unerwartete Fehler beim Konto-Löschen als internal", async () => {
+    const service = new FakeAccountService();
+    const logger = new RecordingLogger();
+    service.failure = new Error("Auth weg");
+
+    const error = await rejection(deleteAccountHandler(service, logger)(request({}, { uid: "bob" })));
+
+    expect(error.code).toBe("internal");
+    expect(error.message).toBe(INTERNAL_ERROR_MESSAGE);
+    expect(logger.entries.map((entry) => entry.message)).toEqual(["deleteAccount: unerwarteter Fehler"]);
   });
 
   it("meldet unerwartete Fehler als internal und protokolliert sie", async () => {

@@ -13,7 +13,11 @@ import androidx.core.content.ContextCompat
 import com.drinkwithme.app.MainActivity
 import com.drinkwithme.app.R
 
-/** Zeigt Benachrichtigungen im Kanal [DrinkNotificationChannel] an; Antippen öffnet den Feed der Runde. */
+/**
+ * Zeigt Benachrichtigungen im Kanal [DrinkNotificationChannel] an; Antippen öffnet den Feed der Runde
+ * (unveränderlicher PendingIntent). Ob die Nachricht überhaupt angezeigt werden darf, entscheidet vorher
+ * der [PushMessageHandler] (passende `recipientId`).
+ */
 class AndroidFriendDrinkNotifier(private val context: Context) : FriendDrinkNotifier {
 
     override fun show(notification: FriendDrinkNotification) {
@@ -52,7 +56,7 @@ class AndroidFriendDrinkNotifier(private val context: Context) : FriendDrinkNoti
     private companion object {
         const val TAG = "DrinkWithMe"
 
-        /** Zusammen mit dem Tag (Drink-ID) eindeutig – gleiche Getränke ersetzen sich. */
+        /** Zusammen mit dem Tag („{authorId}_{drinkId}“) eindeutig – dasselbe Getränk aus mehreren Runden ersetzt sich. */
         const val NOTIFICATION_ID = 1
     }
 }

@@ -14,7 +14,7 @@ class DrinkWithMeApplication : Application() {
         container = DefaultAppContainer(this)
         if (container.isSocialAvailable) {
             DrinkNotificationChannel.create(this)
-            container.pushHandler?.onAppStarted()
+            container.startSocialBackgroundWork()
         }
     }
 }

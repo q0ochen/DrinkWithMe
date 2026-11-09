@@ -31,12 +31,16 @@ class FirestorePushTokenRegistrar(
         tokenDocument(userId, token).set(fields).await()
     }
 
-    override suspend fun unregisterCurrentToken() {
+    override suspend fun removeCurrentTokenDocument() {
         val userId = users.currentUser.first()?.id ?: return
         val token = messaging.token.await()
-        tokenDocument(userId, token).delete().await()
-        // Das Token selbst ungültig machen: Nach dem Abmelden soll dieses Gerät keine Pushs mehr bekommen,
-        // selbst wenn das Löschen oben (z. B. offline) noch nicht beim Server angekommen ist.
+        // Bewusst ohne await(): Die Task einer Firestore-Schreiboperation endet erst mit der Bestätigung des
+        // Servers – offline also nie. Firestore reiht das Löschen lokal ein und sendet es, sobald es geht;
+        // die Abmeldung muss darauf nicht warten (das Token selbst macht invalidateToken() ungültig).
+        tokenDocument(userId, token).delete()
+    }
+
+    override suspend fun invalidateToken() {
         messaging.deleteToken().await()
     }
 

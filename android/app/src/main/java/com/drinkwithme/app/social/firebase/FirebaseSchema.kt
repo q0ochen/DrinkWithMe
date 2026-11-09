@@ -34,7 +34,10 @@ internal object FirestoreSchema {
         const val MEMBER_DISPLAY_NAME = "displayName"
     }
 
-    /** `groups/{groupId}/drinks/{drinkId}` – Dokument-ID = lokale Drink-ID. */
+    /**
+     * `groups/{groupId}/drinks/{authorId}_{drinkId}` – die Dokument-ID beginnt mit der Nutzer-ID des Autors.
+     * Die Sicherheitsregeln erzwingen das, damit niemand die ID eines fremden Getränks in einer Runde „besetzt“.
+     */
     object GroupDrink {
         const val DRINK_ID = "drinkId"
         const val AUTHOR_ID = "authorId"
@@ -45,6 +48,9 @@ internal object FirestoreSchema {
         const val NOTE = "note"
         const val CONSUMED_AT = "consumedAt"
         const val CREATED_AT = "createdAt"
+
+        /** Dokument-ID eines geteilten Getränks: `"{authorId}_{drinkId}"` (in allen Runden dieselbe). */
+        fun documentId(authorId: String, drinkId: String): String = "${authorId}_$drinkId"
     }
 }
 
@@ -55,6 +61,7 @@ internal object CloudFunctions {
     const val CREATE_GROUP = "createGroup"
     const val JOIN_GROUP = "joinGroup"
     const val LEAVE_GROUP = "leaveGroup"
+    const val DELETE_ACCOUNT = "deleteAccount"
 
     const val PARAM_NAME = "name"
     const val PARAM_CODE = "code"

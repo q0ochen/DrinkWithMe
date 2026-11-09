@@ -30,6 +30,11 @@ data class GroupsUiState(
     val dialogErrorMessage: String? = null,
     /** Einmalige Meldung für die Snackbar. */
     val message: String? = null,
+    /**
+     * Erstellen bzw. Beitreten hat geklappt: Die Oberfläche schließt ihren Dialog selbst und bestätigt das mit
+     * [GroupsViewModel.dialogClosed]. Als Zustand (statt Rückruf) übersteht das auch eine Drehung des Geräts.
+     */
+    val closeDialog: Boolean = false,
 )
 
 /** Eigene Trinkrunden verwalten – kennt nur die Use Cases aus dem Kern. */
@@ -52,6 +57,7 @@ class GroupsViewModel(
         emit(emptyList())
     }
 
+    /** Ohne Beobachter werden die Runden nach 5 s verworfen (`replayExpirationMillis = 0`) statt zwischengespeichert. */
     val state: StateFlow<GroupsUiState> = combine(groups, actions) { groups, action ->
         GroupsUiState(
             isLoading = groups == null,
@@ -59,17 +65,22 @@ class GroupsViewModel(
             isWorking = action.isWorking,
             dialogErrorMessage = action.dialogErrorMessage,
             message = action.message,
+            closeDialog = action.closeDialog,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupsUiState())
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0),
+        GroupsUiState(),
+    )
 
-    /** Erstellt eine Runde; [onCreated] schließt z. B. den Dialog. */
-    fun create(name: String, onCreated: () -> Unit) = runDialogAction(onCreated) {
+    /** Erstellt eine Runde; bei Erfolg wird [GroupsUiState.closeDialog] gesetzt. */
+    fun create(name: String) = runDialogAction {
         val group = createGroup(name)
-        "Runde „${group.name}“ erstellt. Teile jetzt den Code ${group.inviteCode.value} mit deinen Freunden."
+        "Runde „${group.name}“ erstellt. Teile jetzt den Code ${InviteCodeText.display(group.inviteCode)} mit deinen Freunden."
     }
 
-    /** Tritt per Code bei; [onJoined] schließt z. B. den Dialog. */
-    fun join(rawCode: String, onJoined: () -> Unit) = runDialogAction(onJoined) {
+    /** Tritt per Code bei; bei Erfolg wird [GroupsUiState.closeDialog] gesetzt. */
+    fun join(rawCode: String) = runDialogAction {
         val group = joinGroup(rawCode)
         "Willkommen in der Runde „${group.name}“!"
     }
@@ -94,16 +105,18 @@ class GroupsViewModel(
 
     fun messageShown() = actions.update { it.copy(message = null) }
 
+    /** Die Oberfläche hat ihren Dialog nach [GroupsUiState.closeDialog] geschlossen. */
+    fun dialogClosed() = actions.update { it.copy(closeDialog = false) }
+
     fun clearDialogError() = actions.update { it.copy(dialogErrorMessage = null) }
 
-    private fun runDialogAction(onSuccess: () -> Unit, action: suspend () -> String) {
+    private fun runDialogAction(action: suspend () -> String) {
         if (actions.value.isWorking) return
-        actions.update { it.copy(isWorking = true, dialogErrorMessage = null) }
+        actions.update { it.copy(isWorking = true, dialogErrorMessage = null, closeDialog = false) }
         viewModelScope.launch {
             try {
                 val message = action()
-                actions.update { it.copy(isWorking = false, message = message) }
-                onSuccess()
+                actions.update { it.copy(isWorking = false, message = message, closeDialog = true) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
@@ -116,9 +129,11 @@ class GroupsViewModel(
         val isWorking: Boolean = false,
         val dialogErrorMessage: String? = null,
         val message: String? = null,
+        val closeDialog: Boolean = false,
     )
 
     private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
         const val LOAD_FAILED = "Deine Runden konnten nicht geladen werden. Bitte versuche es später erneut."
         const val ACTION_FAILED = "Das hat leider nicht geklappt. Bitte versuche es erneut."
     }

@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DRINK_CATEGORY_EMOJIS } from "../../src/domain/drinkCategory";
 import { MAX_GROUP_NAME_LENGTH } from "../../src/domain/groupName";
-import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "../../src/domain/inviteCode";
+import { SocialErrors } from "../../src/domain/errors";
+import { INVITE_CODE_ALPHABET, INVITE_CODE_EXAMPLE, INVITE_CODE_LENGTH } from "../../src/domain/inviteCode";
 
 // Gleicht die gespiegelten Konstanten mit dem Kotlin-Kern ab, damit App und Server
 // nicht unbemerkt auseinanderlaufen (Quelle der Wahrheit: android/core).
@@ -37,12 +38,19 @@ describe("Abgleich mit dem Kotlin-Kern", () => {
     expect(source).toContain(`const val MAXIMUM_GROUP_NAME_LENGTH = ${MAX_GROUP_NAME_LENGTH}`);
   });
 
+  it("Beispielcode der Fehlermeldung passt zur Code-Länge", () => {
+    expect(INVITE_CODE_EXAMPLE).toHaveLength(INVITE_CODE_LENGTH);
+    expect(SocialErrors.invalidInviteCode().message).toBe(
+      `Der Code muss aus ${INVITE_CODE_LENGTH} Zeichen bestehen, z. B. ${INVITE_CODE_EXAMPLE}.`,
+    );
+  });
+
   it("Fehlermeldungen entsprechen SocialExceptions.kt", () => {
     const source = kotlinSource("social/SocialExceptions.kt");
 
     expect(source).toContain('"Bitte gib der Runde einen Namen."');
     expect(source).toContain('"Der Rundenname darf höchstens $maximum Zeichen lang sein."');
-    expect(source).toContain('"Der Code muss aus ${InviteCode.LENGTH} Zeichen bestehen, z. B. K7MX2Q."');
+    expect(source).toContain('"Der Code muss aus ${InviteCode.LENGTH} Zeichen bestehen, z. B. K7MX2QAB."');
     expect(source).toContain('"Zu diesem Code gibt es keine Runde."');
   });
 });

@@ -13,10 +13,13 @@ import com.drinkwithme.core.social.GroupReader
  */
 class SocialModule(
     val currentUserProvider: CurrentUserProvider,
+    val signedInUser: SignedInUserIdProvider,
     val accountService: AccountService,
     val groupReader: GroupReader,
     val groupMembershipService: GroupMembershipService,
     val feedReader: FeedReader,
     val drinkPublisher: DrinkPublisher,
     val pushTokenRegistrar: PushTokenRegistrar,
+    /** Holt im abgemeldeten Zustand gelöschte geteilte Getränke beim nächsten Anmelden nach. */
+    val pendingUnpublishSync: PendingUnpublishSync,
 )

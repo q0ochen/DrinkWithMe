@@ -9,12 +9,14 @@ import com.drinkwithme.core.social.usecase.CreateGroupUseCase
 import com.drinkwithme.core.social.usecase.JoinGroupUseCase
 import com.drinkwithme.core.social.usecase.LeaveGroupUseCase
 import com.drinkwithme.core.social.usecase.ObserveMyGroupsUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -30,8 +32,8 @@ import kotlin.test.assertTrue
 class GroupsViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val groups = MutableStateFlow(listOf(group("Stammtisch")))
-    private var createResult: () -> DrinkGroup = { group("Neu") }
-    private var joinResult: () -> DrinkGroup = { group("Beigetreten") }
+    private var createResult: suspend () -> DrinkGroup = { group("Neu") }
+    private var joinResult: suspend () -> DrinkGroup = { group("Beigetreten") }
     private var leaveResult: () -> Unit = {}
     private val left = mutableListOf<String>()
 
@@ -70,27 +72,57 @@ class GroupsViewModelTest {
     }
 
     @Test
-    fun createClosesDialogAndShowsMessage() = runTest(dispatcher) {
+    fun createRequestsDialogCloseAndShowsMessage() = runTest(dispatcher) {
         backgroundScope.launch { viewModel.state.collect {} }
-        var closed = false
 
-        viewModel.create("Neu") { closed = true }
+        viewModel.create("Neu")
 
-        assertTrue(closed)
+        assertTrue(viewModel.state.value.closeDialog)
         assertFalse(viewModel.state.value.isWorking)
         assertEquals(true, viewModel.state.value.message?.contains("„Neu“"))
+        assertEquals(true, viewModel.state.value.message?.contains("K7MX-2QAB"))
         assertNull(viewModel.state.value.dialogErrorMessage)
+
+        viewModel.dialogClosed()
+        assertFalse(viewModel.state.value.closeDialog)
+    }
+
+    @Test
+    fun closeRequestSurvivesUntilAnyScreenConsumesIt() = runTest(dispatcher) {
+        // Simuliert eine Drehung: Während des Aufrufs gibt es keinen Beobachter, die neue Oberfläche
+        // sammelt erst danach – und sieht trotzdem, dass sie ihren Dialog schließen soll.
+        val pending = CompletableDeferred<DrinkGroup>()
+        createResult = { pending.await() }
+        val oldScreen = backgroundScope.launch { viewModel.state.collect {} }
+        viewModel.create("Neu")
+        assertTrue(viewModel.state.value.isWorking)
+        oldScreen.cancel()
+
+        pending.complete(group("Neu"))
+        advanceTimeBy(10_000)
+        backgroundScope.launch { viewModel.state.collect {} }
+
+        assertTrue(viewModel.state.value.closeDialog)
+    }
+
+    @Test
+    fun joinRequestsDialogClose() = runTest(dispatcher) {
+        backgroundScope.launch { viewModel.state.collect {} }
+
+        viewModel.join("K7MX2QAB")
+
+        assertTrue(viewModel.state.value.closeDialog)
+        assertEquals("Willkommen in der Runde „Beigetreten“!", viewModel.state.value.message)
     }
 
     @Test
     fun validationErrorStaysInDialog() = runTest(dispatcher) {
         backgroundScope.launch { viewModel.state.collect {} }
         createResult = { throw SocialValidationException.EmptyGroupName }
-        var closed = false
 
-        viewModel.create(" ") { closed = true }
+        viewModel.create(" ")
 
-        assertFalse(closed)
+        assertFalse(viewModel.state.value.closeDialog)
         assertEquals("Bitte gib der Runde einen Namen.", viewModel.state.value.dialogErrorMessage)
     }
 
@@ -99,8 +131,9 @@ class GroupsViewModelTest {
         backgroundScope.launch { viewModel.state.collect {} }
         joinResult = { throw GroupNotFoundException() }
 
-        viewModel.join("K7MX2Q") {}
+        viewModel.join("K7MX2QAB")
 
+        assertFalse(viewModel.state.value.closeDialog)
         assertEquals("Zu diesem Code gibt es keine Runde.", viewModel.state.value.dialogErrorMessage)
     }
 
@@ -109,9 +142,21 @@ class GroupsViewModelTest {
         backgroundScope.launch { viewModel.state.collect {} }
         joinResult = { throw IllegalStateException("socket closed") }
 
-        viewModel.join("K7MX2Q") {}
+        viewModel.join("K7MX2QAB")
 
         assertEquals(false, viewModel.state.value.dialogErrorMessage?.contains("socket"))
+    }
+
+    @Test
+    fun groupsAreDroppedWhenNobodyObserves() = runTest(dispatcher) {
+        val screen = backgroundScope.launch { viewModel.state.collect {} }
+        assertEquals(1, viewModel.state.value.groups.size)
+
+        screen.cancel()
+        advanceTimeBy(5_001)
+
+        assertTrue(viewModel.state.value.groups.isEmpty())
+        assertTrue(viewModel.state.value.isLoading)
     }
 
     @Test
@@ -128,5 +173,5 @@ class GroupsViewModelTest {
     }
 
     private fun group(name: String) =
-        DrinkGroup("id-$name", name, InviteCode.parse("K7MX2Q")!!, "u1", listOf(GroupMember("u1", "Anna")))
+        DrinkGroup("id-$name", name, InviteCode.parse("K7MX2QAB")!!, "u1", listOf(GroupMember("u1", "Anna")))
 }

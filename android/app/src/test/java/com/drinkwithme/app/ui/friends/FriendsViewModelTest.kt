@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -108,8 +109,35 @@ class FriendsViewModelTest {
         assertNull(viewModel.state.value.errorMessage)
     }
 
+    @Test
+    fun cachedDataIsDroppedWhenNobodyObserves() = runTest(dispatcher) {
+        feeds["a"] = MutableStateFlow(listOf(entry("a", "Pils")))
+        val viewModel = FriendsViewModel(observeMyGroups, observeFeed)
+        val screen = backgroundScope.launch { viewModel.state.collect {} }
+        groups.emit(listOf(group("a")))
+        assertEquals(listOf("Pils"), viewModel.state.value.entries.map { it.name })
+
+        screen.cancel()
+        advanceTimeBy(5_001)
+
+        // Nichts bleibt zwischengespeichert, was später (z. B. nach einem Kontowechsel) veraltet erscheinen könnte.
+        assertEquals(FriendsUiState(), viewModel.state.value)
+    }
+
+    @Test
+    fun shortInterruptionsKeepTheData() = runTest(dispatcher) {
+        val viewModel = FriendsViewModel(observeMyGroups, observeFeed)
+        val screen = backgroundScope.launch { viewModel.state.collect {} }
+        groups.emit(listOf(group("a")))
+
+        screen.cancel()
+        advanceTimeBy(1_000)
+
+        assertEquals(listOf("a"), viewModel.state.value.groups.map { it.id })
+    }
+
     private fun group(id: String) =
-        DrinkGroup(id, "Runde $id", InviteCode.parse("K7MX2Q")!!, "u1", listOf(GroupMember("u1", "Anna")))
+        DrinkGroup(id, "Runde $id", InviteCode.parse("K7MX2QAB")!!, "u1", listOf(GroupMember("u1", "Anna")))
 
     private fun entry(groupId: String, name: String) = FeedEntry(
         drinkId = "$groupId-$name",

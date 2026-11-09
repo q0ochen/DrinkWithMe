@@ -5,7 +5,7 @@ describe("toGroupDto", () => {
   it("bildet das Dokument auf GroupDto ab – Mitglieder in Beitrittsreihenfolge", () => {
     const dto = toGroupDto("g1", {
       name: "Stammtisch",
-      inviteCode: "K7MX2Q",
+      inviteCode: "K7MX2QAB",
       ownerId: "bob",
       memberIds: ["bob", "anna"],
       members: { anna: { displayName: "Anna" }, bob: { displayName: "Bob" } },
@@ -14,7 +14,7 @@ describe("toGroupDto", () => {
     expect(dto).toEqual({
       id: "g1",
       name: "Stammtisch",
-      inviteCode: "K7MX2Q",
+      inviteCode: "K7MX2QAB",
       ownerId: "bob",
       members: [
         { userId: "bob", displayName: "Bob" },
@@ -26,7 +26,7 @@ describe("toGroupDto", () => {
   it("nennt Mitglieder ohne Eintrag „Unbekannt“", () => {
     const dto = toGroupDto("g1", {
       name: "R",
-      inviteCode: "K7MX2Q",
+      inviteCode: "K7MX2QAB",
       ownerId: "a",
       memberIds: ["a"],
       members: {},
@@ -39,7 +39,7 @@ describe("toGroupDto", () => {
 describe("parseGroupState", () => {
   const valid = {
     name: "Stammtisch",
-    inviteCode: "K7MX2Q",
+    inviteCode: "K7MX2QAB",
     ownerId: "a",
     memberIds: ["a", "b"],
     members: { a: { displayName: "Anna" }, b: { displayName: 7 }, c: { displayName: "Ehemalig" } },
@@ -49,7 +49,7 @@ describe("parseGroupState", () => {
   it("liest gültige Daten und ergänzt fehlende Namen", () => {
     expect(parseGroupState(valid)).toEqual({
       name: "Stammtisch",
-      inviteCode: "K7MX2Q",
+      inviteCode: "K7MX2QAB",
       ownerId: "a",
       memberIds: ["a", "b"],
       members: { a: { displayName: "Anna" }, b: { displayName: "Unbekannt" } },

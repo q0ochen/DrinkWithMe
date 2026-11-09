@@ -44,8 +44,14 @@ interface AppContainer {
     /** `true`, wenn ein Server (Firebase) eingerichtet ist – nur dann gibt es Trinkrunden. */
     val isSocialAvailable: Boolean
 
-    /** Push-Ereignisse (neues Token, Nachricht im Vordergrund); `null` ohne Server. */
+    /** Push-Ereignisse (neues Token, eingehende Nachricht); `null` ohne Server. */
     val pushHandler: PushMessageHandler?
+
+    /**
+     * Beim App-Start (nur mit Server): Push-Token auffrischen und im abgemeldeten Zustand gelöschte geteilte
+     * Getränke nachholen, sobald derselbe Nutzer (wieder) angemeldet ist.
+     */
+    fun startSocialBackgroundWork()
 }
 
 /** Composition Root: einziger Ort, an dem konkrete Klassen verdrahtet werden. */
@@ -53,8 +59,8 @@ class DefaultAppContainer(
     context: Context,
     localRepository: DrinkRepository = JsonFileDrinkRepository(File(context.filesDir, "drinks.json")),
     /** Lebt so lange wie die App: Teilen und Token-Pflege laufen weiter, auch wenn ein Bildschirm schließt. */
-    applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-    social: SocialModule? = FirebaseSocialModuleFactory.createIfConfigured(context),
+    private val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val social: SocialModule? = FirebaseSocialModuleFactory.createIfConfigured(context),
 ) : AppContainer {
 
     /** Mit Server: lokal speichern und zusätzlich in den Trinkrunden teilen (Decorator aus dem Kern). */
@@ -81,9 +87,16 @@ class DefaultAppContainer(
         DefaultPushMessageHandler(
             registrar = module.pushTokenRegistrar,
             notifier = AndroidFriendDrinkNotifier(context.applicationContext),
+            signedInUser = module.signedInUser,
             scope = applicationScope,
             onError = { error -> Log.w(TAG, "Push-Token konnte nicht aktualisiert werden.", error) },
         )
+    }
+
+    override fun startSocialBackgroundWork() {
+        val module = social ?: return
+        pushHandler?.onAppStarted()
+        module.pendingUnpublishSync.start(applicationScope)
     }
 
     override val viewModelFactory: ViewModelProvider.Factory = viewModelFactory {

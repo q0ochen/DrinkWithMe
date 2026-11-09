@@ -18,14 +18,20 @@ in denen ihr live seht, was die anderen trinken – mit Push-Nachricht.
 ### Trinkrunden (Android)
 
 - **Anmelden mit Google** (Firebase Authentication über den Android Credential Manager)
-- **Runde erstellen** (Name 1–30 Zeichen) → 6-stelliger **Einladungscode** zum Teilen oder Kopieren;
-  **beitreten** per Code; man kann in mehreren Runden sein (bis zu 50 Mitglieder pro Runde); **verlassen**
-  jederzeit – verlässt das letzte Mitglied die Runde, wird sie samt Getränken gelöscht
+- **Runde erstellen** (Name 1–30 Zeichen) → 8-stelliger **Einladungscode** (z. B. `K7MX-2QAB`) zum Teilen oder
+  Kopieren; **beitreten** per Code (mit oder ohne Bindestrich; nach 10 falschen Codes pro Stunde gesperrt); man
+  kann in mehreren Runden sein (bis zu 50 Mitglieder pro Runde); **verlassen** jederzeit – verlässt das letzte
+  Mitglied die Runde, wird sie gelöscht; ihre Getränke räumt der Server kurz danach automatisch auf
 - Neue Getränke werden **automatisch in allen eigenen Runden geteilt** – außer mit dem Schalter
-  **„Privat (nicht mit Freunden teilen)“**. Löschen entfernt ein Getränk auch wieder aus den Runden.
+  **„Privat (nicht mit Freunden teilen)“**. Löschen entfernt ein Getränk auch wieder aus den aktuellen Runden;
+  wird es abgemeldet gelöscht, holt die App das beim nächsten Anmelden mit demselben Konto nach.
 - Reiter **„Freunde“**: Live-Feed einer gewählten Runde (neueste 100 Getränke)
-- **Push-Nachricht** an alle anderen Mitglieder, z. B. „Anna trinkt gerade – ☕️ Cappuccino (200 ml) · Stammtisch“
-- Navigation unten: **Meine Getränke** · **Freunde** · **Runden** (inkl. Konto und Abmelden)
+- **Push-Nachricht** an alle anderen Mitglieder, z. B. „Anna trinkt gerade – ☕️ Cappuccino (200 ml) · Stammtisch“ –
+  angezeigt nur, wenn genau der Empfänger angemeldet ist (nach Abmelden oder Kontowechsel erscheinen keine
+  Nachrichten des vorherigen Kontos)
+- **Konto löschen** direkt in der App (Karte „Konto“ im Reiter „Runden“): entfernt Anmeldung, Profil,
+  Mitgliedschaften und alle geteilten Getränke vom Server; „Meine Getränke“ bleibt auf dem Gerät
+- Navigation unten: **Meine Getränke** · **Freunde** · **Runden** (inkl. Konto, Abmelden und Konto löschen)
 - Ohne eingerichteten Server (keine `android/app/google-services.json`) läuft die App wie bisher **nur lokal**
   und zeigt bei den Trinkrunden „Server noch nicht eingerichtet“.
 - **iOS bleibt vorerst lokal** – ohne Anmeldung und ohne Trinkrunden.
@@ -54,7 +60,7 @@ android/
 │                                PublishingDrinkRepository (ohne Android/Firebase)
 └── app/                         Android-App: Compose-UI, ViewModels, JSON-Repository, Share-Intent
     ├── …/app/social/firebase/   Firebase-Adapter der Ports (Auth, Firestore, Functions, Credential Manager)
-    ├── …/app/push/              Push: Kanal „drinks“, Token-Registrierung, Anzeige im Vordergrund
+    ├── …/app/push/              Push: Kanal „drinks“, Token-Registrierung, Anzeige der Daten-Nachrichten
     ├── …/app/ui/                Meine Getränke · Freunde · Runden
     └── google-services.json     (nicht im Repo, bis Firebase eingerichtet ist – siehe Anleitung)
 firebase/                        Backend der Trinkrunden
@@ -136,10 +142,11 @@ Server) beschreibt [`docs/FIREBASE_EINRICHTUNG.md`](docs/FIREBASE_EINRICHTUNG.md
   (`.github/workflows/firebase-deploy.yml`). Benötigt das Repository-Secret `FIREBASE_SERVICE_ACCOUNT`
   (JSON-Schlüssel eines Dienstkontos) und die Repository-Variable `FIREBASE_PROJECT_ID`.
 - **Region:** Firestore-Datenbank und alle Functions in `europe-west3` (Frankfurt).
+- **App Check** ist bewusst nicht aktiv: Es würde die direkt installierte APK aus GitHub (nicht aus dem
+  Play Store) aussperren. Geschützt wird über Anmeldung, Sicherheitsregeln und die Sperre gegen Code-Raten.
 
 ## Ideen für später
 
 - Trinkrunden auch für iOS (Firebase-Adapter für die gleichen Ports)
-- Konto direkt in der App löschen
 - Foto zum Getränk, Standort („Wo trinkst du?“)
 - Statistiken (Wasser-Ziel pro Tag, Koffein-Tracker)

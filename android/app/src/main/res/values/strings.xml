@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Drink With Me</string>
-    <!-- Muss zu android.notification.channelId der Cloud Function passen (docs/TRINKRUNDEN_ARCHITEKTUR.md). -->
+    <!-- Kanal „drinks“ (docs/TRINKRUNDEN_ARCHITEKTUR.md); muss zu DrinkNotificationChannel.ID passen. -->
     <string name="notification_channel_drinks_id" translatable="false">drinks</string>
 </resources>

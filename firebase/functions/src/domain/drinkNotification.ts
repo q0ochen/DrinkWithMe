@@ -1,11 +1,9 @@
 import { emojiFor } from "./drinkCategory";
 import { formatVolume } from "./volumeFormatter";
 
-/** Android-Benachrichtigungskanal der App für Getränke. */
-export const DRINK_NOTIFICATION_CHANNEL_ID = "drinks";
-
-/** Die Felder eines geteilten Getränks (`groups/{groupId}/drinks/{drinkId}`), die der Push braucht. */
+/** Die Felder eines geteilten Getränks (`groups/{groupId}/drinks/{authorId}_{drinkId}`), die der Push braucht. */
 export interface SharedDrink {
+  drinkId: string;
   authorId: string;
   authorName: string;
   name: string;
@@ -13,14 +11,33 @@ export interface SharedDrink {
   volumeInMilliliters: number;
 }
 
+/** Wo das Getränk liegt: Runde und Dokument-ID (`"{authorId}_{drinkId}"`). */
+export interface SharedDrinkLocation {
+  groupId: string;
+  docId: string;
+}
+
+/** Nutzdaten einer Push-Nachricht – FCM verlangt für `data` ausschließlich Zeichenketten. */
+export interface DrinkMessageData {
+  type: "drink";
+  groupId: string;
+  drinkId: string;
+  docId: string;
+  /** Für wen die Nachricht bestimmt ist – die App zeigt sie nur diesem angemeldeten Nutzer. */
+  recipientId: string;
+  title: string;
+  body: string;
+}
+
 /**
- * Push-Nachricht für ein neues Getränk. Der Aufbau entspricht einer FCM-`MulticastMessage`
- * ohne `tokens`, damit diese reine Logik nicht vom Admin SDK abhängt.
+ * Reine Daten-Nachricht (ohne `notification`-Block) an genau einen Empfänger.
+ * Der Aufbau entspricht einer FCM-`MulticastMessage` ohne `tokens`, damit diese reine
+ * Logik nicht vom Admin SDK abhängt. `priority: "high"` lässt die App die Nachricht
+ * auch im Hintergrund sofort selbst anzeigen.
  */
-export interface DrinkNotification {
-  notification: { title: string; body: string };
-  android: { notification: { channelId: string; tag: string } };
-  data: { type: "drink"; groupId: string; drinkId: string };
+export interface DrinkMessage {
+  android: { priority: "high" };
+  data: DrinkMessageData;
 }
 
 /**
@@ -30,8 +47,9 @@ export interface DrinkNotification {
  */
 export function parseSharedDrink(data: unknown): SharedDrink | null {
   if (typeof data !== "object" || data === null) return null;
-  const { authorId, authorName, name, category, volumeInMilliliters } = data as Record<string, unknown>;
+  const { drinkId, authorId, authorName, name, category, volumeInMilliliters } = data as Record<string, unknown>;
   if (
+    typeof drinkId !== "string" ||
     typeof authorId !== "string" ||
     typeof authorName !== "string" ||
     typeof name !== "string" ||
@@ -41,7 +59,7 @@ export function parseSharedDrink(data: unknown): SharedDrink | null {
   ) {
     return null;
   }
-  return { authorId, authorName, name, category, volumeInMilliliters };
+  return { drinkId, authorId, authorName, name, category, volumeInMilliliters };
 }
 
 /** Empfänger: alle Mitglieder außer dem Autor (ohne Duplikate). */
@@ -49,24 +67,36 @@ export function selectRecipients(memberIds: readonly string[], authorId: string)
   return [...new Set(memberIds)].filter((id) => id !== authorId);
 }
 
+/** Titel laut Vertrag: „{authorName} trinkt gerade“. */
+export function drinkTitle(drink: SharedDrink): string {
+  return `${drink.authorName} trinkt gerade`;
+}
+
+/** Text laut Vertrag: „{emoji} {name} ({Menge}) · {Rundenname}“. */
+export function drinkBody(drink: SharedDrink, groupName: string): string {
+  return `${emojiFor(drink.category)} ${drink.name} (${formatVolume(drink.volumeInMilliliters)}) · ${groupName}`;
+}
+
 /**
- * Baut die Push-Nachricht laut Vertrag:
- * Titel „{authorName} trinkt gerade“, Text „{emoji} {name} ({Menge}) · {Rundenname}“.
- * `tag = drinkId`, damit sich dasselbe Getränk aus mehreren Runden ersetzt statt zu stapeln.
+ * Baut die Daten-Nachricht für einen Empfänger laut Vertrag:
+ * `data = { type, groupId, drinkId, docId, recipientId, title, body }`, `android.priority = "high"`.
  */
-export function buildDrinkNotification(
+export function buildDrinkMessage(
   drink: SharedDrink,
-  ids: { groupId: string; drinkId: string },
+  location: SharedDrinkLocation,
   groupName: string,
-): DrinkNotification {
+  recipientId: string,
+): DrinkMessage {
   return {
-    notification: {
-      title: `${drink.authorName} trinkt gerade`,
-      body: `${emojiFor(drink.category)} ${drink.name} (${formatVolume(drink.volumeInMilliliters)}) · ${groupName}`,
+    android: { priority: "high" },
+    data: {
+      type: "drink",
+      groupId: location.groupId,
+      drinkId: drink.drinkId,
+      docId: location.docId,
+      recipientId,
+      title: drinkTitle(drink),
+      body: drinkBody(drink, groupName),
     },
-    android: {
-      notification: { channelId: DRINK_NOTIFICATION_CHANNEL_ID, tag: ids.drinkId },
-    },
-    data: { type: "drink", groupId: ids.groupId, drinkId: ids.drinkId },
   };
 }

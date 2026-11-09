@@ -5,7 +5,16 @@ import type { Functions } from "firebase/functions";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { GroupDto } from "../../src/domain/group";
 import { parseInviteCode } from "../../src/domain/inviteCode";
-import { adminDb, anonymousClient, clearAuth, clearFirestore, signedInClient } from "./support";
+import {
+  adminAuth,
+  adminDb,
+  anonymousClient,
+  clearAuth,
+  clearFirestore,
+  shareDrinkAsAdmin,
+  signedInClient,
+  waitFor,
+} from "./support";
 import type { SignedInClient } from "./support";
 
 // Die Callables über den Functions-Emulator – genau so, wie die App sie aufruft
@@ -66,16 +75,45 @@ const joinGroup = (client: SignedInClient, code: unknown) =>
   call<{ group: GroupDto }>(client, "joinGroup", { code }).then((response) => response.group);
 const leaveGroup = (client: SignedInClient, groupId: unknown) =>
   call<Record<string, never>>(client, "leaveGroup", { groupId });
+const deleteAccount = (client: SignedInClient) => call<Record<string, never>>(client, "deleteAccount", {});
 
 async function storedGroup(groupId: string) {
   return (await db.doc(`groups/${groupId}`).get()).data();
 }
 
+async function drinksIn(groupId: string): Promise<string[]> {
+  return (await db.collection(`groups/${groupId}/drinks`).get()).docs.map((doc) => doc.id).sort();
+}
+
+/** Wartet, bis der Trigger onGroupDeleted die Getränke einer aufgelösten Runde gelöscht hat. */
+function drinksCleanedUp(groupId: string): Promise<true> {
+  return waitFor(
+    async () => ((await drinksIn(groupId)).length === 0 ? true : undefined),
+    `Aufräumen der Getränke von ${groupId}`,
+  );
+}
+
+async function authUserExists(uid: string): Promise<boolean> {
+  try {
+    await adminAuth().getUser(uid);
+    return true;
+  } catch (error) {
+    if ((error as { code?: unknown }).code === "auth/user-not-found") return false;
+    throw error;
+  }
+}
+
+/** Ein Code im richtigen Format, den es nicht gibt. */
+function unknownCode(index: number): string {
+  return `ZZZZZZ${"ABCDEFGHJK".charAt(index % 10)}Z`;
+}
+
 describe("Anmeldung", () => {
   it.each([
     ["createGroup", { name: "Stammtisch" }],
-    ["joinGroup", { code: "K7MX2Q" }],
+    ["joinGroup", { code: "K7MX2QAB" }],
     ["leaveGroup", { groupId: "g1" }],
+    ["deleteAccount", {}],
   ])("%s verlangt eine Anmeldung (unauthenticated)", async (name, data) => {
     const error = await callFailure(anonymous(), name, data);
 
@@ -152,7 +190,8 @@ describe("joinGroup", () => {
     const anna = await user("anna", { profileName: "Anna" });
     const bob = await user("bob", { profileName: "Bob" });
     const created = await createGroup(anna, "Stammtisch");
-    const typed = `${created.inviteCode.slice(0, 3).toLowerCase()}-${created.inviteCode.slice(3).toLowerCase()} `;
+    expect(created.inviteCode).toHaveLength(8);
+    const typed = `${created.inviteCode.slice(0, 4).toLowerCase()}-${created.inviteCode.slice(4).toLowerCase()} `;
 
     const joined = await joinGroup(bob, typed);
 
@@ -187,13 +226,13 @@ describe("joinGroup", () => {
   it("meldet unbekannte Codes mit not-found", async () => {
     const bob = await user("bob", { profileName: "Bob" });
 
-    const error = await callFailure(bob, "joinGroup", { code: "ZZZZZZ" });
+    const error = await callFailure(bob, "joinGroup", { code: "ZZZZZZZZ" });
 
     expect(error.code).toBe("functions/not-found");
     expect(serverMessage(error)).toBe("Zu diesem Code gibt es keine Runde.");
   });
 
-  it.each([["K7MX2"], ["K7MX2QA"], ["K7MX2O"], [""], [undefined], [123456]])(
+  it.each([["K7MX2Q"], ["K7MX2QA"], ["K7MX2QABC"], ["K7MX2QAO"], [""], [undefined], [12345678]])(
     "lehnt das Format %j mit invalid-argument ab",
     async (code) => {
       const bob = await user("bob", { profileName: "Bob" });
@@ -201,27 +240,65 @@ describe("joinGroup", () => {
       const error = await callFailure(bob, "joinGroup", code === undefined ? {} : { code });
 
       expect(error.code).toBe("functions/invalid-argument");
-      expect(serverMessage(error)).toBe("Der Code muss aus 6 Zeichen bestehen, z. B. K7MX2Q.");
+      expect(serverMessage(error)).toBe("Der Code muss aus 8 Zeichen bestehen, z. B. K7MX2QAB.");
     },
   );
 
-  it("lehnt das 51. Mitglied mit resource-exhausted ab", async () => {
+  it("lehnt das 51. Mitglied mit failed-precondition ab", async () => {
     const memberIds = Array.from({ length: 50 }, (_, i) => `m${i}`);
     await db.doc("groups/voll").set({
       name: "Voll",
-      inviteCode: "VVVVVV",
+      inviteCode: "VVVVVVVV",
       ownerId: "m0",
       memberIds,
       members: Object.fromEntries(memberIds.map((id) => [id, { displayName: id }])),
       createdAt: FieldValue.serverTimestamp(),
     });
-    await db.doc("inviteCodes/VVVVVV").set({ groupId: "voll" });
+    await db.doc("inviteCodes/VVVVVVVV").set({ groupId: "voll" });
     const bob = await user("bob", { profileName: "Bob" });
 
-    const error = await callFailure(bob, "joinGroup", { code: "VVVVVV" });
+    const error = await callFailure(bob, "joinGroup", { code: "VVVVVVVV" });
 
-    expect(error.code).toBe("functions/resource-exhausted");
+    expect(error.code).toBe("functions/failed-precondition");
+    expect(serverMessage(error)).toBe("Diese Runde ist voll – es können höchstens 50 Personen mitmachen.");
     expect((await storedGroup("voll"))?.memberIds).toHaveLength(50);
+  });
+
+  it("sperrt nach 10 falschen Codes mit resource-exhausted – auch für einen richtigen Code", async () => {
+    const anna = await user("anna", { profileName: "Anna" });
+    const mallory = await user("mallory", { profileName: "Mallory" });
+    const group = await createGroup(anna, "Stammtisch");
+
+    for (let i = 0; i < 10; i++) {
+      const miss = await callFailure(mallory, "joinGroup", { code: unknownCode(i) });
+      expect(miss.code).toBe("functions/not-found");
+    }
+    expect((await db.doc("joinAttempts/mallory").get()).data()).toEqual({
+      windowStart: expect.any(Timestamp) as unknown,
+      failures: 10,
+    });
+
+    const blocked = await callFailure(mallory, "joinGroup", { code: group.inviteCode });
+
+    expect(blocked.code).toBe("functions/resource-exhausted");
+    expect(serverMessage(blocked)).toBe(
+      "Zu viele falsche Codes. Bitte warte eine Stunde und versuche es dann noch einmal.",
+    );
+    expect((await storedGroup(group.id))?.memberIds).toEqual(["anna"]);
+  });
+
+  it("gibt nach Ablauf des Zeitfensters (1 Stunde) wieder frei", async () => {
+    const anna = await user("anna", { profileName: "Anna" });
+    const mallory = await user("mallory", { profileName: "Mallory" });
+    const group = await createGroup(anna, "Stammtisch");
+    await db.doc("joinAttempts/mallory").set({
+      windowStart: Timestamp.fromMillis(Date.now() - 61 * 60 * 1000),
+      failures: 10,
+    });
+
+    const joined = await joinGroup(mallory, group.inviteCode);
+
+    expect(joined.members.map((member) => member.userId)).toEqual(["anna", "mallory"]);
   });
 });
 
@@ -272,28 +349,16 @@ describe("leaveGroup", () => {
     expect((await storedGroup(group.id))?.memberIds).toEqual(["anna"]);
   });
 
-  it("löscht beim letzten Mitglied Runde, Code und Getränke", async () => {
+  it("löscht beim letzten Mitglied Runde und Code; die Getränke räumt onGroupDeleted auf", async () => {
     const anna = await user("anna", { profileName: "Anna" });
     const group = await createGroup(anna, "Kurz");
-    for (const drinkId of ["d1", "d2"]) {
-      await db.doc(`groups/${group.id}/drinks/${drinkId}`).set({
-        drinkId,
-        authorId: "anna",
-        authorName: "Anna",
-        name: "Wasser",
-        category: "WATER",
-        volumeInMilliliters: 250,
-        note: null,
-        consumedAt: Timestamp.now(),
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    }
+    for (const drinkId of ["d1", "d2"]) await shareDrinkAsAdmin(group.id, drinkId, "anna");
 
     expect(await leaveGroup(anna, group.id)).toEqual({});
 
     expect((await db.doc(`groups/${group.id}`).get()).exists).toBe(false);
     expect((await db.doc(`inviteCodes/${group.inviteCode}`).get()).exists).toBe(false);
-    expect((await db.collection(`groups/${group.id}/drinks`).get()).size).toBe(0);
+    await drinksCleanedUp(group.id);
     const error = await callFailure(anna, "joinGroup", { code: group.inviteCode });
     expect(error.code).toBe("functions/not-found");
   });
@@ -304,5 +369,62 @@ describe("leaveGroup", () => {
     const error = await callFailure(anna, "leaveGroup", groupId === undefined ? {} : { groupId });
 
     expect(error.code).toBe("functions/invalid-argument");
+  });
+});
+
+describe("deleteAccount", () => {
+  it("löscht Mitgliedschaften, alle eigenen Getränke (auch in verlassenen Runden), Profil, Tokens, Zähler und Auth-Nutzer", async () => {
+    const anna = await user("anna", { profileName: "Anna" });
+    const bob = await user("bob", { profileName: "Bob" });
+    const left = await createGroup(anna, "Verlassen");
+    const shared = await createGroup(anna, "Gemeinsam");
+    const solo = await createGroup(bob, "Allein");
+    await joinGroup(bob, left.inviteCode);
+    await joinGroup(bob, shared.inviteCode);
+    await shareDrinkAsAdmin(left.id, "alt-1", "bob");
+    await shareDrinkAsAdmin(left.id, "alt-2", "bob");
+    await leaveGroup(bob, left.id);
+    await shareDrinkAsAdmin(shared.id, "neu", "bob");
+    await shareDrinkAsAdmin(shared.id, "annas", "anna");
+    await shareDrinkAsAdmin(solo.id, "allein", "bob");
+    await db.doc("users/bob/tokens/bob-phone").set({ platform: "android", updatedAt: FieldValue.serverTimestamp() });
+    await db.doc("joinAttempts/bob").set({ windowStart: Timestamp.now(), failures: 4 });
+
+    expect(await deleteAccount(bob)).toEqual({});
+
+    expect(await drinksIn(left.id)).toEqual([]);
+    expect(await drinksIn(shared.id)).toEqual(["anna_annas"]);
+    expect(await storedGroup(left.id)).toMatchObject({ memberIds: ["anna"] });
+    expect(await storedGroup(shared.id)).toMatchObject({ ownerId: "anna", memberIds: ["anna"] });
+    expect(Object.keys((await storedGroup(shared.id))?.members as object)).toEqual(["anna"]);
+    expect((await db.doc(`groups/${solo.id}`).get()).exists).toBe(false);
+    expect((await db.doc(`inviteCodes/${solo.inviteCode}`).get()).exists).toBe(false);
+    await drinksCleanedUp(solo.id);
+    expect((await db.doc("users/bob").get()).exists).toBe(false);
+    expect((await db.collection("users/bob/tokens").get()).size).toBe(0);
+    expect((await db.doc("joinAttempts/bob").get()).exists).toBe(false);
+    expect(await authUserExists("bob")).toBe(false);
+
+    expect((await db.doc("users/anna").get()).exists).toBe(true);
+    expect(await authUserExists("anna")).toBe(true);
+  });
+
+  it("ist idempotent – ein zweiter Aufruf (auch nach gelöschtem Auth-Nutzer) gelingt", async () => {
+    const bob = await user("bob", { profileName: "Bob" });
+    const group = await createGroup(bob, "Allein");
+
+    expect(await deleteAccount(bob)).toEqual({});
+    expect(await deleteAccount(bob)).toEqual({});
+
+    expect((await db.doc(`groups/${group.id}`).get()).exists).toBe(false);
+    expect(await authUserExists("bob")).toBe(false);
+  });
+
+  it("gelingt auch für ein Konto ohne Daten", async () => {
+    const nobody = await user("nobody");
+
+    expect(await deleteAccount(nobody)).toEqual({});
+
+    expect(await authUserExists("nobody")).toBe(false);
   });
 });

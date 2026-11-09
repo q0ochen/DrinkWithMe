@@ -41,19 +41,21 @@ service cloud.firestore {
       return isSignedIn() && group != null && request.auth.uid in group.data.memberIds;
     }
 
-    // ---------- groups/{groupId}/drinks/{drinkId} ----------
+    // ---------- groups/{groupId}/drinks/{docId} ----------
 
-    // Exakt die Felder aus dem Vertrag; Zeitstempel: consumedAt höchstens 24 h alt bzw. 5 min
-    // in der Zukunft, createdAt = serverTimestamp().
-    function isValidSharedDrink(drinkId) {
+    // Exakt die Felder aus dem Vertrag; Dokument-ID = "{authorId}_{drinkId}" – so kann kein anderes
+    // Mitglied die ID eines fremden Getränks in einer Runde „besetzen“. Zeitstempel: consumedAt
+    // höchstens 24 h alt bzw. 5 min in der Zukunft, createdAt = serverTimestamp().
+    function isValidSharedDrink(docId) {
       let drink = request.resource.data;
       return hasExactly(drink, [
           'drinkId', 'authorId', 'authorName', 'name', 'category',
           'volumeInMilliliters', 'note', 'consumedAt', 'createdAt'
         ])
         && drink.drinkId is string
-        && drink.drinkId == drinkId
+        && drink.drinkId.size() >= 1
         && drink.authorId == request.auth.uid
+        && docId == request.auth.uid + '_' + drink.drinkId
         && isText(drink.authorName, 50)
         && isText(drink.name, 50)
         && drink.category in [
@@ -82,7 +84,14 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
-    // platform: "android", updatedAt: serverTimestamp; Dokument-ID = FCM-Token
+    // Dokument-ID = FCM-Token: nur Zeichen und Länge, die ein FCM-Token haben kann – gleichbedeutend mit
+    // '^[A-Za-z0-9_:-]{20,1024}$' aus dem Vertrag. Die Länge wird getrennt geprüft, weil RE2 (die
+    // Regex-Engine der Regeln) Wiederholungen nur bis 1000 erlaubt und {20,1024} nicht kompiliert.
+    function isFcmToken(token) {
+      return token.size() >= 20 && token.size() <= 1024 && token.matches('^[A-Za-z0-9_:-]+$');
+    }
+
+    // platform: "android", updatedAt: serverTimestamp
     function isValidDeviceToken(data) {
       return hasExactly(data, ['platform', 'updatedAt'])
         && data.platform == 'android'
@@ -96,7 +105,8 @@ service cloud.firestore {
 
       match /tokens/{token} {
         allow read: if isUser(uid);
-        allow create, update: if isUser(uid) && isValidDeviceToken(request.resource.data);
+        allow create, update: if isUser(uid) && isFcmToken(token) && isValidDeviceToken(request.resource.data);
+        // Löschen ohne Formatprüfung, damit auch alte, ungültige Einträge entfernt werden können.
         allow delete: if isUser(uid);
       }
     }
@@ -109,11 +119,11 @@ service cloud.firestore {
       // Erstellen, Beitreten und Verlassen nur über die Cloud Functions.
       allow write: if false;
 
-      // ---------- groups/{groupId}/drinks/{drinkId} ----------
+      // ---------- groups/{groupId}/drinks/{docId} ----------
 
-      match /drinks/{drinkId} {
+      match /drinks/{docId} {
         allow read: if isMemberOf(groupId);
-        allow create: if isMemberOf(groupId) && isValidSharedDrink(drinkId);
+        allow create: if isMemberOf(groupId) && isValidSharedDrink(docId);
         // Geteilte Getränke sind unveränderlich.
         allow update: if false;
         // Der Autor darf löschen. Nicht vorhandene Dokumente dürfen „gelöscht“ werden,
@@ -123,10 +133,15 @@ service cloud.firestore {
       }
     }
 
-    // ---------- inviteCodes/{code} ----------
+    // ---------- inviteCodes/{code} und joinAttempts/{uid} ----------
 
     // Nur für die Cloud Functions – kein Client-Zugriff.
     match /inviteCodes/{code} {
+      allow read, write: if false;
+    }
+
+    // Zähler gegen das Erraten von Codes – auch der eigene ist für Clients tabu.
+    match /joinAttempts/{uid} {
       allow read, write: if false;
     }
 

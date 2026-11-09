@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { App } from "firebase-admin/app";
 import { getApps, initializeApp as initializeAdminApp } from "firebase-admin/app";
+import type { Auth } from "firebase-admin/auth";
 import { getAuth as getAdminAuth } from "firebase-admin/auth";
-import type { Firestore } from "firebase-admin/firestore";
-import { getFirestore } from "firebase-admin/firestore";
+import type { DocumentData, Firestore } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import type { FirebaseApp } from "firebase/app";
 import { deleteApp, initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, signInWithCustomToken } from "firebase/auth";
@@ -40,6 +41,38 @@ export function adminApp(): App {
 
 export function adminDb(): Firestore {
   return getFirestore(adminApp());
+}
+
+export function adminAuth(): Auth {
+  return getAdminAuth(adminApp());
+}
+
+/** Dokument-ID eines geteilten Getränks laut Vertrag: `"{authorId}_{drinkId}"`. */
+export function sharedDrinkDocId(authorId: string, drinkId: string): string {
+  return `${authorId}_${drinkId}`;
+}
+
+/** Ein gültiges geteiltes Getränk, wie die App es schreibt (für Admin-Schreibzugriffe). */
+export function sharedDrinkData(drinkId: string, authorId: string, overrides: DocumentData = {}): DocumentData {
+  return {
+    drinkId,
+    authorId,
+    authorName: "Anna",
+    name: "Helles",
+    category: "BEER",
+    volumeInMilliliters: 500,
+    note: null,
+    consumedAt: Timestamp.now(),
+    createdAt: FieldValue.serverTimestamp(),
+    ...overrides,
+  };
+}
+
+/** Legt `groups/{groupId}/drinks/{authorId}_{drinkId}` per Admin SDK an. @returns die Dokument-ID. */
+export async function shareDrinkAsAdmin(groupId: string, drinkId: string, authorId: string): Promise<string> {
+  const docId = sharedDrinkDocId(authorId, drinkId);
+  await adminDb().doc(`groups/${groupId}/drinks/${docId}`).set(sharedDrinkData(drinkId, authorId));
+  return docId;
 }
 
 /** Löscht alle Firestore-Daten des Projekts im Emulator. */
@@ -101,14 +134,14 @@ function connectFunctions(app: FirebaseApp): Functions {
  * `displayName` landet als `name` im ID-Token.
  */
 export async function signedInClient(uid: string, displayName?: string): Promise<SignedInClient> {
-  const adminAuth = getAdminAuth(adminApp());
-  await adminAuth.createUser(displayName === undefined ? { uid } : { uid, displayName });
-  const customToken = await adminAuth.createCustomToken(uid);
+  const auth = adminAuth();
+  await auth.createUser(displayName === undefined ? { uid } : { uid, displayName });
+  const customToken = await auth.createCustomToken(uid);
 
   const app = clientApp();
-  const auth = getAuth(app);
-  connectAuthEmulator(auth, `http://${EMULATORS.auth.host}:${EMULATORS.auth.port}`, { disableWarnings: true });
-  await signInWithCustomToken(auth, customToken);
+  const clientAuth = getAuth(app);
+  connectAuthEmulator(clientAuth, `http://${EMULATORS.auth.host}:${EMULATORS.auth.port}`, { disableWarnings: true });
+  await signInWithCustomToken(clientAuth, customToken);
   return { uid, functions: connectFunctions(app), close: () => deleteApp(app) };
 }
 

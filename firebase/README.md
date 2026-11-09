@@ -11,17 +11,20 @@ firebase/
 ├── firebase.json            Regeln, Indizes, Functions (Quelle "functions", Build vor dem Deploy), Emulatoren
 ├── .firebaserc              Standardprojekt "demo-drinkwithme" (nur Platzhalter für die Emulatoren)
 ├── firestore.rules          Sicherheitsregeln
-├── firestore.indexes.json   leer – beide Abfragen der App kommen mit automatischen Einzelfeld-Indizes aus
+├── firestore.indexes.json   keine zusammengesetzten Indizes; eine Feld-Ausnahme: Collection-Group-Index für
+│                            drinks.authorId (für deleteAccount) – die App kommt mit den automatischen Indizes aus
 ├── package.json             Firebase CLI in fester Version (für Emulatoren und Deploy)
 └── functions/               Cloud Functions: TypeScript, Node 22, 2nd gen, Region europe-west3
     ├── src/
-    │   ├── index.ts         Registriert die Functions (setGlobalOptions, onCall, onDocumentCreated)
+    │   ├── index.ts         Registriert die Functions (setGlobalOptions, onCall, onDocumentCreated/-Deleted)
     │   ├── container.ts     Composition Root: verdrahtet die konkreten Klassen
-    │   ├── config.ts        Region, Instanz-Obergrenze, Trigger-Pfad
+    │   ├── config.ts        Region, Instanz-Obergrenze, Trigger-Pfade, Laufzeit-Obergrenze
     │   ├── domain/          Reine Logik ohne Firebase: Einladungscodes, Namen, Mitgliedschaft,
-    │   │                    Mengenformat, Kategorie-Emojis, Push-Text, GroupDto, Fehler
-    │   ├── groups/          GroupService (Schnittstelle) + FirestoreGroupService (Transaktionen)
-    │   ├── notifications/   DrinkNotifier + Ports, FCM-Sender, Emulator-Sender
+    │   │                    Schutz vor Code-Raten, Mengenformat, Kategorie-Emojis, Push-Nachricht, GroupDto, Fehler
+    │   ├── groups/          GroupService + FirestoreGroupService (Transaktionen),
+    │   │                    GroupCleanup + FirestoreGroupCleanup (Getränke aufgelöster Runden)
+    │   ├── accounts/        AccountService + FirestoreAccountService (Konto löschen), Auth-Adapter
+    │   ├── notifications/   DrinkNotifier + Ports, FCM-Sender, Emulator-Sender, ungültige Tokens
     │   ├── firestore/       Firestore-Adapter (Tokens, Runden, Profile, Sammlungsnamen)
     │   └── handlers/        Callable-Adapter: Anmeldung prüfen, Fehler in HttpsError übersetzen
     └── test/
@@ -34,15 +37,40 @@ firebase/
 | Name | Art | Eingabe → Antwort | Fehler |
 |---|---|---|---|
 | `createGroup` | Callable | `{ name }` → `{ group: GroupDto }` | `unauthenticated`, `invalid-argument` |
-| `joinGroup` | Callable | `{ code }` → `{ group: GroupDto }` | `unauthenticated`, `invalid-argument`, `not-found`, `resource-exhausted` |
+| `joinGroup` | Callable | `{ code }` → `{ group: GroupDto }` | `unauthenticated`, `invalid-argument` (Format), `not-found` (unbekannter Code), `failed-precondition` (Runde voll), `resource-exhausted` (zu viele falsche Codes) |
 | `leaveGroup` | Callable | `{ groupId }` → `{}` | `unauthenticated`, `invalid-argument` (kaputte ID) |
-| `onGroupDrinkCreated` | Firestore-Trigger | `groups/{groupId}/drinks/{drinkId}` angelegt → Push an alle anderen Mitglieder | – |
+| `deleteAccount` | Callable (540 s) | `{}` → `{}` | `unauthenticated` – idempotent, darf nach einem Fehler wiederholt werden |
+| `onGroupDrinkCreated` | Firestore-Trigger | `groups/{groupId}/drinks/{docId}` angelegt → Daten-Nachricht an jedes andere Mitglied | – |
+| `onGroupDeleted` | Firestore-Trigger (Wiederholung, 540 s) | `groups/{groupId}` gelöscht → alle Getränke der Runde löschen (`recursiveDelete`) | – |
 
 Die Fehlermeldungen sind deutsch und entsprechen den Texten im Kotlin-Kern.
-Einladungscodes werden in einer Transaktion auf `inviteCodes/{code}` reserviert (bis zu 10 Versuche;
-gelingt das nie, kommt `aborted`). Beitreten und Verlassen sind idempotent. Verlässt das letzte Mitglied
-die Runde, werden Runde, Code und alle Getränke gelöscht; verlässt der Besitzer die Runde, übernimmt
-das am längsten dabei gewesene Mitglied.
+Einladungscodes haben **8 Zeichen** und werden in einer Transaktion auf `inviteCodes/{code}` reserviert
+(bis zu 10 Versuche; gelingt das nie, kommt `aborted`). Beitreten und Verlassen sind idempotent.
+Verlässt das letzte Mitglied die Runde, löscht die Transaktion Runde und Code; die Getränke räumt danach der
+Trigger `onGroupDeleted` auf (wird bei Fehlern wiederholt, sodass nichts liegen bleibt). Verlässt der Besitzer
+die Runde, übernimmt das am längsten dabei gewesene Mitglied.
+
+**Schutz vor Code-Raten:** `joinGroup` zählt pro Nutzer unbekannte Codes in `joinAttempts/{uid}`
+(`windowStart`, `failures`; nur für die Functions zugänglich). Ab **10 Fehlversuchen innerhalb einer Stunde**
+(festes Fenster ab dem ersten Fehlversuch) wird jeder weitere Versuch mit `resource-exhausted` abgelehnt –
+noch bevor der Code nachgeschlagen wird, also auch ein richtiger Code. Formatfehler zählen nicht, ein
+erfolgreicher Beitritt setzt den Zähler nicht zurück (sonst ließe er sich mit dem Code einer eigenen Runde
+zurücksetzen). Zusammen mit 31⁸ ≈ 8,5 · 10¹¹ möglichen Codes ist Raten damit aussichtslos.
+**App Check** wird bewusst nicht verwendet: Die App wird als APK direkt verteilt (nicht über Google Play),
+die Play-Integrity-Prüfung würde solche Installationen ablehnen.
+
+**Konto löschen (`deleteAccount`):** verlässt alle Runden (gleiche Logik wie `leaveGroup`), löscht danach
+per Collection-Group-Abfrage `drinks where authorId == uid` **alle** eigenen geteilten Getränke – auch in
+Runden, die man längst verlassen hat –, dann `users/{uid}` samt `tokens`, `joinAttempts/{uid}` und zuletzt
+den Firebase-Auth-Nutzer (ein bereits gelöschter Nutzer ist kein Fehler).
+
+**Push:** Reine Daten-Nachrichten (kein `notification`-Block), je Empfänger ein `sendEachForMulticast` an
+höchstens seine **5 neuesten** Tokens (`orderBy("updatedAt", "desc").limit(5)`), `android.priority = "high"`,
+`data = { type, groupId, drinkId, docId, recipientId, title, body }`. Die App zeigt eine Nachricht nur, wenn
+der angemeldete Nutzer `recipientId` ist. Gelöscht werden Tokens mit
+`messaging/registration-token-not-registered`, `messaging/invalid-registration-token` und
+`messaging/invalid-argument` – Letzteres nur, wenn die Meldung das Registrierungs-Token nennt
+(ein Fehler in der Nachricht selbst löscht also nie alle Tokens).
 
 ### SOLID im Backend
 
@@ -52,18 +80,25 @@ das am längsten dabei gewesene Mitglied.
 - **Open/Closed & Liskov:** Neue Versandwege entstehen als weiterer `NotificationSender`
   (heute `FcmNotificationSender` und `EmulatorOutboxSender`).
 - **Interface Segregation:** kleine Ports – `DeviceTokenStore`, `GroupLookup`, `NotificationSender`,
-  `ProfileReader`, `InviteCodeGenerator`, `Logger`.
+  `ProfileReader`, `InviteCodeGenerator`, `GroupCleanup`, `AuthUserDeleter`, `Logger`.
 - **Dependency Inversion:** Nur `container.ts` kennt die konkreten Klassen; Zufall (`crypto.randomInt`),
-  Firestore und Messaging werden injiziert. Dadurch ist z. B. der `DrinkNotifier` (Empfänger, Aufräumen
-  ungültiger Tokens) mit Fakes testbar.
+  Uhr (`Date.now`), Firestore, Auth und Messaging werden injiziert. Dadurch sind z. B. der `DrinkNotifier`
+  (Empfänger, Aufräumen ungültiger Tokens) mit Fakes und der Schutz vor Code-Raten mit einer steuerbaren Uhr testbar.
+
+**Regeln:** Getränke liegen unter `groups/{groupId}/drinks/{authorId}_{drinkId}`; die Regeln verlangen
+`docId == request.auth.uid + "_" + drinkId`, sodass kein Mitglied die ID eines fremden Getränks „besetzen“
+kann. Token-Dokument-IDs müssen wie ein FCM-Token aussehen (20–1024 Zeichen aus `A–Z a–z 0–9 _ : -`). Das
+Muster `^[A-Za-z0-9_:-]{20,1024}$` aus dem Vertrag wird dabei als `size()`-Prüfung plus
+`matches('^[A-Za-z0-9_:-]+$')` geschrieben, weil die Regex-Engine der Regeln (RE2) höchstens `{…,1000}` erlaubt.
 
 **Grenze beim Teilen:** Die Regel für neue Getränke liest pro Runde genau ein Runden-Dokument (`get()`).
 Firestore erlaubt höchstens 20 solcher Zugriffe pro Batch – ein Batch darf ein Getränk also in höchstens
 **20 Runden** gleichzeitig anlegen (bei mehr Runden in mehrere Batches aufteilen). Löschen hat diese Grenze nicht.
 
 **Push im Emulator:** Cloud Messaging lässt sich nicht emulieren. Läuft die Funktion im Emulator
-(`FUNCTIONS_EMULATOR=true`), schreibt sie die Nachricht in die Sammlung `emulatorOutbox`; Tokens mit dem
-Präfix `unregistered-` gelten dort als abgemeldet. In Produktion wird immer FCM verwendet.
+(`FUNCTIONS_EMULATOR=true`), schreibt sie jede Nachricht (eine je Empfänger) in die Sammlung `emulatorOutbox`;
+Tokens mit dem Präfix `unregistered-` gelten dort als abgemeldet, Tokens mit `malformed-` als kaputt
+(`invalid-argument` mit Token-Meldung). In Produktion wird immer FCM verwendet.
 
 ## Lokal testen
 
@@ -90,11 +125,15 @@ Vorher immer `npm run build` in `functions/` ausführen – der Functions-Emulat
 Die Emulator-Tests prüfen:
 
 - `firestore.rules.test.ts` – jede Regel mit erlaubten und verbotenen Fällen (`@firebase/rules-unit-testing`),
-- `groupService.test.ts` – Code-Kollisionen, gleichzeitige Beitritte, Mitgliederlimit, Aufräumen,
-- `callables.test.ts` – `createGroup`, `joinGroup`, `leaveGroup` über den Functions-Emulator, wie die App sie aufruft,
-- `drinkTrigger.test.ts` – `onGroupDrinkCreated` Ende-zu-Ende (Nachricht und Aufräumen ungültiger Tokens).
+  u. a. Token-IDs, vertragsgemäße Getränke-IDs, „Besetzen“ fremder IDs, kein Zugriff auf `joinAttempts`,
+- `groupService.test.ts` – Code-Kollisionen, gleichzeitige Beitritte, Mitgliederlimit, Schutz vor Code-Raten mit
+  steuerbarer Uhr, `leaveAllGroups`, Aufräumen aufgelöster Runden, seitenweises Löschen beim Konto-Löschen,
+- `callables.test.ts` – `createGroup`, `joinGroup`, `leaveGroup`, `deleteAccount` über den Functions-Emulator,
+  wie die App sie aufruft (inkl. Sperre nach 10 falschen Codes und Löschen des Auth-Nutzers),
+- `drinkTrigger.test.ts` – `onGroupDrinkCreated` (je Empfänger eine Daten-Nachricht, höchstens 5 Tokens,
+  Aufräumen ungültiger Tokens) und `onGroupDeleted` Ende-zu-Ende.
 
-`test/unit/kotlinCore.contract.test.ts` gleicht Kategorien/Emojis, Code-Alphabet, Namenslänge und
+`test/unit/kotlinCore.contract.test.ts` gleicht Kategorien/Emojis, Code-Alphabet und -Länge, Namenslänge und
 Fehlermeldungen direkt mit den Kotlin-Dateien in `android/core` ab.
 
 ## GitHub Actions
@@ -113,6 +152,11 @@ Wichtig für den Deploy:
   Region laufen wie die Datenbank – sonst bricht `firebase deploy` mit
   „A firestore trigger location must match the firestore database region.“ ab.
 - `--force` löscht im Projekt Functions und Indizes, die hier nicht (mehr) definiert sind.
+- Der Collection-Group-Index für `drinks.authorId` wird beim Deploy mit `--only firestore` angelegt und ist nach
+  einigen Minuten fertig; bis dahin scheitert `deleteAccount` (die App kann es einfach erneut versuchen).
+- `deleteAccount` löscht den Auth-Nutzer mit dem Laufzeit-Dienstkonto der Functions
+  (`PROJEKTNUMMER-compute@developer.gserviceaccount.com`); es braucht die Berechtigung
+  `firebaseauth.users.delete` (in der Standardrolle „Editor“ enthalten).
 - Beim allerersten Deploy aktiviert Firebase noch Dienste (Cloud Build, Artifact Registry, Eventarc, Cloud Run).
   Schlägt er mit einem Berechtigungsfehler des Eventarc-Dienstagenten fehl, den Workflow nach ein paar
   Minuten einfach erneut starten.

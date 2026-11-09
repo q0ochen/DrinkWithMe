@@ -10,7 +10,7 @@ import com.drinkwithme.core.social.UserProfile
 import java.time.Instant
 
 /**
- * Übersetzt zwischen [Drink]/[FeedEntry] und Dokumenten unter `groups/{groupId}/drinks/{drinkId}`.
+ * Übersetzt zwischen [Drink]/[FeedEntry] und Dokumenten unter `groups/{groupId}/drinks/{authorId}_{drinkId}`.
  * Kennt keine Firebase-Typen (Zeitstempel werden übergeben) und ist daher ohne Android testbar.
  */
 internal object GroupDrinkMapper {

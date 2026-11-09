@@ -5,4 +5,5 @@ export const Collections = {
   groups: "groups",
   drinks: "drinks",
   inviteCodes: "inviteCodes",
+  joinAttempts: "joinAttempts",
 } as const;

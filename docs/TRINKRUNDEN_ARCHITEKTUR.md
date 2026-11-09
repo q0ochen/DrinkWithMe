@@ -78,7 +78,8 @@ Kategorien: `WATER, COFFEE, TEA, JUICE, SOFT_DRINK, BEER, WINE, COCKTAIL, OTHER`
 ## Sicherheitsregeln (`firebase/firestore.rules`)
 
 - `users/{uid}` und `users/{uid}/tokens/{token}`: lesen/schreiben **nur** der Nutzer selbst; Felder validiert.
-  Die Token-Dokument-ID muss wie ein FCM-Token aussehen: `token.matches('^[A-Za-z0-9_:-]{20,1024}$')`.
+  Die Token-Dokument-ID muss wie ein FCM-Token aussehen: `token.size() >= 20 && token.size() <= 1024 && token.matches('^[A-Za-z0-9_:-]+$')`
+  (ein Quantor `{20,1024}` überschreitet die Wiederholungsgrenze der Regel-Regex-Engine von 1000).
 - `groups/{groupId}`: lesen nur Mitglieder (`request.auth.uid in resource.data.memberIds`; muss auch für die
   Abfrage `where("memberIds", "array-contains", uid)` funktionieren); **keine** Client-Schreibrechte.
 - `groups/{groupId}/drinks/{docId}`: lesen nur Mitglieder; erstellen nur Mitglieder mit eigener `authorId`,
@@ -97,7 +98,7 @@ Aufrufbare Funktionen (`onCall`, Anmeldung erforderlich, sonst `unauthenticated`
 | `createGroup` | `{ name: string }` | `{ group: GroupDto }` | `invalid-argument` (Name leer/> 30) |
 | `joinGroup` | `{ code: string }` | `{ group: GroupDto }` | `invalid-argument` (Format), `not-found` (unbekannter Code), `failed-precondition` (Runde voll: 50 Mitglieder), `resource-exhausted` (zu viele falsche Codes: ab 10 Fehlversuchen pro Nutzer innerhalb 1 Stunde) |
 | `leaveGroup` | `{ groupId: string }` | `{}` | idempotent; verlässt das letzte Mitglied die Runde, werden Runde und Code in der Transaktion gelöscht (die Getränke räumt der Trigger `onGroupDeleted` auf); verlässt der Besitzer, wird `ownerId` an ein verbleibendes Mitglied übertragen |
-| `deleteAccount` | `{}` | `{}` | idempotent; verlässt alle Runden (gleiche Logik wie `leaveGroup`), löscht **alle** eigenen geteilten Getränke in allen Runden (Collection-Group-Abfrage `drinks where authorId == uid`), `users/{uid}` samt `tokens`, `joinAttempts/{uid}` und zuletzt den Firebase-Auth-Nutzer |
+| `deleteAccount` | `{}` | `{}` | Timeout 540 s (App wartet ebenso lange); idempotent; verlässt alle Runden (gleiche Logik wie `leaveGroup`), löscht **alle** eigenen geteilten Getränke in allen Runden (Collection-Group-Abfrage `drinks where authorId == uid`), `users/{uid}` samt `tokens`, `joinAttempts/{uid}` und zuletzt den Firebase-Auth-Nutzer |
 
 `GroupDto = { id, name, inviteCode, ownerId, members: [{ userId, displayName }] }`.
 Anzeigename eines Mitglieds: `users/{uid}.displayName`, sonst `request.auth.token.name`, sonst `"Unbekannt"`.

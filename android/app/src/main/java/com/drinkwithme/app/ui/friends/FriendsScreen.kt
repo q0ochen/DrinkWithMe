@@ -34,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drinkwithme.app.ui.account.AccountUiState
 import com.drinkwithme.app.ui.account.LoadingBox
 import com.drinkwithme.app.ui.account.SocialGate
+import com.drinkwithme.app.ui.account.userScopedKey
 import com.drinkwithme.core.social.DrinkGroup
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -60,7 +61,8 @@ fun FriendsScreen(
         topBar = { TopAppBar(title = { Text("Freunde") }) },
     ) { padding ->
         SocialGate(account = account, onSignIn = onSignIn, modifier = Modifier.padding(padding)) { user ->
-            val viewModel: FriendsViewModel = viewModel(factory = viewModelFactory)
+            // Eine Instanz je Nutzer: Nach einem Kontowechsel erscheinen nie Runden oder Getränke des vorherigen Kontos.
+            val viewModel: FriendsViewModel = viewModel(key = userScopedKey("friends", user), factory = viewModelFactory)
             val state by viewModel.state.collectAsStateWithLifecycle()
 
             LaunchedEffect(pendingGroupId) {
@@ -114,7 +116,8 @@ private fun FriendsFeed(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(state.entries, key = { it.drinkId }) { entry ->
+                        // Drink-IDs sind nur je Autor eindeutig (wie die Dokument-ID „{authorId}_{drinkId}“).
+                        items(state.entries, key = { "${it.author.userId}_${it.drinkId}" }) { entry ->
                             FeedEntryRow(
                                 entry = entry,
                                 isOwnEntry = entry.author.userId == currentUserId,

@@ -4,7 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 
-/** Benachrichtigungskanal „drinks“ – die Cloud Function sendet genau an diesen Kanal. */
+/** Benachrichtigungskanal „drinks“ für die Push-Nachrichten der Trinkrunden (siehe docs/TRINKRUNDEN_ARCHITEKTUR.md). */
 object DrinkNotificationChannel {
     const val ID = "drinks"
 

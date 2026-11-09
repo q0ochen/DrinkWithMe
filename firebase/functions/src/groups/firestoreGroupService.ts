@@ -1,5 +1,5 @@
-import { FieldValue } from "firebase-admin/firestore";
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { resolveDisplayName } from "../domain/displayName";
 import { SocialErrors } from "../domain/errors";
 import type { GroupDto, GroupState } from "../domain/group";
@@ -7,6 +7,8 @@ import { parseGroupId, parseGroupState, toGroupDto } from "../domain/group";
 import { validateGroupName } from "../domain/groupName";
 import type { InviteCodeGenerator } from "../domain/inviteCode";
 import { parseInviteCode } from "../domain/inviteCode";
+import type { Clock, JoinAttempts, JoinThrottlePolicy } from "../domain/joinThrottle";
+import { JOIN_THROTTLE_POLICY, isJoinBlocked, recordFailedJoin } from "../domain/joinThrottle";
 import { newGroup, planJoin, planLeave } from "../domain/membership";
 import type { Member } from "../domain/membership";
 import { Collections } from "../firestore/paths";
@@ -15,14 +17,25 @@ import type { Caller, GroupService, ProfileReader } from "./groupService";
 export interface FirestoreGroupServiceOptions {
   /** Wie oft ein neuer Code versucht wird, falls ein erzeugter Code schon vergeben ist. */
   maxInviteCodeAttempts: number;
+  /** Zeitquelle für den Schutz vor Code-Raten (im Test steuerbar). */
+  clock: Clock;
+  /** Grenze für Fehlversuche beim Beitreten. */
+  joinThrottle: JoinThrottlePolicy;
 }
 
-const DEFAULT_OPTIONS: FirestoreGroupServiceOptions = { maxInviteCodeAttempts: 10 };
+const DEFAULT_OPTIONS: FirestoreGroupServiceOptions = {
+  maxInviteCodeAttempts: 10,
+  clock: () => Date.now(),
+  joinThrottle: JOIN_THROTTLE_POLICY,
+};
+
+/** Ergebnis der Beitritts-Transaktion. „Nicht gefunden“ wird erst nach dem Commit geworfen. */
+type JoinOutcome = { kind: "joined"; group: GroupDto } | { kind: "not-found" };
 
 /**
  * Trinkrunden in Cloud Firestore. Jede Änderung läuft in einer Transaktion, damit gleichzeitige
  * Beitritte/Austritte sich nicht gegenseitig überschreiben. Die fachlichen Regeln stecken in
- * `domain/membership.ts`; diese Klasse liest und schreibt nur.
+ * `domain/membership.ts` und `domain/joinThrottle.ts`; diese Klasse liest und schreibt nur.
  */
 export class FirestoreGroupService implements GroupService {
   private readonly options: FirestoreGroupServiceOptions;
@@ -62,15 +75,26 @@ export class FirestoreGroupService implements GroupService {
     const code = parseInviteCode(rawCode);
     if (code === null) throw SocialErrors.invalidInviteCode();
     const member = await this.memberFor(caller);
+    const attemptsRef = this.joinAttempts().doc(caller.uid);
+    const { clock, joinThrottle } = this.options;
 
-    return this.db.runTransaction(async (transaction) => {
+    const outcome = await this.db.runTransaction(async (transaction): Promise<JoinOutcome> => {
+      // Schutz vor Code-Raten: Wer zu oft falsch lag, wird abgewiesen, bevor der Code nachgeschlagen wird.
+      // Erfolgreiche Beitritte setzen den Zähler bewusst nicht zurück (sonst ließe er sich mit dem
+      // Code einer eigenen Runde beliebig zurücksetzen).
+      const now = clock();
+      const attempts = parseJoinAttempts((await transaction.get(attemptsRef)).data());
+      if (isJoinBlocked(attempts, now, joinThrottle)) throw SocialErrors.tooManyJoinAttempts();
+
       const codeSnapshot = await transaction.get(this.codes().doc(code));
       const groupId: unknown = codeSnapshot.get("groupId");
-      if (!codeSnapshot.exists || typeof groupId !== "string") throw SocialErrors.groupNotFound();
-
-      const groupRef = this.groups().doc(groupId);
-      const group = parseGroupState((await transaction.get(groupRef)).data());
-      if (group === null) throw SocialErrors.groupNotFound();
+      const groupRef = typeof groupId === "string" ? this.groups().doc(groupId) : null;
+      const group = groupRef === null ? null : parseGroupState((await transaction.get(groupRef)).data());
+      if (groupRef === null || group === null) {
+        // Fehlversuch zählen und committen – deshalb wird `not-found` erst nach der Transaktion geworfen.
+        transaction.set(attemptsRef, toJoinAttemptsDocument(recordFailedJoin(attempts, now, joinThrottle)));
+        return { kind: "not-found" };
+      }
 
       const plan = planJoin(group, member);
       if (plan.kind === "join") {
@@ -79,39 +103,52 @@ export class FirestoreGroupService implements GroupService {
           members: plan.group.members,
         });
       }
-      return toGroupDto(groupId, plan.group);
+      return { kind: "joined", group: toGroupDto(groupRef.id, plan.group) };
     });
+
+    if (outcome.kind === "not-found") throw SocialErrors.groupNotFound();
+    return outcome.group;
   }
 
   async leaveGroup(caller: Caller, rawGroupId: unknown): Promise<void> {
     const groupId = parseGroupId(rawGroupId);
     if (groupId === null) throw SocialErrors.invalidGroupId();
+    await this.leave(caller.uid, groupId);
+  }
+
+  async leaveAllGroups(caller: Caller): Promise<number> {
+    const snapshot = await this.groups().where("memberIds", "array-contains", caller.uid).select().get();
+    for (const doc of snapshot.docs) await this.leave(caller.uid, doc.id);
+    return snapshot.size;
+  }
+
+  /**
+   * Verlässt eine Runde in einer Transaktion. Das letzte Mitglied löst sie auf: Runde und Code
+   * werden gelöscht. Die Getränke entfernt danach der wiederholbare Trigger `onGroupDeleted` –
+   * ohne Runden-Dokument verweigern die Regeln bereits neue Getränke.
+   */
+  private async leave(userId: string, groupId: string): Promise<void> {
     const groupRef = this.groups().doc(groupId);
-
-    const groupDeleted = await this.db.runTransaction(async (transaction) => {
+    await this.db.runTransaction(async (transaction) => {
       const group = parseGroupState((await transaction.get(groupRef)).data());
-      if (group === null) return false;
+      if (group === null) return;
 
-      const plan = planLeave(group, caller.uid);
+      const plan = planLeave(group, userId);
       switch (plan.kind) {
         case "not-member":
-          return false;
+          return;
         case "update":
           transaction.update(groupRef, updatedMembership(plan.group));
-          return false;
+          return;
         case "delete-group": {
           const codeRef = this.codes().doc(group.inviteCode);
           const codeSnapshot = await transaction.get(codeRef);
           if (codeSnapshot.get("groupId") === groupId) transaction.delete(codeRef);
           transaction.delete(groupRef);
-          return true;
+          return;
         }
       }
     });
-
-    // Erst nach dem Löschen der Runde: Ohne Runden-Dokument verweigern die Regeln neue Getränke,
-    // danach werden die vorhandenen Getränke (und ggf. weitere Unterdokumente) entfernt.
-    if (groupDeleted) await this.db.recursiveDelete(groupRef);
   }
 
   private async memberFor(caller: Caller): Promise<Member> {
@@ -126,8 +163,27 @@ export class FirestoreGroupService implements GroupService {
   private codes() {
     return this.db.collection(Collections.inviteCodes);
   }
+
+  private joinAttempts() {
+    return this.db.collection(Collections.joinAttempts);
+  }
 }
 
 function updatedMembership(group: GroupState) {
   return { ownerId: group.ownerId, memberIds: group.memberIds, members: group.members };
+}
+
+/** `joinAttempts/{uid}` laut Vertrag: `{ windowStart: timestamp, failures: int }`. */
+function toJoinAttemptsDocument(attempts: JoinAttempts): DocumentData {
+  return { windowStart: Timestamp.fromMillis(attempts.windowStartMillis), failures: attempts.failures };
+}
+
+function parseJoinAttempts(data: DocumentData | undefined): JoinAttempts | null {
+  if (data === undefined) return null;
+  const windowStart: unknown = data.windowStart;
+  const failures: unknown = data.failures;
+  if (!(windowStart instanceof Timestamp) || typeof failures !== "number" || !Number.isInteger(failures)) {
+    return null;
+  }
+  return { windowStartMillis: windowStart.toMillis(), failures };
 }

@@ -1,17 +1,16 @@
 package com.drinkwithme.app.social.firebase
 
 import com.drinkwithme.app.DrinkWithMeApplication
-import com.drinkwithme.app.push.FriendDrinkNotification
 import com.drinkwithme.app.push.PushMessageHandler
-import com.drinkwithme.app.push.PushPayload
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 /**
  * Empfängt Firebase Cloud Messaging: neue Tokens und Nachrichten.
  *
- * Läuft die App im Hintergrund, zeigt Android Benachrichtigungen selbst an (Kanal „drinks“).
- * Nur im Vordergrund landet die Nachricht hier und wird selbst angezeigt.
+ * Der Server sendet nur Daten-Nachrichten (ohne `notification`-Block). Sie landen deshalb immer hier –
+ * im Vorder- wie im Hintergrund – und die App zeigt sie selbst an, aber nur, wenn sie für den gerade
+ * angemeldeten Nutzer bestimmt sind (`recipientId`).
  */
 class DrinkMessagingService : FirebaseMessagingService() {
 
@@ -23,14 +22,6 @@ class DrinkMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        val notification = message.notification ?: return
-        pushHandler?.onFriendDrink(
-            FriendDrinkNotification(
-                title = notification.title.orEmpty(),
-                body = notification.body.orEmpty(),
-                tag = notification.tag ?: message.data[PushPayload.KEY_DRINK_ID],
-                groupId = message.data[PushPayload.KEY_GROUP_ID],
-            ),
-        )
+        pushHandler?.onDataMessage(message.data)
     }
 }

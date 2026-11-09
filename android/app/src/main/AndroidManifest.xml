@@ -31,7 +31,8 @@
             </intent-filter>
         </service>
 
-        <!-- Kanal und Symbol für Push-Nachrichten, die das System im Hintergrund selbst anzeigt. -->
+        <!-- Der Server sendet nur Daten-Nachrichten, die DrinkMessagingService selbst anzeigt. Kanal und Symbol
+             gelten nur als Rückfall, falls doch einmal eine Nachricht mit notification-Block ankommt. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="@string/notification_channel_drinks_id" />

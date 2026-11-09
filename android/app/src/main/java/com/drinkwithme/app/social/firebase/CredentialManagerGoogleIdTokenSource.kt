@@ -6,22 +6,21 @@ import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
-import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import com.drinkwithme.app.social.GoogleIdTokenSource
 import com.drinkwithme.app.social.SignInCancelledException
 import com.drinkwithme.app.social.SocialServiceException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 
 /**
- * Google-Anmeldung über den Android Credential Manager.
- *
- * Erst werden nur Konten angeboten, die die App schon kennen (ggf. automatische Anmeldung);
- * gibt es keine, folgt die Auswahl aus allen Google-Konten des Geräts.
+ * Google-Anmeldung über den Android Credential Manager mit „Über Google anmelden“
+ * ([GetSignInWithGoogleOption]): Der Dialog zeigt immer **alle** Google-Konten des Geräts (und „Konto hinzufügen“),
+ * damit man nach dem Abmelden auch ein anderes Konto wählen kann – keine automatische Auswahl, keine Sperrzeit
+ * nach dem Wegklicken.
  */
 class CredentialManagerGoogleIdTokenSource(
     appContext: Context,
@@ -35,17 +34,17 @@ class CredentialManagerGoogleIdTokenSource(
             "Die Google-Anmeldung ist noch nicht eingerichtet (default_web_client_id fehlt) – " +
                 "siehe docs/FIREBASE_EINRICHTUNG.md.",
         )
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(GetSignInWithGoogleOption.Builder(webClientId).build())
+            .build()
         val response = try {
-            try {
-                requestCredential(activityContext, webClientId, onlyAuthorizedAccounts = true)
-            } catch (noKnownAccount: NoCredentialException) {
-                requestCredential(activityContext, webClientId, onlyAuthorizedAccounts = false)
-            }
+            credentialManager.getCredential(activityContext, request)
         } catch (cancelled: GetCredentialCancellationException) {
             throw SignInCancelledException(cancelled)
         } catch (noAccount: NoCredentialException) {
             throw SocialServiceException(
-                "Auf diesem Gerät ist kein Google-Konto verfügbar. Bitte füge in den Android-Einstellungen eines hinzu.",
+                "Es wurde kein Google-Konto gefunden. Bitte füge in den Android-Einstellungen ein Google-Konto hinzu " +
+                    "und versuche es erneut.",
                 noAccount,
             )
         } catch (error: GetCredentialException) {
@@ -58,24 +57,8 @@ class CredentialManagerGoogleIdTokenSource(
         credentialManager.clearCredentialState(ClearCredentialStateRequest())
     }
 
-    private suspend fun requestCredential(
-        activityContext: Context,
-        webClientId: String,
-        onlyAuthorizedAccounts: Boolean,
-    ): GetCredentialResponse {
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(onlyAuthorizedAccounts)
-            .setServerClientId(webClientId)
-            .setAutoSelectEnabled(onlyAuthorizedAccounts)
-            .build()
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-        return credentialManager.getCredential(activityContext, request)
-    }
-
     private fun idTokenFrom(credential: Credential): String {
-        if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+        if (credential !is CustomCredential || credential.type !in GOOGLE_ID_TOKEN_TYPES) {
             throw SocialServiceException(SIGN_IN_FAILED)
         }
         return try {
@@ -87,5 +70,15 @@ class CredentialManagerGoogleIdTokenSource(
 
     private companion object {
         const val SIGN_IN_FAILED = "Die Google-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut."
+
+        /**
+         * Typ der Antwort laut Dokumentation: [GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL].
+         * Neuere Versionen der Google-Bibliothek kennzeichnen Antworten von „Über Google anmelden“ zusätzlich
+         * als eigenen Typ; beide tragen dieselben Daten und werden mit `createFrom` gelesen.
+         */
+        val GOOGLE_ID_TOKEN_TYPES = setOf(
+            GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL,
+            "com.google.android.libraries.identity.googleid.TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL",
+        )
     }
 }

@@ -42,6 +42,12 @@ class FriendsViewModel(
     private val requestedGroupId = MutableStateFlow<String?>(null)
     private val groupsFailed = MutableStateFlow(false)
 
+    /**
+     * Ohne Beobachter werden Runden und Feed nach [STOP_TIMEOUT_MILLIS] verworfen (`replayExpirationMillis = 0`)
+     * statt zwischengespeichert – es bleiben keine Daten liegen, die später veraltet angezeigt würden.
+     */
+    private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
+
     // Fehler werden vor shareIn/stateIn abgefangen – sonst würden sie den viewModelScope beenden.
     private val groups: Flow<List<DrinkGroup>> = observeMyGroups()
         .onStart { groupsFailed.value = false }
@@ -49,7 +55,7 @@ class FriendsViewModel(
             groupsFailed.value = true
             emit(emptyList())
         }
-        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), replay = 1)
+        .shareIn(viewModelScope, sharing, replay = 1)
 
     /** Gewünschte Runde, sonst die erste – ändert sich nur, wenn sich die Auswahl wirklich ändert. */
     private val selectedGroupId: Flow<String?> = combine(groups, requestedGroupId) { groups, requested ->
@@ -75,7 +81,7 @@ class FriendsViewModel(
             entries = feed.entries.orEmpty(),
             errorMessage = if (groupsFailed || feed.failed) LOAD_FAILED else null,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), FriendsUiState())
+    }.stateIn(viewModelScope, sharing, FriendsUiState())
 
     fun selectGroup(groupId: String) {
         requestedGroupId.value = groupId

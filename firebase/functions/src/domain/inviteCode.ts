@@ -1,8 +1,11 @@
 /** Länge eines Einladungscodes – wie `InviteCode.LENGTH` im Kotlin-Kern. */
-export const INVITE_CODE_LENGTH = 6;
+export const INVITE_CODE_LENGTH = 8;
 
 /** Alphabet ohne leicht verwechselbare Zeichen (kein I, L, O, 0, 1) – wie `InviteCode.ALPHABET`. */
 export const INVITE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/** Beispielcode für Fehlermeldungen – wie in `SocialExceptions.kt`. */
+export const INVITE_CODE_EXAMPLE = "K7MX2QAB";
 
 /**
  * Normalisiert eine Eingabe wie `InviteCode.parse` im Kotlin-Kern

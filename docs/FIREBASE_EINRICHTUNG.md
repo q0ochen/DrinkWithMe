@@ -109,9 +109,9 @@ Du landest auf der **Projektübersicht** (Project Overview).
 
 ### Warum überhaupt ein Tarif mit Kreditkarte?
 
-Die Trinkrunden brauchen kleine Server-Programme („Cloud Functions“): Runde erstellen, beitreten, verlassen
-und die Push-Nachricht verschicken. Cloud Functions gibt es **nur im Blaze-Tarif** („pay as you go“ –
-bezahlt wird nur, was verbraucht wird). Dafür verlangt Google eine Zahlungsmethode.
+Die Trinkrunden brauchen kleine Server-Programme („Cloud Functions“): Runde erstellen, beitreten, verlassen,
+Konto löschen und die Push-Nachricht verschicken. Cloud Functions gibt es **nur im Blaze-Tarif**
+(„pay as you go“ – bezahlt wird nur, was verbraucht wird). Dafür verlangt Google eine Zahlungsmethode.
 
 ### Was kostet das wirklich?
 
@@ -122,7 +122,8 @@ bezahlt wird nur, was verbraucht wird). Dafür verlangt Google eine Zahlungsmeth
 - Eine **kleine Freundesgruppe bleibt normalerweise komplett innerhalb der Freimengen**.
 - Was trotzdem anfallen kann, sind **Cent-Beträge**, z. B. für den Speicherplatz der Programmpakete der
   Functions. Der Deploy-Workflow richtet deshalb automatisch eine Aufräumregel ein, die alte Pakete löscht.
-- Zur Sicherheit begrenzt der Code die Functions auf höchstens 10 gleichzeitige Instanzen.
+- Zur Sicherheit begrenzt der Code die Functions auf höchstens 10 gleichzeitige Instanzen, schickt
+  Push-Nachrichten pro Person an höchstens 5 Geräte und sperrt das Beitreten nach 10 falschen Codes pro Stunde.
 - **Ehrlicher Hinweis:** Ein Budget ist eine **Warnung per E-Mail, keine Kostenbremse**. Google stoppt bei
   Erreichen des Betrags nichts automatisch. Wie man im Notfall alles abschaltet, steht im
   [Anhang](#notbremse-alles-kostenpflichtige-abschalten).
@@ -177,8 +178,10 @@ bezahlt wird nur, was verbraucht wird). Dafür verlangt Google eine Zahlungsmeth
 > Er muss **`europe-west3` (Frankfurt)** sein – dort laufen auch die Server-Funktionen. Mit einem anderen
 > Standort schlägt das Bereitstellen in Schritt 9 fehl.
 >
-> **Und:** Diesen Schritt **unbedingt vor Schritt 9** erledigen. Findet der Deploy-Workflow keine Datenbank,
-> legt er selbst eine an – und zwar in den **USA** (`nam5`). Dann müsste man sie löschen und neu anlegen.
+> **Und:** Diesen Schritt am besten **vor Schritt 9** erledigen. Findet der Deploy-Workflow keine Datenbank,
+> legt er zwar selbst eine an – dank der Einstellung in `firebase/firebase.json` ebenfalls in **`europe-west3`**
+> (Standard-Edition). Legst du sie aber selbst an, siehst du mit eigenen Augen, dass der Standort stimmt
+> (siehe „Kontrolle“ unten). Das empfehlen wir weiterhin.
 
 1. Linkes Menü: **„Databases & Storage“** → **„Firestore“** (früher „Firestore Database“ unter „Build“).
 2. **„Create database“** („Datenbank erstellen“).
@@ -390,8 +393,9 @@ liegen. Die Trinkrunden liegen aber noch im Branch `claude/drink-with-me-app-s7i
 ### 9.3 Hat es geklappt?
 
 - Der Lauf hat einen **grünen Haken**.
-- Firebase-Konsole → **„Hosting & Serverless“** → **„Functions“** (früher unter „Build“): Dort stehen vier
-  Funktionen in der Region `europe-west3`: `createGroup`, `joinGroup`, `leaveGroup` und `onGroupDrinkCreated`.
+- Firebase-Konsole → **„Hosting & Serverless“** → **„Functions“** (früher unter „Build“): Dort stehen **sechs**
+  Funktionen in der Region `europe-west3`: `createGroup`, `joinGroup`, `leaveGroup`, `deleteAccount`,
+  `onGroupDrinkCreated` und `onGroupDeleted`.
 - Firebase-Konsole → **Firestore** → Reiter **„Rules“** („Regeln“): Dort stehen jetzt lange Regeln statt
   der kurzen Standardregel.
 
@@ -401,7 +405,11 @@ Häufige Ursachen und Lösungen stehen in [Abschnitt 11](#11-wenn-etwas-nicht-kl
 „Re-run jobs“) – Google braucht manchmal etwas, bis neue Berechtigungen überall angekommen sind.
 
 > Den Deploy müsst ihr nur wiederholen, wenn sich etwas im Ordner `firebase/` ändert (Claude sagt dann
-> Bescheid). Für neue App-Versionen ist er nicht nötig.
+> Bescheid). Für neue App-Versionen allein ist er nicht nötig.
+>
+> **Ändern sich Server und App gleichzeitig** (wie bei der Umstellung auf 8-stellige Codes): zuerst den Deploy
+> starten, dann die neue APK installieren – und zwar auf **allen** Handys eurer Runden. Ältere App-Versionen
+> können mit dem neuen Server keine Getränke mehr teilen und zeigen dessen Push-Nachrichten nicht an.
 
 ---
 
@@ -426,16 +434,17 @@ Google Drive). Sie müssen dann nur Schritt 5 und 6 machen.
 
 | # | Wer | Was tun | Was sollte passieren |
 |---|---|---|---|
-| 1 | A und B | App öffnen → unten **„Runden“** → **„Mit Google anmelden“** → Konto wählen | Oben steht „Angemeldet als …“ |
+| 1 | A und B | App öffnen → unten **„Runden“** → **„Mit Google anmelden“** → Konto wählen | Ganz unten im Reiter „Runden“ steht in der Karte **„Konto“**: „Angemeldet als …“ |
 | 2 | A und B | Android fragt nach **Benachrichtigungen** | **„Zulassen“** – sonst kommen keine Push-Nachrichten |
-| 3 | A | Bei „Runden“ **„Erstellen“** → Name, z. B. `Stammtisch` → **„Erstellen“** | Meldung „Runde „Stammtisch“ erstellt …“ mit einem 6-stelligen Code |
-| 4 | A | **„Code teilen“** (z. B. per WhatsApp) oder **„Code kopieren“** | B bekommt den Code |
-| 5 | B | Bei „Runden“ **„Beitreten“** → Code eingeben → **„Beitreten“** | „Willkommen in der Runde „Stammtisch“!“ – beide sehen 2 Mitglieder |
+| 3 | A | Bei „Runden“ **„Erstellen“** → Name, z. B. `Stammtisch` → **„Erstellen“** | Meldung „Runde „Stammtisch“ erstellt …“ mit einem 8-stelligen Code, z. B. `K7MX-2QAB` |
+| 4 | A | In der Karte der Runde neben dem Einladungscode auf das **Teilen-Symbol** tippen (z. B. per WhatsApp) – oder auf das **Kopieren-Symbol** und den Code selbst verschicken | B bekommt den Code |
+| 5 | B | Bei „Runden“ **„Beitreten“** → Code eingeben (mit oder ohne Bindestrich) → **„Beitreten“** | „Willkommen in der Runde „Stammtisch“!“ – beide sehen 2 Mitglieder |
 | 6 | B | Unten **„Meine Getränke“** → **„Getränk“** → z. B. Cappuccino → Schalter „Privat“ **aus** lassen → **„Speichern“** | – |
 | 7 | A | – | Push-Nachricht „*B* trinkt gerade“ mit Getränk, Menge und Rundenname; im Reiter **„Freunde“** erscheint das Getränk |
 | 8 | A | Selbst ein Getränk eintragen | B bekommt die Push-Nachricht (man selbst bekommt keine für eigene Getränke) |
 | 9 | B | Ein Getränk mit Schalter **„Privat (nicht mit Freunden teilen)“** eintragen | Keine Push-Nachricht, nicht im Feed von A |
 | 10 | B | Ein geteiltes Getränk in „Meine Getränke“ löschen | Es verschwindet auch bei A im Reiter „Freunde“ |
+| 11 | B | Ganz unten in der Karte „Konto“ auf **„Abmelden“** tippen; danach trägt A ein Getränk ein | B bekommt **keine** Push-Nachricht mehr. Danach B wieder anmelden. |
 
 Wenn das alles klappt: **Herzlichen Glückwunsch – die Trinkrunden laufen!**
 
@@ -444,6 +453,11 @@ Gut zu wissen:
   Getränke werden nicht nachträglich geteilt.
 - Ein Getränk wird automatisch in **allen** eigenen Runden geteilt (außer es ist „Privat“).
 - Ohne Internet wird das Getränk trotzdem lokal gespeichert.
+- Löscht man ein geteiltes Getränk, während man **abgemeldet** ist (oder ohne Internet), merkt sich die App das.
+  Sobald man wieder **mit demselben Konto** angemeldet ist und Internet hat, entfernt sie es auch aus den Runden.
+- **Konto löschen:** Reiter „Runden“ → ganz unten Karte „Konto“ → **„Konto löschen“** → **„Endgültig löschen“**.
+  Dann sind Anmeldung, Profil, Mitgliedschaften und **alle** geteilten Getränke dieses Kontos vom Server
+  gelöscht; „Meine Getränke“ bleibt auf dem Handy. Zum Ausprobieren also besser ein Zweitkonto nehmen.
 
 ---
 
@@ -477,7 +491,8 @@ Schritt 4 mit `europe-west3` wiederholen und dann den Workflow erneut starten.
 | „Server noch nicht eingerichtet – siehe docs/FIREBASE_EINRICHTUNG.md“ | Die installierte App wurde **ohne** `google-services.json` gebaut. Prüfen, ob die Datei genau unter `android/app/google-services.json` im Branch liegt, auf den neuen grünen „Android“-Lauf warten und **diese** APK installieren (Schritt 10.1). |
 | „Die Google-Anmeldung ist noch nicht eingerichtet (default_web_client_id fehlt)“ | `google-services.json` wurde **vor** Schritt 3 heruntergeladen. Google-Anmeldung einschalten, Datei neu herunterladen (Schritt 5.3), ersetzen (Schritt 6), neue APK installieren. |
 | „Die Google-Anmeldung ist fehlgeschlagen“ | Meist fehlt der **SHA-1-Fingerabdruck** oder er ist falsch, der Paketname stimmt nicht, oder die Google-Anmeldung ist nicht aktiviert bzw. ohne **Support-E-Mail** gespeichert. Schritt 3 und 5.2 genau prüfen, 5 Minuten warten, erneut versuchen. Hilft das nicht: `google-services.json` neu herunterladen und ersetzen. |
-| „Auf diesem Gerät ist kein Google-Konto verfügbar …“ | Android-Einstellungen → Konten → Google-Konto hinzufügen. |
+| „Es wurde kein Google-Konto gefunden …“ | Android-Einstellungen → Konten → Google-Konto hinzufügen. |
+| Es erscheint das falsche Google-Konto | Die App zeigt bei jeder Anmeldung alle Google-Konten des Handys zur Auswahl. Erst unten in der Karte „Konto“ **„Abmelden“**, dann erneut **„Mit Google anmelden“** und das richtige Konto wählen. |
 | Anmeldung bricht sofort ab, Handy ohne Google-Dienste (z. B. neuere Huawei-Geräte) | Die Anmeldung braucht die Google-Play-Dienste – auf solchen Geräten geht es leider nicht. |
 | Google zeigt „Zugriff blockiert“ / „App wird getestet“ (selten) | Google-Cloud-Konsole → **„Google Auth Platform“** (früher „OAuth-Zustimmungsbildschirm“) → **„Audience“** („Zielgruppe“): Status auf **„In production“** stellen oder die Freunde als Testnutzer eintragen. |
 
@@ -486,29 +501,46 @@ Schritt 4 mit `europe-west3` wiederholen und dann den Workflow erneut starten.
 | Was du siehst | Lösung |
 |---|---|
 | „Die Server-Funktion wurde nicht gefunden. Sind die Cloud Functions bereitgestellt?“ | Schritt 9 ausführen bzw. prüfen, ob er grün war. |
-| „Keine Leserechte für …“ / Runden oder Feed laden nicht | Die Sicherheitsregeln sind noch nicht eingespielt → Schritt 9. |
-| „Zu diesem Code gibt es keine Runde.“ | Code vertippt? Er hat 6 Zeichen; Groß-/Kleinschreibung und Leerzeichen sind egal. Oder die Runde wurde aufgelöst. |
-| „Diese Runde ist voll …“ | Eine Runde hat höchstens 50 Mitglieder. |
-| Im Reiter „Freunde“ erscheint nichts | Oben die richtige Runde auswählen. Wurde das Getränk als „Privat“ gespeichert? War der Freund beim Eintragen schon in der Runde? |
+| Die Meldung „Runde … erstellt“ kommt, aber die Liste bleibt leer („Du bist noch in keiner Runde“); im Reiter „Freunde“ steht „Noch keine Trinkrunde“ | Die Sicherheitsregeln sind noch nicht eingespielt. Die App darf die Runden dann nicht lesen und zeigt deshalb einfach leere Listen (eine eigene Fehlermeldung gibt es dafür nicht). → Schritt 9 ausführen bzw. prüfen, ob er grün war. |
+| „Zu diesem Code gibt es keine Runde.“ | Code vertippt? Er hat **8 Zeichen** (z. B. `K7MX-2QAB`); Bindestrich, Leerzeichen und Groß-/Kleinschreibung sind egal. Am sichersten den Code kopieren statt abtippen. Oder die Runde wurde inzwischen aufgelöst. |
+| „Zu viele falsche Codes …“ | Schutz vor dem Erraten von Codes: Nach **10 falschen Codes innerhalb einer Stunde** kann dieses Konto eine Weile keiner Runde beitreten. Spätestens nach einer Stunde geht es wieder – dann den Code genau prüfen. |
+| „Diese Runde ist voll …“ | Eine Runde hat höchstens 50 Mitglieder. Erst wenn jemand die Runde verlässt, ist wieder Platz – oder ihr gründet eine zweite Runde. |
+| Im Reiter „Freunde“ erscheint nichts | Oben die richtige Runde auswählen. Wurde das Getränk als „Privat“ gespeichert? War der Freund beim Eintragen schon in der Runde? Haben alle die **neueste App-Version** (siehe Hinweis am Ende von Schritt 9)? |
+| Ein gelöschtes Getränk ist bei den Freunden noch zu sehen | Wurde es gelöscht, während man abgemeldet oder offline war, verschwindet es erst, wenn man wieder mit demselben Konto angemeldet ist und Internet hat. Aus Runden, die man schon **verlassen** hat, entfernt die App nichts mehr – dort verschwinden die eigenen Getränke erst mit „Konto löschen“. |
+
+### Konto löschen klappt nicht
+
+| Was du siehst | Lösung |
+|---|---|
+| Eine Fehlermeldung nach „Endgültig löschen“, z. B. „Dein Konto konnte nicht gelöscht werden …“ | Internetverbindung prüfen und einfach **noch einmal** auf „Konto löschen“ tippen. Das ist ungefährlich: Was schon gelöscht ist, bleibt gelöscht, der Rest wird nachgeholt. Man bleibt angemeldet, bis alles geklappt hat. |
+| „Die Server-Funktion wurde nicht gefunden …“ | Die Funktion `deleteAccount` ist noch nicht bereitgestellt → Schritt 9 (erneut) ausführen. |
+| Klappt dauerhaft nicht | Firebase-Konsole → „Functions“ → Reiter „Logs“ → Einträge von `deleteAccount` ansehen. Im Notfall von Hand löschen: [Anhang „Konto auf Wunsch löschen“](#konto-auf-wunsch-löschen-für-die-betreiber). |
 
 ### Push-Nachrichten kommen nicht an
 
 Der Reihe nach prüfen:
 
-1. **Beide angemeldet** und **in derselben Runde**? Nach „Abmelden“ bekommt ein Handy absichtlich keine Pushs mehr.
-2. **Für eigene Getränke** gibt es keine Push-Nachricht – nur die anderen bekommen eine. **Private** Getränke
+1. **Beide angemeldet** und **in derselben Runde**? Nach „Abmelden“ zeigt ein Handy absichtlich keine
+   Push-Nachrichten mehr an. Jede Nachricht ist für genau ein Konto bestimmt, und die App zeigt sie nur, wenn
+   genau dieses Konto gerade angemeldet ist – nach einem Kontowechsel erscheinen also auch keine Nachrichten
+   des vorherigen Kontos.
+2. **Alle auf der neuesten App-Version?** Ältere Versionen zeigen die Push-Nachrichten des aktuellen Servers
+   nicht an (siehe Hinweis am Ende von Schritt 9).
+3. **Für eigene Getränke** gibt es keine Push-Nachricht – nur die anderen bekommen eine. **Private** Getränke
    lösen nie eine aus.
-3. **Benachrichtigungen erlaubt?** Android-Einstellungen → Apps → **Drink With Me** → **Benachrichtigungen**
+4. **Benachrichtigungen erlaubt?** Android-Einstellungen → Apps → **Drink With Me** → **Benachrichtigungen**
    → einschalten, auch die Kategorie **„Getränke deiner Freunde“**.
-4. **Akku-Optimierung:** Android-Einstellungen → Apps → Drink With Me → **Akku** → **„Nicht eingeschränkt“**
+5. **Akku-Optimierung:** Android-Einstellungen → Apps → Drink With Me → **Akku** → **„Nicht eingeschränkt“**
    („Uneingeschränkt“). Bei Xiaomi, Huawei, Oppo, OnePlus u. a. zusätzlich **Autostart** erlauben.
    Herstellerspezifische Tipps: <https://dontkillmyapp.com>
-5. **Nicht stören** / Fokusmodus am Handy aus?
-6. Einmal **abmelden und wieder anmelden** – dann wird das Push-Token neu registriert.
-7. **Server-Protokolle ansehen:** Firebase-Konsole → „Hosting & Serverless“ → **„Functions“** → Reiter
+6. **Nicht stören** / Fokusmodus am Handy aus?
+7. Einmal **abmelden und wieder anmelden** – dann wird das Push-Token neu registriert.
+8. Mit demselben Konto auf **mehr als 5 Geräten** angemeldet? Der Server schickt pro Person nur an die
+   5 zuletzt registrierten Geräte. Auf dem fehlenden Gerät die App einmal öffnen bzw. ab- und wieder anmelden.
+9. **Server-Protokolle ansehen:** Firebase-Konsole → „Hosting & Serverless“ → **„Functions“** → Reiter
    **„Logs“** („Protokolle“) → Einträge von `onGroupDrinkCreated` kurz nach dem Eintragen.
-8. Firebase-Konsole → Zahnrad → Projekteinstellungen → Reiter **„Cloud Messaging“**: Bei
-   **„Firebase Cloud Messaging API (V1)“** sollte **„Enabled“** („Aktiviert“) stehen.
+10. Firebase-Konsole → Zahnrad → Projekteinstellungen → Reiter **„Cloud Messaging“**: Bei
+    **„Firebase Cloud Messaging API (V1)“** sollte **„Enabled“** („Aktiviert“) stehen.
 
 ---
 
@@ -538,23 +570,56 @@ lokal weiter.
   Dienstkonten → `github-deploy@…` → „Keys“ → alten Schlüssel löschen (Papierkorb-Symbol) → neuen erstellen
   (Schritt 7.2) → in GitHub beim Secret auf **„Update“** und den neuen Inhalt einfügen (Schritt 8.1).
 
+### App Check bleibt absichtlich aus
+
+Die Firebase-Konsole schlägt manchmal vor, **„App Check“** einzuschalten. Das lässt nur Anfragen aus einer App
+durch, die Google Play kennt (also aus dem Play Store). Eure APK aus GitHub, die ihr direkt installiert, würde
+dabei durchfallen – Runden, Feed und das Teilen von Getränken würden nicht mehr funktionieren. Deshalb nutzen wir App Check
+**bewusst nicht**: bitte nicht einschalten und vor allem nicht „erzwingen“ („Enforce“).
+Geschützt sind die Daten trotzdem: durch die Google-Anmeldung, die Sicherheitsregeln (nur Mitglieder sehen eine
+Runde) und eine Sperre gegen das Erraten von Codes (10 falsche Codes pro Stunde).
+
 ### Konto auf Wunsch löschen (für die Betreiber)
 
-Die Datenschutzerklärung ([`DATENSCHUTZ_ENTWURF.md`](DATENSCHUTZ_ENTWURF.md)) verspricht, ein Konto auf
-Anfrage per E-Mail zu löschen. Eine Löschfunktion in der App gibt es (noch) nicht. So geht es von Hand:
+**Normalerweise macht das jede Person selbst in der App:** Reiter „Runden“ → ganz unten in der Karte „Konto“
+→ **„Konto löschen“** → **„Endgültig löschen“**. Der Server (Funktion `deleteAccount`) verlässt dann alle
+Runden, löscht **alle** geteilten Getränke dieser Person – auch in Runden, die sie längst verlassen hat –,
+ihr Profil samt Push-Tokens, den Zähler für falsche Codes und zuletzt die Anmeldung selbst. Die Getränke unter
+„Meine Getränke“ bleiben auf dem Handy; wer auch die loswerden will, deinstalliert die App.
 
-1. Am einfachsten bittet ihr die Person, vorher in der App **ihre geteilten Getränke zu löschen**, **alle
-   Runden zu verlassen** und sich **abzumelden**.
-2. Firebase-Konsole → **Authentication** → Reiter **„Users“** („Nutzer“) → nach der E-Mail-Adresse suchen →
-   **User UID** notieren → Drei-Punkte-Menü → **„Delete account“** („Konto löschen“).
-3. Firebase-Konsole → **Firestore** → Sammlung **`users`** → Dokument mit dieser UID → Drei-Punkte-Menü →
-   **Dokument löschen** (inklusive der Untersammlung `tokens`).
-4. Hat die Person Schritt 1 nicht gemacht: In der Sammlung **`groups`** jede Runde öffnen, in deren Feld
-   `memberIds` die UID steht. Dort in der Untersammlung `drinks` alle Dokumente mit dieser `authorId`
-   löschen, die UID aus `memberIds` und den Eintrag aus `members` entfernen. Steht die UID bei `ownerId`,
-   dort die UID eines anderen Mitglieds eintragen. War sie das letzte Mitglied, die ganze Runde löschen
-   und ebenso das passende Dokument in `inviteCodes`.
-5. Der Person kurz bestätigen, dass alles gelöscht ist. Die lokalen Getränke auf ihrem Handy verschwinden,
+Hat die Person die App nicht mehr, geht es am einfachsten so: App wieder installieren, mit **demselben**
+Google-Konto anmelden und dann „Konto löschen“.
+
+> **Für den Play Store (später):** Die Löschfunktion in der App erfüllt den Teil der Google-Play-Regeln, der
+> eine Kontolöschung **in der App** verlangt. Zusätzlich verlangt Google Play einen **Link zu einer Webseite**
+> (z. B. ein einfaches Formular oder eine Seite mit eurer E-Mail-Adresse), über die man die Löschung auch
+> **ohne** die App beantragen kann. **TODO:** Diese Seite vor einer Veröffentlichung im Play Store anlegen.
+
+**Von Hand löschen** (z. B. nach einer Anfrage per E-Mail laut
+[Datenschutzerklärung](DATENSCHUTZ_ENTWURF.md), wenn die Person die App nicht mehr nutzen kann) – in dieser
+Reihenfolge:
+
+1. **UID herausfinden:** Firebase-Konsole → **Authentication** → Reiter **„Users“** („Nutzer“) → nach der
+   E-Mail-Adresse suchen → **User UID** kopieren. Die Anmeldung selbst noch **nicht** löschen (das kommt in
+   Schritt 6).
+2. **Runden verlassen:** Firebase-Konsole → **Firestore** → Ansicht **„Query builder“** (Abfrage; neben der
+   normalen Ansicht „Panel view“) → Sammlung `groups`, Bedingung `memberIds` **array-contains** UID →
+   ausführen. Für jede gefundene Runde:
+   - im Feld `memberIds` die UID entfernen und im Feld `members` den Eintrag mit dieser UID löschen;
+   - steht die UID bei `ownerId`, dort die UID eines anderen Mitglieds eintragen;
+   - war sie das **letzte** Mitglied: stattdessen die ganze Runde löschen und ebenso das Dokument in der
+     Sammlung `inviteCodes`, dessen Name dem Feld `inviteCode` der Runde entspricht. Die Getränke dieser
+     Runde löscht der Server danach automatisch (Funktion `onGroupDeleted`).
+3. **Geteilte Getränke in allen Runden löschen** – auch in Runden, die die Person schon verlassen hat: Im
+   Query builder als Bereich **„Collection group“** wählen, Sammlung `drinks`, Bedingung `authorId` **==** UID
+   → ausführen. Jeden Treffer öffnen und löschen, bis die Abfrage nichts mehr findet. (Die Index-Einstellung,
+   die diese Abfrage braucht, spielt der Deploy in Schritt 9 automatisch ein.)
+4. **Profil löschen:** Sammlung **`users`** → Dokument mit der UID → Drei-Punkte-Menü → **Dokument löschen**
+   (inklusive der Untersammlung `tokens` mit den Push-Tokens).
+5. Sammlung **`joinAttempts`** → Dokument mit der UID löschen, falls es eins gibt (Zähler für falsche Codes).
+6. **Anmeldung löschen:** **Authentication** → „Users“ → bei der Person Drei-Punkte-Menü →
+   **„Delete account“** („Konto löschen“).
+7. Der Person kurz bestätigen, dass alles gelöscht ist. Die lokalen Getränke auf ihrem Handy verschwinden,
    wenn sie die App deinstalliert.
 
 ### Was liegt wo?
@@ -572,11 +637,16 @@ Anfrage per E-Mail zu löschen. Eine Löschfunktion in der App gibt es (noch) ni
 
 - **Firebase:** Baukasten von Google für App-Server: Anmeldung, Datenbank, Server-Funktionen, Push.
 - **Firestore:** die Datenbank, in der Runden und geteilte Getränke liegen.
-- **Cloud Functions:** kleine Server-Programme (Runde erstellen, beitreten, verlassen, Push verschicken).
+- **Cloud Functions:** kleine Server-Programme (Runde erstellen, beitreten, verlassen, Push verschicken,
+  Konto löschen, aufgelöste Runden aufräumen).
 - **Blaze:** Firebase-Tarif „zahle nur, was du verbrauchst“, mit kostenlosen Freimengen.
 - **Dienstkonto / Service Account:** ein Zugang für Programme statt für Menschen – hier für GitHub.
 - **Secret:** ein geheimer Wert, den GitHub verschlüsselt speichert und nur an Workflows weitergibt.
 - **Workflow / GitHub Actions:** automatische Abläufe auf GitHub, z. B. App bauen oder Server bereitstellen.
 - **APK:** die Installationsdatei einer Android-App.
+- **UID:** die zufällige Nutzer-ID, unter der Firebase ein Konto führt (steht unter Authentication → „Users“).
+- **Push-Token:** die Adresse eines Handys für Push-Nachrichten; die App meldet sie beim Anmelden dem Server.
+- **App Check:** ein Firebase-Schutz, der nur Apps aus dem Play Store durchlässt – bei uns bewusst aus
+  (siehe Anhang).
 - **SHA-1 / SHA-256:** „Fingerabdrücke“ des Schlüssels, mit dem die App signiert ist. Damit erkennt Google,
   dass die Anmeldung wirklich aus unserer App kommt.

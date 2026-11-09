@@ -1,6 +1,9 @@
 package com.drinkwithme.app.social.firebase
 
+import com.drinkwithme.app.social.PendingUnpublishRetrier
+import com.drinkwithme.app.social.PendingUnpublishStore
 import com.drinkwithme.app.social.firebase.FirestoreSchema.Group
+import com.drinkwithme.app.social.firebase.FirestoreSchema.GroupDrink
 import com.drinkwithme.core.domain.Drink
 import com.drinkwithme.core.domain.DrinkVisibility
 import com.drinkwithme.core.social.CurrentUserProvider
@@ -14,13 +17,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 
 /**
- * Verteilt ein eigenes Getränk per Batch in alle eigenen Runden (`groups/{gid}/drinks/{drinkId}`)
- * bzw. löscht es dort wieder. Ohne Anmeldung oder ohne Runde passiert nichts.
+ * Verteilt ein eigenes Getränk per Batch in alle eigenen Runden (`groups/{gid}/drinks/{uid}_{drinkId}`)
+ * bzw. löscht es dort wieder. Ohne Anmeldung oder ohne Runde wird nichts geteilt.
+ *
+ * Löschen im abgemeldeten Zustand (oder ein fehlgeschlagenes Löschen) wird im [pending]-Speicher
+ * vorgemerkt und beim nächsten Anmelden desselben Nutzers nachgeholt ([retryPendingUnpublishes]).
  */
 class FirestoreDrinkPublisher(
     private val firestore: FirebaseFirestore,
     private val users: CurrentUserProvider,
-) : DrinkPublisher {
+    private val pending: PendingUnpublishStore,
+) : DrinkPublisher, PendingUnpublishRetrier {
 
     override suspend fun publish(drink: Drink) {
         if (drink.visibility != DrinkVisibility.FRIENDS) return
@@ -34,13 +41,40 @@ class FirestoreDrinkPublisher(
             consumedAt = Timestamp(drink.consumedAt.epochSecond, drink.consumedAt.nano),
             createdAt = FieldValue.serverTimestamp(),
         )
-        commitInBatches(groupIds) { batch, groupId -> batch.set(drinkDocument(groupId, drink.id), document) }
+        val documentId = GroupDrink.documentId(author.id, drink.id)
+        commitInBatches(groupIds) { batch, groupId -> batch.set(drinkDocument(groupId, documentId), document) }
     }
 
     override suspend fun unpublish(drinkId: String) {
-        val userId = users.currentUser.first()?.id ?: return
-        // Löschen nicht vorhandener Dokumente erlauben die Regeln – so reicht ein Batch über alle Runden.
-        commitInBatches(myGroupIds(userId)) { batch, groupId -> batch.delete(drinkDocument(groupId, drinkId)) }
+        val userId = users.currentUser.first()?.id
+        if (userId == null) {
+            // Abgemeldet fehlt die Berechtigung: für den zuletzt angemeldeten Nutzer vormerken.
+            pending.addForLastSignedInUser(drinkId)
+            return
+        }
+        try {
+            removeFromGroups(userId, drinkId, myGroupIds(userId))
+        } catch (error: Exception) {
+            // z. B. kein Netz oder abgebrochen: beim nächsten Start bzw. Anmelden erneut versuchen.
+            pending.add(userId, drinkId)
+            throw error
+        }
+    }
+
+    override suspend fun retryPendingUnpublishes(userId: String) {
+        val drinkIds = pending.drinkIdsFor(userId)
+        if (drinkIds.isEmpty()) return
+        val groupIds = myGroupIds(userId)
+        drinkIds.forEach { drinkId ->
+            removeFromGroups(userId, drinkId, groupIds)
+            pending.remove(userId, drinkId)
+        }
+    }
+
+    /** Löschen nicht vorhandener Dokumente erlauben die Regeln – so reicht ein Batch über alle Runden. */
+    private suspend fun removeFromGroups(userId: String, drinkId: String, groupIds: List<String>) {
+        val documentId = GroupDrink.documentId(userId, drinkId)
+        commitInBatches(groupIds) { batch, groupId -> batch.delete(drinkDocument(groupId, documentId)) }
     }
 
     /** Fragt den Server (nicht nur den Cache), damit eine gerade beigetretene Runde nicht fehlt. */
@@ -60,11 +94,11 @@ class FirestoreDrinkPublisher(
         }
     }
 
-    private fun drinkDocument(groupId: String, drinkId: String): DocumentReference =
+    private fun drinkDocument(groupId: String, documentId: String): DocumentReference =
         firestore.collection(FirestoreSchema.GROUPS)
             .document(groupId)
             .collection(FirestoreSchema.DRINKS)
-            .document(drinkId)
+            .document(documentId)
 
     private companion object {
         /**

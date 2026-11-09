@@ -23,6 +23,10 @@ import com.drinkwithme.core.social.UserProfile
 /**
  * Zeigt je nach Zustand den Einrichtungs-Hinweis, die Anmeldung oder den eigentlichen Inhalt.
  *
+ * Der Inhalt bekommt den angemeldeten Nutzer; ViewModels mit Nutzerdaten holt er mit
+ * `viewModel(key = userScopedKey(…, user))`, damit nach einem Kontowechsel nie Daten des vorherigen
+ * Nutzers erscheinen.
+ *
  * @param account `null`, wenn kein Server eingerichtet ist.
  */
 @Composable
@@ -40,6 +44,7 @@ fun SocialGate(
         else -> SignInCard(
             isSigningIn = account.isSigningIn,
             errorMessage = account.errorMessage,
+            noticeMessage = account.noticeMessage,
             onSignIn = onSignIn,
             modifier = modifier,
         )
@@ -52,6 +57,7 @@ fun SignInCard(
     errorMessage: String?,
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
+    noticeMessage: String? = null,
 ) {
     CenteredCard(modifier) {
         Text("🥂", style = MaterialTheme.typography.displaySmall)
@@ -68,6 +74,9 @@ fun SignInCard(
             } else {
                 Text("Mit Google anmelden")
             }
+        }
+        noticeMessage?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
         }
         errorMessage?.let {
             Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)

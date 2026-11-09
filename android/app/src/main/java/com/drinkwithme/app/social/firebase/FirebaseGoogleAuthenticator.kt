@@ -45,6 +45,9 @@ class FirebaseGoogleAuthenticator(private val auth: FirebaseAuth) : CurrentUserP
     override suspend fun signOut() {
         auth.signOut()
     }
+
+    /** Synchron: Firebase Auth kennt den angemeldeten Nutzer nach dem Start sofort (aus dem lokalen Speicher). */
+    override fun signedInUserId(): String? = auth.currentUser?.uid
 }
 
 private fun FirebaseUser.toUserProfile() = UserProfile(

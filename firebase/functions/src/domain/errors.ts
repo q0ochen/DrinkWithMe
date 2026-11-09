@@ -1,10 +1,11 @@
-import { INVITE_CODE_LENGTH } from "./inviteCode";
+import { INVITE_CODE_EXAMPLE, INVITE_CODE_LENGTH } from "./inviteCode";
 
 /** Fehlercodes, die als Callable-Fehler an die App gehen (Teilmenge der Firebase-Codes). */
 export type SocialErrorCode =
   | "unauthenticated"
   | "invalid-argument"
   | "not-found"
+  | "failed-precondition"
   | "resource-exhausted"
   | "aborted";
 
@@ -31,14 +32,19 @@ export const SocialErrors = {
   invalidInviteCode: () =>
     new SocialError(
       "invalid-argument",
-      `Der Code muss aus ${INVITE_CODE_LENGTH} Zeichen bestehen, z. B. K7MX2Q.`,
+      `Der Code muss aus ${INVITE_CODE_LENGTH} Zeichen bestehen, z. B. ${INVITE_CODE_EXAMPLE}.`,
     ),
   invalidGroupId: () => new SocialError("invalid-argument", "Diese Runde gibt es nicht."),
   groupNotFound: () => new SocialError("not-found", "Zu diesem Code gibt es keine Runde."),
   groupFull: (maximum: number) =>
     new SocialError(
-      "resource-exhausted",
+      "failed-precondition",
       `Diese Runde ist voll – es können höchstens ${maximum} Personen mitmachen.`,
+    ),
+  tooManyJoinAttempts: () =>
+    new SocialError(
+      "resource-exhausted",
+      "Zu viele falsche Codes. Bitte warte eine Stunde und versuche es dann noch einmal.",
     ),
   inviteCodesExhausted: () =>
     new SocialError(

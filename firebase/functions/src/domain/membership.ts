@@ -29,7 +29,7 @@ export type JoinPlan =
 /**
  * Beitreten ist idempotent: Wer schon Mitglied ist, bekommt die Runde unverändert zurück.
  *
- * @throws SocialError `resource-exhausted`, wenn die Runde bereits voll ist.
+ * @throws SocialError `failed-precondition`, wenn die Runde bereits voll ist.
  */
 export function planJoin(
   group: GroupState,

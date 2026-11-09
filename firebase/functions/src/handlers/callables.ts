@@ -1,11 +1,12 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+import type { AccountService } from "../accounts/accountService";
 import { SocialError, SocialErrors } from "../domain/errors";
 import type { GroupDto } from "../domain/group";
 import type { Caller, GroupService } from "../groups/groupService";
 import type { Logger } from "../notifications/ports";
 
-// Übersetzt zwischen dem Callable-Protokoll (Anfrage/HttpsError) und dem GroupService.
+// Übersetzt zwischen dem Callable-Protokoll (Anfrage/HttpsError) und GroupService/AccountService.
 // Hier steckt keine Fachlogik – nur Anmeldung prüfen, Felder herausziehen, Fehler übersetzen.
 
 type CallableHandler<Response> = (request: CallableRequest<unknown>) => Promise<Response>;
@@ -40,6 +41,17 @@ export function leaveGroupHandler(
 ): CallableHandler<Record<string, never>> {
   return translateErrors(logger, "leaveGroup", async (request) => {
     await service.leaveGroup(callerOf(request), field(request.data, "groupId"));
+    return {};
+  });
+}
+
+/** `deleteAccount({})` → `{}` (idempotent) */
+export function deleteAccountHandler(
+  service: AccountService,
+  logger: Logger,
+): CallableHandler<Record<string, never>> {
+  return translateErrors(logger, "deleteAccount", async (request) => {
+    await service.deleteAccount(callerOf(request));
     return {};
   });
 }

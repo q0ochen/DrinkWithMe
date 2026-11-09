@@ -33,15 +33,17 @@ Google Play Store, gilt die DSGVO in jedem Fall.]
 ## 2. Das Wichtigste in Kürze
 
 - Du kannst die App **ohne Anmeldung** nutzen. Dann bleiben alle deine Getränke **nur auf deinem Gerät**.
-- Nur wenn du dich **mit deinem Google-Konto anmeldest** und einer **Trinkrunde** beitrittst, werden Daten
-  auf einem Server gespeichert: dein Name, die Runden, in denen du bist, und die Getränke, die du teilst.
+- Sobald du dich **mit deinem Google-Konto anmeldest**, werden Daten auf einem Server gespeichert: dein
+  Konto (mit E-Mail-Adresse), dein Name, die Adresse deines Profilbilds und das Push-Token deines Handys.
+- Erstellst du eine **Trinkrunde** oder trittst einer bei, kommen die Runden dazu, in denen du bist, und die
+  Getränke, die du dort teilst.
 - Deine Getränke sehen **nur die Mitglieder deiner Runden** – nicht die Öffentlichkeit.
 - Getränke mit dem Schalter **„Privat (nicht mit Freunden teilen)“** verlassen dein Gerät nie.
 - Als Server nutzen wir **Google Firebase**. Die Datenbank und die Server-Funktionen laufen in
   **Frankfurt am Main** (Google-Cloud-Region `europe-west3`).
 - **Keine Werbung, kein Tracking, keine Analyse-Tools**, kein Verkauf von Daten.
-- Du kannst geteilte Getränke jederzeit löschen, Runden verlassen und die Löschung deines Kontos per E-Mail
-  verlangen.
+- Du kannst geteilte Getränke jederzeit löschen, Runden verlassen und **dein Konto direkt in der App löschen**
+  (oder die Löschung per E-Mail verlangen).
 
 ## 3. Welche Daten verarbeitet die App?
 
@@ -59,6 +61,11 @@ Menge, optionale Notiz, Zeitpunkt, Einstellung „Privat“). Diese Daten werden
   die du in den Android-Einstellungen steuerst.
 - **iPhone-App:** Die iPhone-Version von Drink With Me arbeitet derzeit **ausschließlich lokal**. Sie hat keine
   Anmeldung und keine Trinkrunden und überträgt keine Daten an Server.
+
+Hast du die Trinkrunden genutzt, speichert die Android-App außerdem lokal, welches Konto zuletzt angemeldet war
+(die Nutzer-ID), und gegebenenfalls eine Liste geteilter Getränke, die du abgemeldet oder ohne Internet gelöscht
+hast und die noch aus deinen Runden entfernt werden müssen (siehe Abschnitt 7). Auch diese Angaben bleiben auf
+deinem Gerät.
 
 ### 3.2 Anmeldung mit Google (nur für Trinkrunden, Android)
 
@@ -83,13 +90,19 @@ Dein Passwort erhalten wir **nicht** – die Anmeldung läuft vollständig über
 
 Wenn du eine Runde erstellst oder ihr beitrittst, speichern wir:
 
-- Name der Runde, den **6-stelligen Einladungscode**, die Person, die die Runde verwaltet (Besitzer), den
+- Name der Runde, den **8-stelligen Einladungscode**, die Person, die die Runde verwaltet (Besitzer), den
   Erstellungszeitpunkt,
 - die Liste der Mitglieder (Nutzer-ID und Anzeigename).
 
 Alle Mitglieder einer Runde sehen den Namen der Runde, den Einladungscode und die Namen der anderen Mitglieder.
 Wer den Einladungscode kennt, kann der Runde beitreten – gib ihn also nur an Personen weiter, die deine
 Getränke sehen dürfen. Eine Runde hat höchstens 50 Mitglieder.
+
+**Schutz vor dem Erraten von Codes:** Gibst du beim Beitreten einen Code ein, zu dem es keine Runde gibt,
+speichern wir zu deiner Nutzer-ID die Zahl dieser Fehlversuche und den Beginn des laufenden Zeitfensters von
+einer Stunde. Nach 10 Fehlversuchen innerhalb dieser Stunde kannst du bis zum Ende des Zeitfensters keiner
+Runde beitreten. Der Eintrag wird beim nächsten Fehlversuch nach Ablauf der Stunde neu begonnen und mit
+deinem Konto gelöscht.
 
 ### 3.4 Geteilte Getränke
 
@@ -122,21 +135,39 @@ Einwilligungsdialog vor dem ersten Teilen.]
 Damit du benachrichtigt wirst, wenn jemand aus deinen Runden etwas trinkt, nutzen wir
 **Firebase Cloud Messaging** (FCM) von Google:
 
-- Bei der Anmeldung speichert die App das **Push-Token** deines Geräts (eine Kennung, über die Nachrichten
-  zugestellt werden), die Plattform („android“) und den Zeitpunkt der letzten Aktualisierung in deinem Konto.
+- Bei der Anmeldung (und bei jedem App-Start) speichert die App das **Push-Token** deines Geräts (eine
+  Kennung, über die Nachrichten zugestellt werden), die Plattform („android“) und den Zeitpunkt der letzten
+  Aktualisierung in deinem Konto.
 - Trägt ein anderes Mitglied ein geteiltes Getränk ein, schickt unser Server über FCM eine Nachricht an die
-  Geräte der übrigen Mitglieder, z. B.: „Anna trinkt gerade – ☕ Cappuccino (200 ml) · Stammtisch“. Dafür
+  Geräte der übrigen Mitglieder (pro Person an höchstens die 5 zuletzt registrierten Geräte). Sie enthält den
+  Text der Benachrichtigung, z. B. „Anna trinkt gerade – ☕ Cappuccino (200 ml) · Stammtisch“, sowie technische
+  Kennungen: die Runde, das Getränk sowie die Nutzer-IDs der Person, die es geteilt hat, und der Person, für
+  die die Nachricht bestimmt ist. Dafür
   verarbeitet Google den Inhalt der Nachricht und die Push-Tokens.
+- Die App zeigt eine Nachricht **nur an, wenn genau die Person angemeldet ist, für die sie bestimmt ist**.
 - Ab Android 13 fragt die App nach deiner **Erlaubnis für Benachrichtigungen**. Du kannst sie jederzeit in den
   Android-Einstellungen wieder entziehen.
-- Beim **Abmelden** löscht die App das Push-Token. Ungültig gewordene Tokens löscht der Server automatisch.
+- Beim **Abmelden** löscht die App den Eintrag des Push-Tokens in deinem Konto und macht das Token bei Google
+  ungültig. Hat dein Handy dabei kein Internet, klappt das unter Umständen nicht: Dann kann unser Server
+  weiter Nachrichten an das alte Token schicken, bis Google es als ungültig meldet – das kann auch länger
+  dauern. Diese Nachrichten erreichen dein Handy dann zwar noch, die App **zeigt sie aber nicht an** und
+  speichert sie nicht. Nach dem Abmelden oder nach einem Wechsel zu einem anderen Konto erscheinen auf dem
+  Handy also keine Benachrichtigungen für das vorherige Konto mehr. Willst du sichergehen, dass gar nichts
+  mehr ankommt, melde dich mit Internetverbindung ab (notfalls noch einmal anmelden und mit Internet wieder
+  abmelden). Ungültig gewordene Tokens löscht der Server automatisch.
 
 ### 3.6 Server-Protokolle
 
 Unsere Server-Funktionen (Firebase Cloud Functions) schreiben technische Protokolle, z. B. Fehlermeldungen,
-Zeitpunkte und in einzelnen Fällen Nutzer- oder Runden-IDs. Die Protokolle dienen nur dem Betrieb und der
-Fehlersuche und werden bei Google Cloud Logging gespeichert. [Prüfen: Standard-Aufbewahrung im
-„_Default“-Log-Bucket von Google Cloud Logging: 30 Tage.]
+Zeitpunkte und in einzelnen Fällen Nutzer- oder Runden-IDs.
+
+Außerdem protokolliert Google bei **jedem Aufruf einer Server-Funktion durch die App** (Runde erstellen,
+beitreten, verlassen, Konto löschen) automatisch eine Anfragezeile: Zeitpunkt, aufgerufene Funktion, Ergebnis
+und Dauer sowie die **IP-Adresse** und die **Geräte-/App-Kennung (User-Agent)** des aufrufenden Handys.
+
+Die Protokolle dienen nur dem Betrieb, der Sicherheit und der Fehlersuche. Sie werden bei Google Cloud Logging
+gespeichert und nach etwa **30 Tagen** automatisch gelöscht. [Prüfen: Standard-Aufbewahrung im
+„_Default“-Log-Bucket von Google Cloud Logging: 30 Tage; Speicherort der Protokolle.]
 
 ### 3.7 Was wir nicht tun
 
@@ -153,7 +184,7 @@ Fehlersuche und werden bei Google Cloud Logging gespeichert. [Prüfen: Standard-
 | Lokale Speicherung der Getränke | Grundfunktion der App | findet nur auf deinem Gerät statt; keine Übermittlung an uns |
 | Anmeldung, Konto, Runden, geteilte Getränke | Bereitstellung der Trinkrunden, die du aktiv nutzt | Art. 6 Abs. 1 lit. b DSGVO (Nutzung des von dir gewünschten Dienstes) [ggf. zusätzlich Art. 9 Abs. 2 lit. a DSGVO, siehe 3.4] |
 | Push-Benachrichtigungen | Benachrichtigung über Getränke deiner Freunde | Art. 6 Abs. 1 lit. a DSGVO (deine Einwilligung über die Benachrichtigungs-Erlaubnis) bzw. lit. b |
-| Sicherheitsprotokolle bei der Anmeldung, Server-Protokolle | Sicherheit, Missbrauchsschutz, Fehlersuche | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und funktionierenden Dienst) |
+| Sicherheitsprotokolle bei der Anmeldung, Server-Protokolle (inkl. IP-Adresse und User-Agent), Zähler für falsche Einladungscodes | Sicherheit, Missbrauchsschutz, Fehlersuche | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und funktionierenden Dienst) |
 
 ## 5. Wie lange werden die Daten gespeichert?
 
@@ -162,10 +193,14 @@ Fehlersuche und werden bei Google Cloud Logging gespeichert. [Prüfen: Standard-
   [Optional entscheiden: Sollen geteilte Getränke nach einer festen Frist automatisch gelöscht werden,
   z. B. nach [X] Tagen? Das ist derzeit nicht umgesetzt.]
 - **Runden:** solange mindestens ein Mitglied in der Runde ist. Verlässt das letzte Mitglied die Runde, werden
-  die Runde, ihr Einladungscode und alle darin geteilten Getränke automatisch gelöscht.
+  die Runde und ihr Einladungscode sofort und alle darin geteilten Getränke kurz danach automatisch gelöscht.
 - **Konto und Profil (Name, Profilbild-URL):** bis zur Löschung deines Kontos.
 - **Push-Tokens:** bis zum Abmelden, bis sie ungültig werden oder bis zur Löschung deines Kontos.
-- **Protokolle:** siehe Abschnitt 3.6.
+- **Zähler für falsche Einladungscodes:** wird nach Ablauf der Stunde beim nächsten Fehlversuch neu begonnen
+  und spätestens mit deinem Konto gelöscht.
+- **Vorgemerkte Löschungen auf deinem Gerät** (siehe Abschnitt 7): bis sie beim nächsten Anmelden erledigt
+  sind, bis du dein Konto löschst oder die App deinstallierst.
+- **Protokolle:** etwa 30 Tage, siehe Abschnitt 3.6.
 
 ## 6. Wer verarbeitet die Daten? (Auftragsverarbeiter und Speicherort)
 
@@ -175,8 +210,8 @@ Wir nutzen die Plattform **Google Firebase**. Google verarbeitet die Daten in un
 - **Anbieter:** [Prüfen: Vertragspartner laut Firebase-/Google-Cloud-Bedingungen, für Kunden im EWR in der
   Regel Google Ireland Limited bzw. Google Cloud EMEA Limited, Gordon House, Barrow Street, Dublin 4, Irland.]
 - **Genutzte Dienste:** Firebase Authentication (Anmeldung), Cloud Firestore (Datenbank), Cloud Functions for
-  Firebase (Server-Funktionen), Firebase Cloud Messaging (Push-Benachrichtigungen), Google Cloud Logging
-  (Protokolle).
+  Firebase (Server-Funktionen; sie laufen technisch auf Google Cloud Run), Firebase Cloud Messaging
+  (Push-Benachrichtigungen), Google Cloud Logging (Protokolle).
 - **Speicherort:** Die **Datenbank (Cloud Firestore)** und die **Server-Funktionen** laufen in der
   Google-Cloud-Region **`europe-west3` (Frankfurt am Main, Deutschland)**.
 - **Globale Dienste:** Die **Anmeldung** (Firebase Authentication) und der **Versand von Push-Nachrichten**
@@ -195,11 +230,15 @@ Du hast es weitgehend selbst in der Hand:
 
 | Was du tun willst | So geht's |
 |---|---|
-| Ein geteiltes Getränk entfernen | Das Getränk in „Meine Getränke“ **löschen** – es wird auch aus allen Runden entfernt, in denen du gerade Mitglied bist. |
-| Eine Runde verlassen | Im Reiter „Runden“ die Runde **verlassen**. **Achtung:** Deine bisher dort geteilten Getränke bleiben für die übrigen Mitglieder sichtbar. Willst du sie entfernen, **lösche sie vor dem Verlassen**. |
-| Keine Push-Nachrichten mehr | In der App **abmelden** (das Push-Token wird gelöscht) oder in den Android-Einstellungen die Benachrichtigungen ausschalten. |
+| Ein geteiltes Getränk entfernen | Das Getränk in „Meine Getränke“ **löschen** – es wird auch aus allen Runden entfernt, in denen du gerade Mitglied bist. Bist du dabei **abgemeldet** (oder ohne Internet), merkt sich die App das Getränk zusammen mit deiner Nutzer-ID auf deinem Gerät und entfernt es aus deinen Runden, sobald du wieder **mit demselben Konto** angemeldet bist und Internet hast. |
+| Eine Runde verlassen | Im Reiter „Runden“ die Runde **verlassen**. **Achtung:** Deine bisher dort geteilten Getränke bleiben für die übrigen Mitglieder sichtbar. Willst du sie entfernen, **lösche sie vor dem Verlassen** – oder lösche später dein Konto, dann werden sie überall entfernt. |
+| Keine Push-Nachrichten mehr | In der App **abmelden** (das Push-Token wird gelöscht und ungültig gemacht; die App zeigt danach keine Nachrichten für dein Konto mehr an, siehe Abschnitt 3.5) oder in den Android-Einstellungen die Benachrichtigungen ausschalten. |
 | Alle lokalen Daten löschen | Die App deinstallieren oder in den Android-Einstellungen die App-Daten löschen. |
-| **Dein Konto komplett löschen** | Schreib eine E-Mail an **[kontakt@beispiel.de]** mit der E-Mail-Adresse deines Google-Kontos. Wir löschen dann dein Konto, dein Profil, deine Push-Tokens, deine Mitgliedschaften und deine geteilten Getränke, in der Regel innerhalb von [30] Tagen, und bestätigen dir die Löschung. Eine Löschfunktion direkt in der App gibt es derzeit noch nicht. |
+| **Dein Konto komplett löschen** | **Direkt in der App:** Reiter „Runden“ → ganz unten in der Karte „Konto“ → **„Konto löschen“** → bestätigen. Gelöscht werden sofort: deine Anmeldung (Firebase-Konto mit E-Mail-Adresse), dein Profil, deine Push-Tokens, deine Mitgliedschaften in allen Runden, **alle** Getränke, die du geteilt hast – auch in Runden, die du schon verlassen hast –, und der Zähler für falsche Einladungscodes. Warst du das letzte Mitglied einer Runde, wird die Runde aufgelöst. Danach wirst du abgemeldet. Deine Getränke unter „Meine Getränke“ bleiben **auf deinem Gerät**; sie verschwinden, wenn du die App deinstallierst. |
+| Konto löschen ohne App | Schreib eine E-Mail an **[kontakt@beispiel.de]** mit der E-Mail-Adresse deines Google-Kontos. Wir löschen dann dieselben Daten wie die Funktion in der App, in der Regel innerhalb von [30] Tagen, und bestätigen dir die Löschung. [Für den Play Store: Link zur Lösch-Webseite ergänzen, siehe Checkliste.] |
+
+Nicht sofort gelöscht werden die Server-Protokolle (Abschnitt 3.6) – sie verfallen nach etwa 30 Tagen – sowie
+die Sicherheitsprotokolle, die Google selbst bei der Anmeldung führt (Abschnitt 3.2).
 
 ## 8. Berechtigungen der App (Android)
 
@@ -232,7 +271,10 @@ Wohnorts oder der für uns zuständigen Behörde: [Name und Anschrift der zustä
 - **Sicherheitsregeln** auf dem Server sorgen dafür, dass Runden und Getränke **nur von Mitgliedern der
   jeweiligen Runde** gelesen werden können. Dein Profil und deine Push-Tokens kannst nur du selbst lesen und
   ändern. Runden werden ausschließlich von unseren Server-Funktionen angelegt und geändert.
-- Einladungscodes werden zufällig erzeugt.
+- Einladungscodes haben 8 Zeichen und werden zufällig erzeugt. Wer innerhalb einer Stunde 10 falsche Codes
+  eingibt, kann bis zum Ende dieser Stunde keiner Runde beitreten (siehe 3.3).
+- Ein geteiltes Getränk kann nur die Person wieder löschen, die es geteilt hat (außerdem löschen es unsere
+  Server-Funktionen, wenn die Runde aufgelöst oder das Konto gelöscht wird). Ändern kann es niemand.
 
 ## 11. Mindestalter
 
@@ -256,9 +298,13 @@ Fassung, die [in der App / unter: URL] abrufbar ist.
 - [ ] In der Firebase-Konsole die Datenverarbeitungsbedingungen (Auftragsverarbeitung) akzeptiert.
 - [ ] Geprüft, dass **Google Analytics im Firebase-Projekt ausgeschaltet** ist (siehe
       [`FIREBASE_EINRICHTUNG.md`](FIREBASE_EINRICHTUNG.md), Schritt 1).
-- [ ] Ablauf für Löschanfragen per E-Mail festgelegt (Anleitung: [`FIREBASE_EINRICHTUNG.md`](FIREBASE_EINRICHTUNG.md),
-      Anhang „Konto auf Wunsch löschen“).
+- [ ] Ablauf für Löschanfragen per E-Mail festgelegt – für Personen, die die App nicht mehr haben (Anleitung:
+      [`FIREBASE_EINRICHTUNG.md`](FIREBASE_EINRICHTUNG.md), Anhang „Konto auf Wunsch löschen“).
 - [ ] Erklärung in der App oder unter einer festen Adresse erreichbar gemacht.
 - [ ] Bei einer Veröffentlichung im Google Play Store: Formular „Datensicherheit“ (Data safety) passend zu
       diesem Text ausfüllen.
+- [ ] **TODO Play Store – Kontolöschung:** Die Funktion „Konto löschen“ in der App erfüllt den Teil der
+      Google-Play-Regeln, der eine Löschung **in der App** verlangt. Zusätzlich verlangt Google Play einen
+      **Weblink** (Webseite oder Formular), über den man die Löschung des Kontos auch **ohne** App beantragen
+      kann. Diese Seite anlegen, in der Play Console eintragen und in Abschnitt 7 verlinken.
 - [ ] Wenn sich die App ändert (z. B. Trinkrunden für iOS, Anzeige von Profilbildern, neue Dienste): Text anpassen.

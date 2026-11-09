@@ -5,9 +5,9 @@ import { groupOf } from "./fakes";
 
 describe("newGroup", () => {
   it("macht den Ersteller zum Besitzer und einzigen Mitglied", () => {
-    expect(newGroup("Stammtisch", "K7MX2Q", { userId: "anna", displayName: "Anna" })).toEqual({
+    expect(newGroup("Stammtisch", "K7MX2QAB", { userId: "anna", displayName: "Anna" })).toEqual({
       name: "Stammtisch",
-      inviteCode: "K7MX2Q",
+      inviteCode: "K7MX2QAB",
       ownerId: "anna",
       memberIds: ["anna"],
       members: { anna: { displayName: "Anna" } },
@@ -38,11 +38,14 @@ describe("planJoin", () => {
     expect(planJoin(full, { userId: "u7", displayName: "X" }).kind).toBe("already-member");
   });
 
-  it("lehnt das 51. Mitglied mit resource-exhausted ab", () => {
+  it("lehnt das 51. Mitglied mit failed-precondition ab", () => {
     const full = groupOf(Array.from({ length: 50 }, (_, i) => `u${i}`));
 
     expect(() => planJoin(full, { userId: "neu", displayName: "Neu" })).toThrowError(
-      expect.objectContaining({ code: "resource-exhausted" }),
+      expect.objectContaining({
+        code: "failed-precondition",
+        message: "Diese Runde ist voll – es können höchstens 50 Personen mitmachen.",
+      }),
     );
     expect(() => planJoin(full, { userId: "neu", displayName: "Neu" })).toThrowError(SocialError);
   });
@@ -66,7 +69,7 @@ describe("planLeave", () => {
       kind: "update",
       group: {
         name: "Stammtisch",
-        inviteCode: "K7MX2Q",
+        inviteCode: "K7MX2QAB",
         ownerId: "a",
         memberIds: ["a", "c"],
         members: { a: { displayName: "Name a" }, c: { displayName: "Name c" } },

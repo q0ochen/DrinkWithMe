@@ -110,6 +110,7 @@ fun DrinkWithMeApp(
                 account = accountState,
                 onSignIn = signIn,
                 onSignOut = { accountViewModel?.signOut() },
+                onDeleteAccount = { accountViewModel?.deleteAccount() },
                 viewModelFactory = viewModelFactory,
                 onShare = onShare,
                 modifier = contentModifier,

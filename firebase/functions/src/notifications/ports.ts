@@ -1,4 +1,4 @@
-import type { DrinkNotification } from "../domain/drinkNotification";
+import type { DrinkMessage } from "../domain/drinkNotification";
 
 // Schnittstellen („Ports“) der Push-Benachrichtigung. Der DrinkNotifier kennt nur diese
 // Abstraktionen; Firestore- und FCM-Implementierungen werden im Composition Root verdrahtet.
@@ -11,19 +11,24 @@ export interface DeviceToken {
 
 /** Liest und entfernt Geräte-Tokens. */
 export interface DeviceTokenStore {
-  tokensOf(userIds: readonly string[]): Promise<DeviceToken[]>;
+  /** Die höchstens `limit` neuesten Tokens eines Nutzers (nach `updatedAt` absteigend). */
+  newestTokensOf(userId: string, limit: number): Promise<string[]>;
   remove(tokens: readonly DeviceToken[]): Promise<void>;
 }
 
-/** Ergebnis pro Token; `errorCode` ist der FCM-Fehlercode (z. B. `messaging/invalid-registration-token`). */
+/**
+ * Ergebnis pro Token; bei einem Fehler `errorCode` (FCM-Fehlercode, z. B.
+ * `messaging/registration-token-not-registered`) und `errorMessage` (Text von FCM).
+ */
 export interface SendResult {
   token: string;
   errorCode?: string;
+  errorMessage?: string;
 }
 
-/** Versendet eine Push-Nachricht an mehrere Geräte. */
+/** Versendet eine Daten-Nachricht an die Geräte eines Empfängers. */
 export interface NotificationSender {
-  send(tokens: readonly string[], notification: DrinkNotification): Promise<SendResult[]>;
+  send(tokens: readonly string[], message: DrinkMessage): Promise<SendResult[]>;
 }
 
 /** Schmale Logging-Schnittstelle (in Produktion `firebase-functions/logger`). */

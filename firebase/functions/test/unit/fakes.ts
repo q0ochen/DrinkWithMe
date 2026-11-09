@@ -1,4 +1,4 @@
-import type { DrinkNotification } from "../../src/domain/drinkNotification";
+import type { DrinkMessage } from "../../src/domain/drinkNotification";
 import type { GroupState } from "../../src/domain/group";
 import type { GroupLookup } from "../../src/notifications/drinkNotifier";
 import type {
@@ -34,14 +34,19 @@ export class InMemoryGroupLookup implements GroupLookup {
   }
 }
 
+/** Tokens in Registrierungsreihenfolge: Spätere Einträge gelten als neuer (`updatedAt`). */
 export class InMemoryTokenStore implements DeviceTokenStore {
-  readonly requestedUserIds: string[][] = [];
+  readonly requests: { userId: string; limit: number }[] = [];
+  /** Nutzer, bei denen das Lesen scheitern soll. */
+  readonly failingUsers = new Set<string>();
 
   constructor(public tokens: DeviceToken[] = []) {}
 
-  tokensOf(userIds: readonly string[]): Promise<DeviceToken[]> {
-    this.requestedUserIds.push([...userIds]);
-    return Promise.resolve(this.tokens.filter((token) => userIds.includes(token.userId)));
+  newestTokensOf(userId: string, limit: number): Promise<string[]> {
+    this.requests.push({ userId, limit });
+    if (this.failingUsers.has(userId)) return Promise.reject(new Error(`Tokens von ${userId} nicht lesbar`));
+    const newestFirst = this.tokens.filter((token) => token.userId === userId).reverse();
+    return Promise.resolve(newestFirst.slice(0, limit).map((token) => token.token));
   }
 
   remove(tokens: readonly DeviceToken[]): Promise<void> {
@@ -52,20 +57,28 @@ export class InMemoryTokenStore implements DeviceTokenStore {
   }
 }
 
-/** Versendet nichts, merkt sich die Aufrufe und liefert vorgegebene Fehlercodes. */
+/** Versendet nichts, merkt sich die Aufrufe und liefert vorgegebene Fehler pro Token. */
 export class FakeSender implements NotificationSender {
-  readonly calls: { tokens: string[]; notification: DrinkNotification }[] = [];
+  readonly calls: { tokens: string[]; message: DrinkMessage }[] = [];
 
-  constructor(private readonly errorCodes: Record<string, string> = {}) {}
+  constructor(private readonly errors: Record<string, { code: string; message?: string }> = {}) {}
 
-  send(tokens: readonly string[], notification: DrinkNotification): Promise<SendResult[]> {
-    this.calls.push({ tokens: [...tokens], notification });
+  send(tokens: readonly string[], message: DrinkMessage): Promise<SendResult[]> {
+    this.calls.push({ tokens: [...tokens], message });
     return Promise.resolve(
-      tokens.map((token) => {
-        const errorCode = this.errorCodes[token];
-        return errorCode === undefined ? { token } : { token, errorCode };
+      tokens.map((token): SendResult => {
+        const error = this.errors[token];
+        if (error === undefined) return { token };
+        return error.message === undefined
+          ? { token, errorCode: error.code }
+          : { token, errorCode: error.code, errorMessage: error.message };
       }),
     );
+  }
+
+  /** Der Aufruf für einen Empfänger (jeder Empfänger bekommt genau eine Nachricht). */
+  callFor(recipientId: string) {
+    return this.calls.find((call) => call.message.data.recipientId === recipientId);
   }
 }
 
@@ -73,7 +86,7 @@ export class FakeSender implements NotificationSender {
 export function groupOf(memberIds: string[], name = "Stammtisch"): GroupState {
   return {
     name,
-    inviteCode: "K7MX2Q",
+    inviteCode: "K7MX2QAB",
     ownerId: memberIds[0] ?? "",
     memberIds,
     members: Object.fromEntries(memberIds.map((id) => [id, { displayName: `Name ${id}` }])),

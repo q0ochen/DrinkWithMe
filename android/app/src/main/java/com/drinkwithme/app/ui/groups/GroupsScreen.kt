@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,13 +48,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drinkwithme.app.ui.account.AccountUiState
+import com.drinkwithme.app.ui.account.DeleteAccountDialog
 import com.drinkwithme.app.ui.account.SocialGate
+import com.drinkwithme.app.ui.account.userScopedKey
 import com.drinkwithme.core.social.UserProfile
 import kotlinx.coroutines.launch
 
 /**
- * Tab „Runden“: Runden erstellen, beitreten, Code teilen/kopieren, verlassen – und das Konto.
- * Zeigt ohne Server den Einrichtungs-Hinweis und ohne Anmeldung die Google-Anmeldung.
+ * Tab „Runden“: Runden erstellen, beitreten, Code teilen/kopieren, verlassen – und das Konto
+ * (abmelden, Konto löschen). Zeigt ohne Server den Einrichtungs-Hinweis und ohne Anmeldung die Google-Anmeldung.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +64,7 @@ fun GroupsScreen(
     account: AccountUiState?,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
     viewModelFactory: ViewModelProvider.Factory,
     onShare: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -72,13 +76,16 @@ fun GroupsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         SocialGate(account = account, onSignIn = onSignIn, modifier = Modifier.padding(padding)) { user ->
-            val viewModel: GroupsViewModel = viewModel(factory = viewModelFactory)
+            // Eine Instanz je Nutzer: Nach einem Kontowechsel erscheinen nie die Runden des vorherigen Kontos.
+            val viewModel: GroupsViewModel = viewModel(key = userScopedKey("groups", user), factory = viewModelFactory)
             GroupsContent(
                 viewModel = viewModel,
                 user = user,
                 isSigningOut = account?.isSigningOut == true,
+                isDeletingAccount = account?.isDeletingAccount == true,
                 accountErrorMessage = account?.errorMessage,
                 onSignOut = onSignOut,
+                onDeleteAccount = onDeleteAccount,
                 onShare = onShare,
                 snackbarHostState = snackbarHostState,
             )
@@ -91,8 +98,10 @@ private fun GroupsContent(
     viewModel: GroupsViewModel,
     user: UserProfile,
     isSigningOut: Boolean,
+    isDeletingAccount: Boolean,
     accountErrorMessage: String?,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onShare: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
 ) {
@@ -102,11 +111,22 @@ private fun GroupsContent(
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var showJoinDialog by rememberSaveable { mutableStateOf(false) }
     var groupIdToLeave by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmAccountDeletion by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state.message) {
         state.message?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.messageShown()
+        }
+    }
+
+    // Erstellen/Beitreten hat geklappt: Der Dialog wird hier – im aktuellen Bildschirm – geschlossen. So klappt das
+    // auch, wenn das Gerät währenddessen gedreht wurde (kein Rückruf in eine alte Oberfläche).
+    LaunchedEffect(state.closeDialog) {
+        if (state.closeDialog) {
+            showCreateDialog = false
+            showJoinDialog = false
+            viewModel.dialogClosed()
         }
     }
 
@@ -141,7 +161,9 @@ private fun GroupsContent(
                         clipboard.setText(AnnotatedString(group.inviteCode.value))
                         // Ab Android 13 bestätigt das System das Kopieren selbst.
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                            scope.launch { snackbarHostState.showSnackbar("Code ${group.inviteCode.value} kopiert") }
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Code ${InviteCodeText.display(group.inviteCode)} kopiert")
+                            }
                         }
                     },
                     onShareCode = { onShare(viewModel.inviteMessage(group)) },
@@ -149,12 +171,14 @@ private fun GroupsContent(
                 )
             }
         }
-        item {
+        item(key = ACCOUNT_ITEM_KEY) {
             AccountSection(
                 user = user,
                 isSigningOut = isSigningOut,
+                isDeletingAccount = isDeletingAccount,
                 errorMessage = accountErrorMessage,
                 onSignOut = onSignOut,
+                onDeleteAccount = { confirmAccountDeletion = true },
             )
         }
     }
@@ -163,7 +187,7 @@ private fun GroupsContent(
         CreateGroupDialog(
             isWorking = state.isWorking,
             errorMessage = state.dialogErrorMessage,
-            onCreate = { name -> viewModel.create(name) { showCreateDialog = false } },
+            onCreate = viewModel::create,
             onDismiss = { showCreateDialog = false },
         )
     }
@@ -171,7 +195,7 @@ private fun GroupsContent(
         JoinGroupDialog(
             isWorking = state.isWorking,
             errorMessage = state.dialogErrorMessage,
-            onJoin = { code -> viewModel.join(code) { showJoinDialog = false } },
+            onJoin = viewModel::join,
             onDismiss = { showJoinDialog = false },
         )
     }
@@ -185,7 +209,19 @@ private fun GroupsContent(
             onDismiss = { groupIdToLeave = null },
         )
     }
+    if (confirmAccountDeletion) {
+        DeleteAccountDialog(
+            onConfirm = {
+                confirmAccountDeletion = false
+                onDeleteAccount()
+            },
+            onDismiss = { confirmAccountDeletion = false },
+        )
+    }
 }
+
+/** Fester Schlüssel, damit die Konto-Karte nicht mit einer Runde (Schlüssel = Runden-ID) verwechselt wird. */
+private const val ACCOUNT_ITEM_KEY = "account"
 
 @Composable
 private fun GroupActions(onCreate: () -> Unit, onJoin: () -> Unit) {
@@ -225,15 +261,37 @@ private fun NoGroupsYet() {
 private fun AccountSection(
     user: UserProfile,
     isSigningOut: Boolean,
+    isDeletingAccount: Boolean,
     errorMessage: String?,
     onSignOut: () -> Unit,
+    /** Öffnet die Sicherheitsabfrage. */
+    onDeleteAccount: () -> Unit,
 ) {
+    val isBusy = isSigningOut || isDeletingAccount
+
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Konto", style = MaterialTheme.typography.titleMedium)
             Text("Angemeldet als ${user.displayName}", style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = onSignOut, enabled = !isSigningOut) {
+            OutlinedButton(onClick = onSignOut, enabled = !isBusy) {
                 Text(if (isSigningOut) "Wird abgemeldet …" else "Abmelden")
+            }
+            TextButton(
+                onClick = onDeleteAccount,
+                enabled = !isBusy,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) {
+                if (isDeletingAccount) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                    Text("Konto wird gelöscht …")
+                } else {
+                    Text("Konto löschen")
+                }
             }
             errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
