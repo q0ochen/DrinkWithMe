@@ -1,6 +1,7 @@
 import SwiftUI
 
 @main
+@MainActor
 struct DrinkWithMeApp: App {
     private let container = AppContainer.live()
 
