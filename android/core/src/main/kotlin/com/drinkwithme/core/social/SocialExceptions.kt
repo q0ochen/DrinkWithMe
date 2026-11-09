@@ -8,7 +8,7 @@ sealed class SocialValidationException(message: String) : IllegalArgumentExcepti
         SocialValidationException("Der Rundenname darf höchstens $maximum Zeichen lang sein.")
 
     data object InvalidInviteCode : SocialValidationException(
-        "Der Code muss aus ${InviteCode.LENGTH} Zeichen bestehen, z. B. K7MX2Q.",
+        "Der Code muss aus ${InviteCode.LENGTH} Zeichen bestehen, z. B. K7MX2QAB.",
     )
 }
 

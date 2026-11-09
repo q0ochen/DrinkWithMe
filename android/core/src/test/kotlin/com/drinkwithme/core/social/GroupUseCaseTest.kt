@@ -30,8 +30,8 @@ class GroupUseCaseTest {
 
     @Test
     fun joinGroupNormalizesCode() = runTest {
-        DefaultJoinGroupUseCase(service)("k7mx2q")
-        assertEquals(listOf("K7MX2Q"), service.joinedCodes.map { it.value })
+        DefaultJoinGroupUseCase(service)("k7mx-2qab")
+        assertEquals(listOf("K7MX2QAB"), service.joinedCodes.map { it.value })
     }
 
     @Test

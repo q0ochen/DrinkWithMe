@@ -7,19 +7,19 @@ import kotlin.test.assertNull
 class InviteCodeTest {
     @Test
     fun normalizesInput() {
-        assertEquals("K7MX2Q", InviteCode.parse(" k7m-x2q ")?.value)
+        assertEquals("K7MX2QAB", InviteCode.parse(" k7mx-2qab ")?.value)
     }
 
     @Test
     fun rejectsWrongLength() {
-        assertNull(InviteCode.parse("K7MX2"))
         assertNull(InviteCode.parse("K7MX2QA"))
+        assertNull(InviteCode.parse("K7MX2QABC"))
         assertNull(InviteCode.parse(""))
     }
 
     @Test
     fun rejectsAmbiguousCharacters() {
-        listOf("K7MX2O", "K7MX2I", "K7MX2L", "K7MX20", "K7MX21", "K7MX2!").forEach {
+        listOf("K7MX2QAO", "K7MX2QAI", "K7MX2QAL", "K7MX2QA0", "K7MX2QA1", "K7MX2QA!").forEach {
             assertNull(InviteCode.parse(it), it)
         }
     }

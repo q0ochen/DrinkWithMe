@@ -23,7 +23,7 @@ class FakeGroupService : GroupMembershipService, GroupReader {
     }
 
     companion object {
-        fun group(name: String, code: InviteCode = InviteCode.parse("ABCDEF")!!) = DrinkGroup(
+        fun group(name: String, code: InviteCode = InviteCode.parse("ABCDEFGH")!!) = DrinkGroup(
             id = "id-$name",
             name = name,
             inviteCode = code,
