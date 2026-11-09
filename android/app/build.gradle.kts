@@ -16,6 +16,18 @@ android {
         versionName = "1.0"
     }
 
+    // Fester Debug-Schlüssel (kein Geheimnis, nur für Test-Builds): Dadurch haben alle
+    // APKs aus GitHub Actions dieselbe Signatur und lassen sich als Update über eine
+    // bereits installierte Version installieren, ohne dass gespeicherte Getränke verloren gehen.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
