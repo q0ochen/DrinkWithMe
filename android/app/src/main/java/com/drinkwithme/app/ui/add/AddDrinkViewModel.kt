@@ -6,6 +6,7 @@ import com.drinkwithme.core.domain.Drink
 import com.drinkwithme.core.domain.DrinkCategory
 import com.drinkwithme.core.domain.DrinkDraft
 import com.drinkwithme.core.domain.DrinkValidationException
+import com.drinkwithme.core.domain.DrinkVisibility
 import com.drinkwithme.core.usecase.LogDrinkUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,8 @@ data class AddDrinkUiState(
     val category: DrinkCategory = DrinkCategory.WATER,
     val volumeInMilliliters: Int = 250,
     val note: String = "",
+    /** `true` = nur auf diesem Gerät, nicht in den Trinkrunden teilen. */
+    val isPrivate: Boolean = false,
     val errorMessage: String? = null,
 )
 
@@ -32,10 +35,17 @@ class AddDrinkViewModel(private val logDrink: LogDrinkUseCase) : ViewModel() {
     fun onCategoryChange(category: DrinkCategory) = _state.update { it.copy(category = category) }
     fun onNoteChange(note: String) = _state.update { it.copy(note = note) }
     fun onVolumeChange(volume: Int) = _state.update { it.copy(volumeInMilliliters = volume.coerceIn(10, 5_000)) }
+    fun onPrivateChange(isPrivate: Boolean) = _state.update { it.copy(isPrivate = isPrivate) }
 
     fun save(onSaved: (Drink) -> Unit) {
         val current = _state.value
-        val draft = DrinkDraft(current.name, current.category, current.volumeInMilliliters, current.note)
+        val draft = DrinkDraft(
+            name = current.name,
+            category = current.category,
+            volumeInMilliliters = current.volumeInMilliliters,
+            note = current.note,
+            visibility = if (current.isPrivate) DrinkVisibility.PRIVATE else DrinkVisibility.FRIENDS,
+        )
         viewModelScope.launch {
             try {
                 val drink = withContext(Dispatchers.IO) { logDrink(draft) }

@@ -1,0 +1,77 @@
+# Stellt Sicherheitsregeln, Indizes und Cloud Functions im echten Firebase-Projekt bereit – nur manuell:
+# GitHub → Actions → „Firebase Deploy“ → „Run workflow“.
+#
+# Voraussetzungen (Schritt für Schritt in docs/FIREBASE_EINRICHTUNG.md):
+#   Secret   FIREBASE_SERVICE_ACCOUNT – JSON-Schlüssel eines Dienstkontos mit Deploy-Rechten
+#   Variable FIREBASE_PROJECT_ID      – Projekt-ID des Firebase-Projekts, z. B. drinkwithme-1a2b3
+name: Firebase Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Nie zwei Deployments gleichzeitig.
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase/functions
+    steps:
+      - name: Einstellungen prüfen
+        working-directory: .
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          fehler=0
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error title=Secret FIREBASE_SERVICE_ACCOUNT fehlt::Bitte unter Settings → Secrets and variables → Actions → Secrets das Secret FIREBASE_SERVICE_ACCOUNT anlegen (Inhalt: der komplette JSON-Schlüssel des Dienstkontos). Anleitung: docs/FIREBASE_EINRICHTUNG.md"
+            fehler=1
+          fi
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error title=Variable FIREBASE_PROJECT_ID fehlt::Bitte unter Settings → Secrets and variables → Actions → Variables die Variable FIREBASE_PROJECT_ID mit der Projekt-ID des Firebase-Projekts anlegen (z. B. drinkwithme-1a2b3). Anleitung: docs/FIREBASE_EINRICHTUNG.md"
+            fehler=1
+          elif ! printf '%s' "$PROJECT_ID" | grep -Eq '^[a-z][a-z0-9-]{4,28}[a-z0-9]$'; then
+            echo "::error title=FIREBASE_PROJECT_ID ungültig::„$PROJECT_ID“ ist keine gültige Projekt-ID. Gemeint ist die Projekt-ID aus der Firebase-Konsole (Projekteinstellungen), nicht der Projektname."
+            fehler=1
+          fi
+          if [ "$fehler" -ne 0 ]; then
+            echo "Deployment abgebrochen: Es fehlen Einstellungen (siehe Fehlermeldungen oben)."
+          fi
+          exit "$fehler"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            firebase/functions/package-lock.json
+            firebase/package-lock.json
+
+      - name: Abhängigkeiten installieren (Functions)
+        run: npm ci
+
+      - name: Firebase CLI installieren (feste Version aus firebase/package-lock.json)
+        working-directory: firebase
+        run: npm ci
+
+      - name: Functions bauen (TypeScript)
+        run: npm run build
+
+      # Meldet die Firebase CLI mit dem Dienstkonto an (setzt GOOGLE_APPLICATION_CREDENTIALS).
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Regeln, Indizes und Functions bereitstellen
+        working-directory: firebase
+        run: npx firebase deploy --only firestore,functions --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive --force

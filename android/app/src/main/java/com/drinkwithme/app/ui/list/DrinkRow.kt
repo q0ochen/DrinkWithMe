@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.drinkwithme.core.domain.Drink
+import com.drinkwithme.core.domain.DrinkVisibility
 import com.drinkwithme.core.sharing.VolumeFormatter
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -43,7 +44,8 @@ fun DrinkRow(
                 Text(drink.name, style = MaterialTheme.typography.titleMedium)
                 Text(
                     "${drink.category.displayName} · ${VolumeFormatter.format(drink.volumeInMilliliters)} · " +
-                        drink.consumedAt.atZone(ZoneId.systemDefault()).format(timeFormatter),
+                        drink.consumedAt.atZone(ZoneId.systemDefault()).format(timeFormatter) +
+                        if (drink.visibility == DrinkVisibility.PRIVATE) " · privat" else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

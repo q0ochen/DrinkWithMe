@@ -15,7 +15,7 @@ class IntentDrinkSharer : DrinkSharer {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        val chooser = Intent.createChooser(sendIntent, "Getränk teilen").apply {
+        val chooser = Intent.createChooser(sendIntent, "Teilen").apply {
             if (context !is android.app.Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(chooser)

@@ -4,6 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Firebase ist optional: Ohne android/app/google-services.json baut und läuft die App wie bisher
+// (nur lokal); die Trinkrunden-Bereiche zeigen dann „Server noch nicht eingerichtet“.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.drinkwithme.app"
     compileSdk = 35
@@ -63,4 +69,22 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+
+    // Trinkrunden: Firebase (Versionen über die BoM; die KTX-APIs sind seit BoM 32.5.0 in den Hauptmodulen).
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-functions")
+    implementation("com.google.firebase:firebase-messaging")
+    // Task.await() für die Firebase-Aufrufe in Coroutinen.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
+    // Google-Anmeldung über den Android Credential Manager.
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // Tests der reinen Kotlin-Logik des App-Moduls (Mapper, Formatierer, ViewModels): ./gradlew :app:testDebugUnitTest
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.21")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }

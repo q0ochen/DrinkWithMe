@@ -35,6 +35,9 @@ jobs:
       - name: Tests der Geschäftslogik
         run: ./gradlew :core:test --no-daemon
 
+      - name: Tests des App-Moduls
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
       - name: Debug-APK bauen
         run: ./gradlew :app:assembleDebug --no-daemon
 

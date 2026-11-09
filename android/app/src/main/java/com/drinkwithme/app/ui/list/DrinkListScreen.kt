@@ -44,6 +44,7 @@ fun DrinkListScreen(
     listViewModel: DrinkListViewModel,
     addDrinkViewModel: AddDrinkViewModel,
     onShare: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val state by listViewModel.state.collectAsStateWithLifecycle()
     val addState by addDrinkViewModel.state.collectAsStateWithLifecycle()
@@ -58,6 +59,7 @@ fun DrinkListScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Drink With Me") },
@@ -111,6 +113,7 @@ fun DrinkListScreen(
                 onCategoryChange = addDrinkViewModel::onCategoryChange,
                 onVolumeChange = addDrinkViewModel::onVolumeChange,
                 onNoteChange = addDrinkViewModel::onNoteChange,
+                onPrivateChange = addDrinkViewModel::onPrivateChange,
                 onSave = {
                     addDrinkViewModel.save {
                         isAddingDrink = false

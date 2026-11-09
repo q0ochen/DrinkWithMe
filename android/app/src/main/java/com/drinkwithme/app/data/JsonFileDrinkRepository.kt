@@ -3,6 +3,7 @@ package com.drinkwithme.app.data
 import com.drinkwithme.core.domain.Drink
 import com.drinkwithme.core.domain.DrinkCategory
 import com.drinkwithme.core.domain.DrinkRepository
+import com.drinkwithme.core.domain.DrinkVisibility
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -48,6 +49,7 @@ class JsonFileDrinkRepository(private val file: File) : DrinkRepository {
         .put(KEY_VOLUME, volumeInMilliliters)
         .put(KEY_NOTE, note ?: JSONObject.NULL)
         .put(KEY_CONSUMED_AT, consumedAt.toString())
+        .put(KEY_VISIBILITY, visibility.name)
 
     private fun JSONObject.toDrink() = Drink(
         id = getString(KEY_ID),
@@ -56,7 +58,19 @@ class JsonFileDrinkRepository(private val file: File) : DrinkRepository {
         volumeInMilliliters = getInt(KEY_VOLUME),
         note = if (isNull(KEY_NOTE)) null else getString(KEY_NOTE),
         consumedAt = Instant.parse(getString(KEY_CONSUMED_AT)),
+        visibility = visibility(),
     )
+
+    /**
+     * Getränke aus der Zeit vor den Trinkrunden haben kein Feld „visibility“: Sie gelten als
+     * [DrinkVisibility.FRIENDS] (Standard). Das ist unkritisch, weil nur neu gespeicherte Getränke
+     * geteilt werden. Unbekannte Werte (z. B. aus einer neueren App-Version) bleiben sicherheitshalber privat.
+     */
+    private fun JSONObject.visibility(): DrinkVisibility {
+        if (!has(KEY_VISIBILITY) || isNull(KEY_VISIBILITY)) return DrinkVisibility.FRIENDS
+        val raw = getString(KEY_VISIBILITY)
+        return DrinkVisibility.entries.firstOrNull { it.name == raw } ?: DrinkVisibility.PRIVATE
+    }
 
     private companion object {
         const val KEY_ID = "id"
@@ -65,5 +79,6 @@ class JsonFileDrinkRepository(private val file: File) : DrinkRepository {
         const val KEY_VOLUME = "volumeInMilliliters"
         const val KEY_NOTE = "note"
         const val KEY_CONSUMED_AT = "consumedAt"
+        const val KEY_VISIBILITY = "visibility"
     }
 }

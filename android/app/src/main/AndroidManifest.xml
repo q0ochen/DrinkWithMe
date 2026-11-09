@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Trinkrunden: Firebase (Anmeldung, Firestore, Cloud Functions, Push). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Push-Benachrichtigungen ab Android 13; wird nach der Anmeldung zur Laufzeit erfragt. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".DrinkWithMeApplication"
         android:allowBackup="true"
@@ -9,12 +14,30 @@
         android:theme="@style/Theme.DrinkWithMe">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Empfängt Push-Nachrichten und neue FCM-Tokens. -->
+        <service
+            android:name=".social.firebase.DrinkMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Kanal und Symbol für Push-Nachrichten, die das System im Hintergrund selbst anzeigt. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/notification_channel_drinks_id" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
     </application>
 
 </manifest>
