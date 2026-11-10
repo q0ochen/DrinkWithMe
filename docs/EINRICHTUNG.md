@@ -452,7 +452,9 @@ ZIP-Datei) → in der Dateien-App **entpacken** → darin liegt `app-debug.apk` 
 4. App öffnen → **Willkommen bei Drink With Me** → Getränke für die eigene Bar auswählen.
 
 > **Neues Pixel (Android 17)?** Das Gerät selbst ist kein Hindernis: Die APK ist auf 16-KB-Speicherseiten
-> vorbereitet, und die Entwickler-Prüfung von Google gilt in Deutschland noch nicht (siehe Ausblick unten).
+> vorbereitet, und die Entwickler-Prüfung von Google gilt in Deutschland noch nicht (siehe Ausblick unten). Jede
+> neue APK wird automatisch im Emulator mit dem neuesten Android installiert und gestartet – auch mit
+> 16-KB-Speicherseiten (am 10.11.2026 erfolgreich mit Android 17, API 37 und 37.2).
 
 **Updates:** Einfach die neuere APK darüber installieren. Alle Test-APKs aus GitHub haben dieselbe Signatur, Bar
 und Verlauf bleiben erhalten. Getränke aus der **alten** App-Version (vor dem Umbau) werden **nicht**
