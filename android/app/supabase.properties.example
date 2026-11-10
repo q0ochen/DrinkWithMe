@@ -1,0 +1,20 @@
+# Vorlage für android/app/supabase.properties (Datei kopieren, umbenennen und ausfüllen).
+#
+# Alle Werte sind ÖFFENTLICH und unkritisch (sie stecken ohnehin in jeder APK) und dürfen eingecheckt werden.
+# NIEMALS hier eintragen: Service-Role-/Secret-Key, Datenbank-Passwort, VAPID_PRIVATE_KEY, Google-Client-Secret.
+# Woher die Werte kommen: supabase/README.md, Abschnitt „Werte für die Apps“.
+#
+# Fehlt die Datei oder ist ein Wert leer, funktioniert die App ohne Vernetzung (Bar, Verlauf, Statistik,
+# Sprache und Vorlesen) und zeigt bei „Freunde“ den Hinweis „Server noch nicht eingerichtet“.
+
+# Projekt-URL, z. B. https://abcdefghijklmnopqrst.supabase.co
+supabaseUrl=
+
+# Publishable-/Anon-Key (Project Settings → API Keys)
+supabaseAnonKey=
+
+# Öffentlicher VAPID-Schlüssel (base64url, 87 Zeichen), derselbe wie im Secret VAPID_PUBLIC_KEY der Edge Functions
+vapidPublicKey=
+
+# Adresse der Web-App (für Einladungs-Links), z. B. https://q0ochen.github.io/DrinkWithMe
+webAppUrl=https://q0ochen.github.io/DrinkWithMe

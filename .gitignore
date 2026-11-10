@@ -33,3 +33,9 @@ supabase/.env
 supabase/.env.*
 supabase/functions/.env
 supabase/functions/.env.*
+
+# Web-App (Build-Ausgaben, Testberichte)
+web/dist/
+web/test-results/
+web/playwright-report/
+web/.vite/

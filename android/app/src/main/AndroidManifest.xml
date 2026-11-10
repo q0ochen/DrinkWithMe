@@ -1,44 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Trinkrunden: Firebase (Anmeldung, Firestore, Cloud Functions, Push). -->
+    <!-- Minimale Berechtigungen (docs/ARCHITEKTUR.md, Abschnitt 0): nur Internet (Vernetzung, optional) und
+         Benachrichtigungen (ab Android 13, wird erst zur Laufzeit erfragt, wenn der Nutzer sich anmeldet oder
+         Benachrichtigungen einschaltet). Kein RECORD_AUDIO: Die Spracheingabe läuft über die
+         Spracherkennungs-App des Systems (RecognizerIntent). WorkManager und der UnifiedPush-Connector bringen
+         ihre eigenen, nicht abfragepflichtigen Berechtigungen mit (z. B. WAKE_LOCK). -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Push-Benachrichtigungen ab Android 13; wird nach der Anmeldung zur Laufzeit erfragt. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Eine APK für Handy, Tablet und Android TV / Fire TV. -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <queries>
+        <!-- Vorlesen: installierte Sprachausgaben (TextToSpeech) und deren „Sprachdaten installieren“. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.tts.engine.INSTALL_TTS_DATA" />
+        </intent>
+        <!-- Spracheingabe: Spracherkennungs-App und -Dienst (der Mikrofon-Knopf erscheint nur, wenn vorhanden). -->
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- Anmeldung: Browser mit Custom-Tabs-Unterstützung, sonst ein beliebiger Browser. -->
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
 
     <application
         android:name=".DrinkWithMeApplication"
         android:allowBackup="true"
+        android:banner="@drawable/tv_banner"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DrinkWithMe">
+        android:theme="@style/Theme.DrinkWithMe"
+        tools:targetApi="31">
+
+        <!-- singleTask: Die Rückkehr aus dem Anmelde-Browser (drinkwithme://auth-callback) und Benachrichtigungen
+             landen in der laufenden Instanz (onNewIntent) statt in einer zweiten. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop">
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+
+            <!-- Rückkehr aus der Google-Anmeldung (PKCE): drinkwithme://auth-callback?code=… -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="auth-callback"
+                    android:scheme="drinkwithme" />
+            </intent-filter>
+
+            <!-- Einladungs-Links: drinkwithme://einladung/<token> -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="einladung"
+                    android:scheme="drinkwithme" />
             </intent-filter>
         </activity>
 
-        <!-- Empfängt Push-Nachrichten und neue FCM-Tokens. -->
+        <!-- Statistik als Bild teilen: PNG aus dem Cache-Ordner shared_images/. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- UnifiedPush: empfängt neue Endpunkte und (vom Connector entschlüsselte) Push-Nachrichten. -->
         <service
-            android:name=".social.firebase.DrinkMessagingService"
+            android:name=".push.DrinkPushService"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+                <action android:name="org.unifiedpush.android.connector.PUSH_EVENT" />
             </intent-filter>
         </service>
-
-        <!-- Der Server sendet nur Daten-Nachrichten, die DrinkMessagingService selbst anzeigt. Kanal und Symbol
-             gelten nur als Rückfall, falls doch einmal eine Nachricht mit notification-Block ankommt. -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="@string/notification_channel_drinks_id" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_notification" />
     </application>
 
 </manifest>
