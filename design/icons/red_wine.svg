@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Rotwein</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <path fill="#E4F2F9" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M15 43 C15 40.4 19 39.4 24 39.4 C29 39.4 33 40.4 33 43 Z"/>
+  <path fill="none" stroke="#263238" stroke-width="2.4" d="M24 26.5 V40"/>
+  <path fill="#E4F2F9" d="M15.5 5 L13 16 A11 11 0 0 0 35 16 L32.5 5 Z"/>
+  <path fill="#9E1C3F" d="M13.05 17 A11 11 0 0 0 34.95 17 Z"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round" d="M17.6 8.5 L16.4 14"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round" d="M16.6 19.5 C17.2 21.8 18.4 23.4 20 24.4"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M15.5 5 L13 16 A11 11 0 0 0 35 16 L32.5 5 Z"/>
+</svg>

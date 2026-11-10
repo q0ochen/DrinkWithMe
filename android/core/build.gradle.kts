@@ -1,7 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// Plattformunabhängiger Kern (Domain, Use Cases, Sharing) – reines Kotlin/JVM,
-// damit die Geschäftslogik ohne Android-Abhängigkeiten testbar bleibt.
+// Plattformunabhängiger Kern (Bar, Trinkhistorie, Gesundheit, Statistik, Teilen-Regel, Sprache,
+// Vorlesen, Ports der Vernetzung) – reines Kotlin/JVM ohne Android-Abhängigkeiten, damit die
+// Geschäftslogik schnell und vollständig testbar bleibt (Vertrag: docs/ARCHITEKTUR.md, Abschnitt 1).
 plugins {
     id("org.jetbrains.kotlin.jvm")
 }
@@ -18,7 +19,7 @@ kotlin {
 }
 
 dependencies {
-    // Flow/suspend in den Schnittstellen der Trinkrunden (reines Kotlin, kein Android).
+    // Flow/suspend in den Ports der Vernetzung und Hintergrund-Teilen im Decorator (frei, Maven Central).
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
     testImplementation(kotlin("test-junit"))

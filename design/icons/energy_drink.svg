@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Energydrink</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <path fill="#CFD8DC" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M17.5 8.5 L18.9 5 H29.1 L30.5 8.5 Z"/>
+  <rect x="16.5" y="8.5" width="15" height="34.5" rx="2.6" fill="#7C5CD6"/>
+  <path fill="#CFD8DC" d="M16.5 38.5 H31.5 V40.4 Q31.5 43 28.9 43 H19.1 Q16.5 43 16.5 40.4 Z"/>
+  <path fill="#CFD8DC" d="M16.5 11.1 Q16.5 8.5 19.1 8.5 H28.9 Q31.5 8.5 31.5 11.1 V12 H16.5 Z"/>
+  <polygon points="25.8,14 19.6,27 24,27 22,37 29,22.8 24.6,22.8 28.6,14" fill="#FFE14D" stroke="#263238" stroke-width="1.6" stroke-linejoin="round"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" d="M19.2 15 V35"/>
+  <rect x="16.5" y="8.5" width="15" height="34.5" rx="2.6" fill="none" stroke="#263238" stroke-width="2"/>
+</svg>

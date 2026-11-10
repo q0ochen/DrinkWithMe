@@ -1,38 +1,18 @@
 package com.drinkwithme.core.social
 
-import com.drinkwithme.core.domain.DrinkCategory
+import com.drinkwithme.core.bar.DrinkCategory
+import com.drinkwithme.core.bar.DrinkIcon
 import java.time.Instant
 
-/** Angemeldeter Nutzer. */
-data class UserProfile(
-    val id: String,
-    val displayName: String,
-    val photoUrl: String? = null,
-)
+/** Öffentliches Profil (Tabelle `profiles`) – ohne E-Mail-Adresse. */
+data class UserProfile(val id: String, val displayName: String, val avatarUrl: String?)
 
-/** Mitglied einer Trinkrunde. */
-data class GroupMember(
-    val userId: String,
-    val displayName: String,
-)
+/** Eine bestätigte Freundschaft. */
+data class Friend(val profile: UserProfile, val since: Instant)
 
-/** Eine Trinkrunde: Alle Mitglieder sehen gegenseitig ihre geteilten Getränke. */
-data class DrinkGroup(
-    val id: String,
-    val name: String,
-    val inviteCode: InviteCode,
-    val ownerId: String,
-    val members: List<GroupMember>,
-)
+/** Offene Freundschaftsanfrage – eingehend (an mich) oder ausgehend (von mir). */
+data class FriendRequest(val id: String, val other: UserProfile, val direction: Direction, val createdAt: Instant) { enum class Direction { INCOMING, OUTGOING } }
 
-/** Ein Getränk eines Rundenmitglieds im Feed. */
-data class FeedEntry(
-    val drinkId: String,
-    val groupId: String,
-    val author: GroupMember,
-    val name: String,
-    val category: DrinkCategory,
-    val volumeInMilliliters: Int,
-    val note: String?,
-    val consumedAt: Instant,
-)
+/** Ein geteiltes Getränk eines Freundes (Tabelle `drink_events`). */
+data class FriendDrinkEvent(val id: String, val author: UserProfile, val name: String, val icon: DrinkIcon,
+                            val category: DrinkCategory, val volumeMilliliters: Int, val consumedAt: Instant)

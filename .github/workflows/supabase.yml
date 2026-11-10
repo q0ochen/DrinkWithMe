@@ -1,0 +1,76 @@
+# Prüft das Supabase-Backend bei jedem Push: Migrationen auf einer frischen lokalen Datenbank, pgTAP-Tests
+# (RLS-Matrix, RPCs, Trigger, Aufräumen) und die Deno-Tests der Edge Functions (RFC 8291/8292, Logik).
+# Es wird nichts bereitgestellt – dafür gibt es den manuellen Workflow „Supabase Deploy“.
+name: Supabase
+
+on:
+  push:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  datenbank:
+    name: Datenbank (Migrationen und pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Feste CLI-Version (geprüft: Release v2.122.1, Kanal „v2.stable“).
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+
+      # Docker ist auf den GitHub-Runnern vorhanden. Für die Tests werden nur Datenbank, Auth (legt das
+      # Schema auth an), PostgREST und Kong gebraucht; alles andere bleibt aus, damit der Start schneller geht.
+      - name: Lokales Supabase starten
+        run: >-
+          supabase start
+          -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Datenbank neu aufsetzen (alle Migrationen auf leerer Datenbank)
+        run: supabase db reset
+
+      - name: pgTAP-Tests (supabase test db)
+        run: supabase test db
+
+      - name: Datenbank-Protokoll anzeigen (nur bei Fehlern)
+        if: failure()
+        run: docker logs supabase_db_drink-with-me 2>&1 | tail -n 200
+
+      - name: Lokales Supabase stoppen
+        if: always()
+        run: supabase stop --no-backup
+
+  edge-functions:
+    name: Edge Functions (Deno)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: supabase/functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.6
+
+      - name: Formatierung prüfen
+        run: deno fmt --check . ../scripts
+
+      - name: Lint
+        run: deno lint . ../scripts
+
+      - name: Typprüfung (deno check)
+        run: deno check notify-friends/index.ts delete-account/index.ts ../scripts/vapid-schluessel-erzeugen.ts
+
+      - name: Unit-Tests (Verschlüsselung, VAPID, notify-friends, delete-account)
+        run: deno test --frozen
