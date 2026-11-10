@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.drinkwithme.app.MainActivity
 import com.drinkwithme.app.R
 import com.drinkwithme.app.routing.IntentRouter
 
@@ -62,7 +61,8 @@ class AndroidFriendDrinkNotifier(private val context: Context) : FriendDrinkNoti
     }
 
     private fun pendingIntent(content: DrinkNotificationContent, autoRead: Boolean, requestCode: Int): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java).apply {
+        // Über den nicht exportierten Einstieg: Nur so glaubt die App Titel, Text und „sofort vorlesen“.
+        val intent = Intent().setClassName(context, IntentRouter.NOTIFICATION_ENTRY).apply {
             action = IntentRouter.ACTION_OPEN_EVENT
             putExtra(IntentRouter.EXTRA_EVENT_ID, content.eventId)
             putExtra(IntentRouter.EXTRA_TITLE, content.title)

@@ -23,6 +23,12 @@ interface PushDistributors {
     /** Regelmäßige Neu-Registrierung (empfohlen beim App-Start), falls ein Distributor gewählt ist. */
     fun reRegister()
 
+    /**
+     * Neuen Endpunkt anfordern: beim gewählten Distributor ab- und wieder anmelden (neue Registrierung, neue Adresse).
+     * Nötig, wenn der alte Endpunkt beim Server noch unter einem anderen Konto liegt. `false` ohne Distributor.
+     */
+    fun renew(): Boolean
+
     /** Push ausschalten. */
     fun disable()
 }
@@ -47,6 +53,13 @@ class UnifiedPushDistributors(
 
     override fun reRegister() {
         if (UnifiedPush.getAckDistributor(context) != null) register()
+    }
+
+    override fun renew(): Boolean {
+        // unregister vergisst auch den Distributor (letzte Registrierung) – deshalb vorher merken.
+        val distributor = selected() ?: return false
+        UnifiedPush.unregister(context)
+        return use(distributor)
     }
 
     override fun disable() {

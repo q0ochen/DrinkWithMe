@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drinkwithme.app.account.AccountController
 import com.drinkwithme.app.supabase.ErrorMessages
+import com.drinkwithme.app.social.OutgoingRequest
+import com.drinkwithme.app.social.OutgoingRequestsService
 import com.drinkwithme.app.supabase.SocialException
 import com.drinkwithme.app.ui.common.MessageQueue
 import com.drinkwithme.app.ui.common.RefreshSignal
@@ -29,7 +31,8 @@ data class FriendsUiState(
     val feed: List<FriendDrinkEvent> = emptyList(),
     val friends: List<Friend> = emptyList(),
     val incoming: List<FriendRequest> = emptyList(),
-    val outgoing: List<FriendRequest> = emptyList(),
+    /** Eigene Anfragen – nur mit maskierter Adresse, nie mit Namen (der Server verrät nicht, wen sie erreichen). */
+    val outgoing: List<OutgoingRequest> = emptyList(),
     val error: String? = null,
     val emailDialogOpen: Boolean = false,
     val busy: Boolean = false,
@@ -46,6 +49,7 @@ data class FriendsUiState(
 class FriendsViewModel(
     private val account: AccountController,
     private val friendsService: FriendsService?,
+    private val outgoingService: OutgoingRequestsService?,
     private val feedService: FeedService?,
     private val refreshSignal: RefreshSignal,
     private val messages: MessageQueue,
@@ -95,11 +99,11 @@ class FriendsViewModel(
         }
     }
 
-    fun onCancelRequest(request: FriendRequest) {
+    fun onCancelRequest(request: OutgoingRequest) {
         val service = friendsService ?: return
         action {
             service.cancel(request.id)
-            messages.show("Anfrage an ${request.other.displayName} zurückgezogen.")
+            messages.show("${outgoingLabel(request)} zurückgezogen.")
         }
     }
 
@@ -148,13 +152,14 @@ class FriendsViewModel(
         try {
             val friends = friendsApi.friends()
             val requests = friendsApi.requests()
+            val outgoing = outgoingService?.outgoingRequests().orEmpty()
             val feed = feedApi.recentEvents(since = null, limit = FEED_LIMIT)
             mutableState.update {
                 it.copy(
                     loading = false,
                     friends = friends,
                     incoming = requests.filter { request -> request.direction == FriendRequest.Direction.INCOMING },
-                    outgoing = requests.filter { request -> request.direction == FriendRequest.Direction.OUTGOING },
+                    outgoing = outgoing,
                     feed = feed,
                     now = clock.instant(),
                 )
@@ -173,5 +178,8 @@ class FriendsViewModel(
 
         /** Anzeige, wenn der Server nicht eingerichtet ist. */
         const val NOT_CONFIGURED = ErrorMessages.NOT_CONFIGURED
+
+        /** „Anfrage an b***@example.org“ – ohne Namen. */
+        fun outgoingLabel(request: OutgoingRequest): String = "Anfrage an ${request.emailHint}"
     }
 }

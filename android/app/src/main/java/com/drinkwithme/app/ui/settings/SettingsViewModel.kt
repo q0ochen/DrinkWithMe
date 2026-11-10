@@ -138,10 +138,7 @@ class SettingsViewModel(
     fun onPrepareSpeech() = speaker.prepare()
 
     fun onTestSpeech() {
-        when (state.value.speakerStatus) {
-            SpeakerStatus.NO_ENGINE, SpeakerStatus.NO_GERMAN_VOICE -> mutableState.update { it.copy(speechHelpOpen = true) }
-            else -> speaker.speak(SpeechHelpTexts.TEST_SENTENCE)
-        }
+        if (!speaker.speak(SpeechHelpTexts.TEST_SENTENCE)) mutableState.update { it.copy(speechHelpOpen = true) }
     }
 
     fun onSpeechHelp(open: Boolean) = mutableState.update { it.copy(speechHelpOpen = open) }

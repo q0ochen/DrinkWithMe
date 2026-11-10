@@ -93,6 +93,9 @@ enable_anonymous_sign_ins = false
 enable_manual_linking = false
 minimum_password_length = 8
 password_requirements = ""
+# Anmelde-Protokolle in der Datenbank (auth.audit_log_entries) lassen sich hier nicht abschalten – die Supabase CLI
+# (2.122.1) kennt dafür keine Einstellung. Im echten Projekt im Dashboard ausschalten: Authentication → Audit Logs →
+# „Write audit logs to the database“ (siehe supabase/README.md, Schritt 2.6).
 
 [auth.rate_limit]
 email_sent = 2

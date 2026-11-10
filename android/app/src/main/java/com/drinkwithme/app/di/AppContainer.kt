@@ -19,6 +19,7 @@ import com.drinkwithme.app.data.NotifiedEvents
 import com.drinkwithme.app.data.SharedPreferencesKeyValueStore
 import com.drinkwithme.app.platform.AndroidLinks
 import com.drinkwithme.app.polling.FeedPoller
+import com.drinkwithme.app.polling.ForegroundRefreshThrottle
 import com.drinkwithme.app.polling.SocialBackground
 import com.drinkwithme.app.publish.PendingShareQueue
 import com.drinkwithme.app.publish.RetryingEventPublisher
@@ -53,6 +54,7 @@ import com.drinkwithme.app.ui.AppViewModel
 import com.drinkwithme.app.ui.bar.BarViewModel
 import com.drinkwithme.app.ui.bar.DrinkFormMapper
 import com.drinkwithme.app.ui.common.MessageQueue
+import com.drinkwithme.app.ui.common.ScopedViewModelStores
 import com.drinkwithme.app.ui.common.RefreshSignal
 import com.drinkwithme.app.ui.event.EventViewModel
 import com.drinkwithme.app.ui.friends.FriendsViewModel
@@ -74,16 +76,17 @@ import com.drinkwithme.core.sharing.SharingHistoryRepository
 import com.drinkwithme.core.sharing.SharingPolicy
 import com.drinkwithme.core.sharing.SharingState
 import com.drinkwithme.core.social.EventPublisher
-import com.drinkwithme.core.social.FriendsService
 import com.drinkwithme.core.stats.StatisticsCalculator
 import com.drinkwithme.core.voice.VoiceCommandMatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 import java.time.Clock
 import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Kompositionswurzel: erzeugt alle Abhängigkeiten genau einmal und verdrahtet sie. Kein anderer Teil der App
@@ -119,15 +122,20 @@ class AppContainer(private val application: Application) {
     private val currentUserId: CurrentUserId = session ?: CurrentUserId { null }
     private val api: SupabaseApi? = if (http != null && session != null) SupabaseApi(http, session) else null
     private val profiles: ProfileLookup? = api?.let(::ProfileLookup)
-    private val friendsService: FriendsService? = if (api != null && profiles != null && server != null) {
+    private val friendsService: SupabaseFriendsService? = if (api != null && profiles != null && server != null) {
         SupabaseFriendsService(api, profiles, currentUserId, server.webAppUrl)
     } else {
         null
     }
     private val feedService: SupabaseFeedService? = if (api != null && profiles != null) SupabaseFeedService(api, profiles, currentUserId) else null
     private val remotePublisher: EventPublisher? = api?.let(::SupabaseEventPublisher)
-    val pushSubscriptionSync: PushSubscriptionSync? = api?.let { PushSubscriptionSync(pushEndpoints, SupabasePushSubscriptions(it), currentUserId) }
     private val distributors: PushDistributors? = server?.vapidPublicKey?.let { UnifiedPushDistributors(application, it) }
+    val pushSubscriptionSync: PushSubscriptionSync? = api?.let {
+        PushSubscriptionSync(pushEndpoints, SupabasePushSubscriptions(it), currentUserId) { distributors?.renew() }
+    }
+
+    /** Push ersetzt den Abruf nur, wenn das Abo nachweislich für das angemeldete Konto beim Server liegt. */
+    private fun pushConfirmed(): Boolean = pushEndpoints.isConfirmedFor(currentUserId.currentUserId())
 
     private val sharingPolicy = SharingPolicy {
         SharingState(isSignedIn = session?.isSignedIn == true, alcoholConsent = settings.alcoholConsent.value)
@@ -144,7 +152,7 @@ class AppContainer(private val application: Application) {
     val socialBackground = SocialBackground(
         serverConfigured = server != null,
         isSignedIn = { session?.isSignedIn == true },
-        isPushActive = { pushEndpoints.current.value != null },
+        isPushActive = ::pushConfirmed,
         polling = scheduler,
         scheduleSubscriptionSync = scheduler::scheduleSync,
     )
@@ -159,11 +167,7 @@ class AppContainer(private val application: Application) {
             profiles = profiles,
             account = SupabaseAccountApi(api),
             pushSync = pushSubscriptionSync,
-            clearAccountData = {
-                settings.clearAccountData()
-                notifiedEvents.clear()
-                pendingShares.clear()
-            },
+            clearAccountData = ::clearAccountData,
             onSessionChanged = socialBackground::refresh,
         )
     } else {
@@ -230,8 +234,9 @@ class AppContainer(private val application: Application) {
         initializer {
             HistoryViewModel(history, localHistory, deleteEntry, settings.showAlcoholBands, speaker, messages, clock, ::zone, io)
         }
-        initializer { FriendsViewModel(account, friendsService, feedService, friendsChanged, messages, clock) }
+        initializer { FriendsViewModel(account, friendsService, friendsService, feedService, friendsChanged, messages, clock) }
         initializer { SettingsViewModel(account, settings, pushSettings, speaker, messages, io) }
+        initializer { ScopedViewModelStores() }
     }
 
     /** Eigene Fabrik je Ereignis (der Bildschirm bekommt die Daten aus der Benachrichtigung mit). */
@@ -241,26 +246,40 @@ class AppContainer(private val application: Application) {
         }
     }
 
-    private var registeredThisProcess = false
+    private val registeredThisProcess = AtomicBoolean(false)
+    private val foregroundRefresh = ForegroundRefreshThrottle(clock)
 
     /** Beim Start des Prozesses (auch für Hintergrundarbeit und Push). */
     fun onProcessStarted() {
         DrinkNotificationChannel.create(application)
-        socialBackground.refresh()
+        // Die Sitzung (Keystore, Datei) nicht auf dem Hauptthread lesen; danach die Hintergrundarbeit anpassen.
+        applicationScope.launch(io) {
+            session?.warmUp()
+            socialBackground.refresh()
+        }
     }
 
     /**
-     * App kommt in den Vordergrund: einmal pro Prozess beim Push-Distributor neu registrieren (vom Connector
-     * empfohlen, falls er neu installiert wurde) und ohne Push gleich nach neuen Getränken der Freunde schauen.
+     * Die App kommt wirklich in den Vordergrund (ProcessLifecycleOwner ON_START – nicht jede Rückkehr aus
+     * Erlaubnis-Dialog, Spracherkennung, Teilen-Menü): einmal pro Prozess beim Push-Distributor neu registrieren
+     * (vom Connector empfohlen, falls er neu installiert wurde) und – höchstens alle paar Minuten – Freunde neu laden
+     * und ohne bestätigtes Push-Abo gleich nach neuen Getränken der Freunde schauen.
      */
     fun onAppForeground() {
-        val signedIn = session?.isSignedIn == true
-        if (signedIn && !registeredThisProcess) {
-            registeredThisProcess = true
-            distributors?.reRegister()
+        applicationScope.launch(io) {
+            val signedIn = session?.isSignedIn == true
+            if (signedIn && registeredThisProcess.compareAndSet(false, true)) distributors?.reRegister()
+            if (!foregroundRefresh.tryAcquire()) return@launch
+            if (server != null && signedIn && !pushConfirmed()) scheduler.pollNow()
+            friendsChanged.trigger()
         }
-        if (server != null && signedIn && pushEndpoints.current.value == null) scheduler.pollNow()
-        friendsChanged.trigger()
+    }
+
+    /** Kontobezogene Merker löschen – beim Abmelden, beim Löschen des Kontos und wenn die Sitzung verloren geht. */
+    private fun clearAccountData() {
+        settings.clearAccountData()
+        notifiedEvents.clear()
+        pendingShares.clear()
     }
 
     private fun allEntries(): List<DrinkEntry> = history.entries(HistoryReader.EARLIEST, HistoryReader.LATEST)

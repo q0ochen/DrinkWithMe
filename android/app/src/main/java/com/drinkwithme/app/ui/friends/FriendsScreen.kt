@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.drinkwithme.app.social.OutgoingRequest
 import com.drinkwithme.app.stats.GermanFormat
 import com.drinkwithme.app.ui.common.AppIcons
 import com.drinkwithme.app.ui.common.BigButton
@@ -183,9 +184,9 @@ private fun IncomingRequestRow(request: FriendRequest, onRespond: (FriendRequest
 }
 
 @Composable
-private fun OutgoingRequestRow(request: FriendRequest, onCancel: (FriendRequest) -> Unit) {
+private fun OutgoingRequestRow(request: OutgoingRequest, onCancel: (OutgoingRequest) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-        Text("Anfrage an ${request.other.displayName}", modifier = Modifier.weight(1f))
+        Text(FriendsViewModel.outgoingLabel(request), modifier = Modifier.weight(1f))
         SmallTextButton("Zurückziehen", { onCancel(request) })
     }
 }

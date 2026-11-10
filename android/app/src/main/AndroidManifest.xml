@@ -94,6 +94,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Einstieg nur für die eigenen Benachrichtigungen (PendingIntent): nicht exportiert, also für andere Apps
+             nicht startbar. Nur hierüber übernimmt die App Titel, Text und „sofort vorlesen“ (IntentRouter). -->
+        <activity-alias
+            android:name=".NotificationEntry"
+            android:exported="false"
+            android:targetActivity=".MainActivity" />
+
         <!-- Statistik als Bild teilen: PNG aus dem Cache-Ordner shared_images/. -->
         <provider
             android:name="androidx.core.content.FileProvider"

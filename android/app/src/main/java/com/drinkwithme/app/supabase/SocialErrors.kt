@@ -36,6 +36,8 @@ object ErrorMessages {
     const val REQUEST_NOT_FOUND = "Diese Anfrage gibt es nicht mehr."
     const val TOO_MANY_SUBSCRIPTIONS =
         "Benachrichtigungen sind schon auf fünf Geräten eingerichtet. Melde dich auf einem alten Gerät ab und versuche es erneut."
+    const val TOO_MANY_EVENTS =
+        "Heute wurden schon sehr viele Getränke geteilt. Weitere Einträge bleiben vorerst nur auf diesem Gerät."
     const val SERVER_UNAVAILABLE = "Der Server ist gerade nicht erreichbar. Bitte versuche es später noch einmal."
     const val SERVER_MISCONFIGURED = "Der Server ist noch nicht vollständig eingerichtet."
     const val NOT_ALLOWED = "Das ist nicht erlaubt."
@@ -51,6 +53,7 @@ object ErrorMessages {
         "invite_own" -> INVITE_OWN
         "request_not_found" -> REQUEST_NOT_FOUND
         "too_many_subscriptions" -> TOO_MANY_SUBSCRIPTIONS
+        "too_many_events" -> TOO_MANY_EVENTS
         "not_authenticated", "unauthorized", "invalid_grant", "refresh_token_not_found",
         "refresh_token_already_used", "session_not_found", "session_expired", "bad_jwt", "user_not_found",
         -> SESSION_EXPIRED

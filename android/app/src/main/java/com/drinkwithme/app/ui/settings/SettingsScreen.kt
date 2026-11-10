@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -32,6 +31,8 @@ import com.drinkwithme.app.ui.common.MinTouchTarget
 import com.drinkwithme.app.ui.common.SectionCard
 import com.drinkwithme.app.ui.common.SectionTitle
 import com.drinkwithme.app.ui.common.SmallTextButton
+import com.drinkwithme.app.ui.common.SpeechHelpActions
+import com.drinkwithme.app.ui.common.SpeechHelpDialog
 import com.drinkwithme.app.ui.common.focusFrame
 import com.drinkwithme.app.ui.friends.SignInCard
 import com.drinkwithme.core.health.HealthReferences
@@ -41,8 +42,7 @@ import com.drinkwithme.core.sharing.AlcoholSharingConsent
 data class SettingsActions(
     val onSignIn: () -> Unit,
     val openUrl: (String) -> Unit,
-    val installSpeechData: () -> Unit,
-    val openSpeechSettings: () -> Unit,
+    val speechHelp: SpeechHelpActions,
     /** `true`, wenn Benachrichtigungen erlaubt sind (vor Android 13 immer). */
     val notificationsAllowed: Boolean,
     val requestNotificationPermission: () -> Unit,
@@ -103,7 +103,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, signingIn: Boolean, actions: Se
                 Text(speakerText(state.speakerStatus), style = MaterialTheme.typography.bodyMedium)
                 BigButton("Vorlesen testen", viewModel::onTestSpeech, icon = AppIcons.Speaker, modifier = Modifier.fillMaxWidth())
                 if (state.speakerStatus == SpeakerStatus.MISSING_DATA) {
-                    BigButton("Deutsche Stimme installieren", actions.installSpeechData, outlined = true, modifier = Modifier.fillMaxWidth())
+                    BigButton(SpeechHelpTexts.INSTALL_VOICE, actions.speechHelp.installSpeechData, outlined = true, modifier = Modifier.fillMaxWidth())
                 }
                 if (state.speakerStatus == SpeakerStatus.NO_ENGINE || state.speakerStatus == SpeakerStatus.NO_GERMAN_VOICE) {
                     BigButton(SpeechHelpTexts.HELP_TITLE, { viewModel.onSpeechHelp(true) }, outlined = true, modifier = Modifier.fillMaxWidth())
@@ -158,20 +158,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, signingIn: Boolean, actions: Se
         )
     }
     if (state.speechHelpOpen) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onSpeechHelp(false) },
-            title = { Text(SpeechHelpTexts.HELP_TITLE) },
-            text = { Text(SpeechHelpTexts.HELP_TEXT) },
-            confirmButton = {
-                SmallTextButton("SherpaTTS bei F-Droid", { actions.openUrl(SpeechHelpTexts.SHERPA_FDROID_URL) })
-            },
-            dismissButton = {
-                Row {
-                    SmallTextButton("Sprachausgabe-Einstellungen", actions.openSpeechSettings)
-                    SmallTextButton("Schließen", { viewModel.onSpeechHelp(false) })
-                }
-            },
-        )
+        SpeechHelpDialog(state.speakerStatus, { viewModel.onSpeechHelp(false) }, actions.speechHelp)
     }
 }
 
@@ -237,7 +224,7 @@ private fun speakerText(status: SpeakerStatus): String = when (status) {
     SpeakerStatus.INITIALIZING -> "Die Sprachausgabe wird vorbereitet …"
     SpeakerStatus.READY -> "Die deutsche Stimme ist bereit."
     SpeakerStatus.MISSING_DATA -> SpeechHelpTexts.MISSING_DATA_TEXT
-    SpeakerStatus.NO_GERMAN_VOICE, SpeakerStatus.NO_ENGINE -> "Auf diesem Gerät gibt es noch keine deutsche Sprachausgabe."
+    SpeakerStatus.NO_GERMAN_VOICE, SpeakerStatus.NO_ENGINE -> SpeechHelpTexts.NO_VOICE_TEXT
 }
 
 private const val POLLING_INFO =

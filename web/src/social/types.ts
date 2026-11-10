@@ -1,5 +1,20 @@
 import type { EventPublisher, FeedService, FriendsService, SessionProvider } from "../core/social/ports";
 
+/**
+ * Eigene, noch offene Anfrage per E-Mail – bewusst **ohne** Empfänger: Der Server verrät nicht, ob bzw. wen sie
+ * erreicht; angezeigt wird nur die maskierte Adresse („Anfrage an b***@example.org“).
+ */
+export interface OutgoingFriendRequest {
+  readonly id: string;
+  readonly emailHint: string;
+  readonly createdAt: number;
+}
+
+/** Ausgehende Anfragen (RPC `list_outgoing_friend_requests`); Zurückziehen über {@link FriendsService.cancel}. */
+export interface OutgoingRequestsService {
+  outgoingRequests(): Promise<OutgoingFriendRequest[]>;
+}
+
 /** Anmeldung mit Google über Supabase (PKCE im Browser). */
 export interface AuthService extends SessionProvider {
   /** Wartet, bis eine gespeicherte Sitzung wiederhergestellt ist. */
@@ -19,7 +34,7 @@ export interface PushStatus {
   /** iPhone/iPad im Browser: Push gibt es erst nach „Zum Home-Bildschirm“. */
   readonly needsHomeScreen: boolean;
   readonly permission: NotificationPermission | "unsupported";
-  /** Dieses Gerät ist für den angemeldeten Nutzer angemeldet. */
+  /** Dieses Gerät ist für den angemeldeten Nutzer angemeldet (Browser-Abo und Zeile auf dem Server). */
   readonly subscribed: boolean;
   /** VAPID-Schlüssel vorhanden. */
   readonly configured: boolean;
@@ -31,8 +46,12 @@ export interface PushService {
   /** Muss direkt aus einer Nutzeraktion aufgerufen werden (Berechtigungsabfrage). */
   enable(): Promise<void>;
   disable(): Promise<void>;
-  /** Nach dem Start bzw. der Anmeldung: vorhandenes Abo beim Server sicherstellen. */
-  sync(): Promise<void>;
+  /**
+   * Nach dem Start bzw. der Anmeldung: vorhandenes Abo beim Server sicherstellen. `wanted` = der Nutzer hat
+   * Benachrichtigungen eingeschaltet (`pushWanted`): Fehlt das Browser-Abo, wird ohne Abfrage neu abonniert,
+   * sofern die Berechtigung schon erteilt ist.
+   */
+  sync(wanted: boolean): Promise<void>;
 }
 
 /** Konto löschen über die Edge Function `delete-account`. */
@@ -43,7 +62,8 @@ export interface AccountService {
 /** Alles, was die Vernetzung anbietet – nur vorhanden, wenn der Server eingerichtet ist. */
 export interface SocialServices {
   readonly auth: AuthService;
-  readonly friends: FriendsService;
+  /** `requests()` liefert nur eingehende Anfragen; ausgehende über `outgoingRequests()`. */
+  readonly friends: FriendsService & OutgoingRequestsService;
   readonly feed: FeedService;
   readonly publisher: EventPublisher;
   readonly push: PushService;

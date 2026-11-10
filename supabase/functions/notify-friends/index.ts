@@ -7,6 +7,7 @@ import { systemClock } from "../_shared/clock.ts";
 import { ConfigError, readSupabaseServerConfig, readVapidConfig } from "../_shared/config.ts";
 import { consoleLogger } from "../_shared/logger.ts";
 import { GoTrueTokenVerifier, PostgrestClient } from "../_shared/supabase_api.ts";
+import { DnsPushHostVerifier, ResolvingHostResolver } from "../_shared/webpush/endpoint_policy.ts";
 import { WebPushSender } from "../_shared/webpush/sender.ts";
 import { importVapidCredentials, VapidKeyError } from "../_shared/webpush/vapid.ts";
 import { createNotifyFriendsHandler, type NotifyFriendsHandlerDeps } from "./handler.ts";
@@ -39,7 +40,14 @@ async function buildDeps(): Promise<NotifyFriendsHandlerDeps> {
       friendships: new PostgrestFriendshipReader(db),
       profiles: new PostgrestProfileReader(db),
       subscriptions: new PostgrestSubscriptionStore(db),
-      push: new WebPushSender({ credentials, fetch, clock: systemClock }),
+      push: new WebPushSender({
+        credentials,
+        fetch,
+        clock: systemClock,
+        hosts: new DnsPushHostVerifier(
+          new ResolvingHostResolver((hostname, recordType, options) => Deno.resolveDns(hostname, recordType, options)),
+        ),
+      }),
       clock: systemClock,
       logger,
     }),

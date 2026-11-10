@@ -3,7 +3,9 @@ package com.drinkwithme.app.routing
 import com.drinkwithme.app.supabase.AuthCallback
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private class MapExtras(private val values: Map<String, Any>) : IntentExtras {
     override fun string(key: String): String? = values[key] as? String
@@ -42,9 +44,44 @@ class IntentRouterTest {
         )
         assertEquals(
             AppRequest.OpenEvent("ev-1", "Anna trinkt gerade", "Apfelschorle (500 ml)", autoRead = true),
-            IntentRouter.route(IntentRouter.ACTION_OPEN_EVENT, null, extras),
+            IntentRouter.route(IntentRouter.ACTION_OPEN_EVENT, null, extras, trusted = true),
         )
-        assertNull(IntentRouter.route(IntentRouter.ACTION_OPEN_EVENT, null, none), "ohne Ereignis-ID nichts")
+        assertNull(IntentRouter.route(IntentRouter.ACTION_OPEN_EVENT, null, none, trusted = true), "ohne Ereignis-ID nichts")
+    }
+
+    @Test
+    fun otherAppsCannotInjectTextsOrSpeechIntoTheEventScreen() {
+        // Eine fremde App startet die exportierte MainActivity direkt mit eigenen Texten und „sofort vorlesen“.
+        val forged = MapExtras(
+            mapOf(
+                IntentRouter.EXTRA_EVENT_ID to "x",
+                IntentRouter.EXTRA_TITLE to "Bob trinkt gerade",
+                IntentRouter.EXTRA_BODY to "Gefälschter Text",
+                IntentRouter.EXTRA_AUTO_READ to true,
+            ),
+        )
+        assertEquals(
+            AppRequest.OpenEvent("x", title = null, body = null, autoRead = false),
+            IntentRouter.route(IntentRouter.ACTION_OPEN_EVENT, null, forged),
+            "nur die ID; der Text kommt dann ausschließlich vom Server",
+        )
+    }
+
+    @Test
+    fun onlyTheNonExportedNotificationEntryIsTrusted() {
+        assertTrue(IntentRouter.isTrustedEntry("com.drinkwithme.app.NotificationEntry"))
+        assertFalse(IntentRouter.isTrustedEntry("com.drinkwithme.app.MainActivity"))
+        assertFalse(IntentRouter.isTrustedEntry(null))
+    }
+
+    @Test
+    fun intentsAreRoutedOnlyOnARealLaunch() {
+        assertTrue(IntentRouter.shouldRoute(restored = false, launchedFromHistory = false))
+        assertFalse(IntentRouter.shouldRoute(restored = true, launchedFromHistory = false), "nach Drehung")
+        assertFalse(
+            IntentRouter.shouldRoute(restored = false, launchedFromHistory = true),
+            "aus „Zuletzt verwendet“: alte Einladung/Benachrichtigung nicht noch einmal",
+        )
     }
 
     @Test

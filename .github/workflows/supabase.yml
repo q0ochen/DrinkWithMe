@@ -1,5 +1,6 @@
 # Prüft das Supabase-Backend bei jedem Push: Migrationen auf einer frischen lokalen Datenbank, pgTAP-Tests
-# (RLS-Matrix, RPCs, Trigger, Aufräumen) und die Deno-Tests der Edge Functions (RFC 8291/8292, Logik).
+# (RLS-Matrix, RPCs, Trigger, Limits, Aufräumen, keine Auskunft über fremde Konten) und die Deno-Tests der Edge
+# Functions (RFC 8291/8292, SSRF-Schutz, Logik).
 # Es wird nichts bereitgestellt – dafür gibt es den manuellen Workflow „Supabase Deploy“.
 name: Supabase
 
@@ -72,5 +73,5 @@ jobs:
       - name: Typprüfung (deno check)
         run: deno check notify-friends/index.ts delete-account/index.ts ../scripts/vapid-schluessel-erzeugen.ts
 
-      - name: Unit-Tests (Verschlüsselung, VAPID, notify-friends, delete-account)
+      - name: Unit-Tests (Verschlüsselung, VAPID, SSRF-Schutz, notify-friends, delete-account)
         run: deno test --frozen

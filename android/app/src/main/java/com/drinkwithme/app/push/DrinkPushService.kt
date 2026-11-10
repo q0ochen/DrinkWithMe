@@ -49,6 +49,10 @@ object PushTexts {
     const val UNUSABLE_ENDPOINT =
         "Der Push-Dienst hat keine sichere (https) Adresse geliefert. Die App prüft deshalb weiter etwa alle 15 Minuten."
 
+    const val ENDPOINT_TAKEN =
+        "Der Push-Dienst liefert eine Adresse, die noch zu einem anderen Konto gehört. Schalte die sofortigen " +
+            "Benachrichtigungen aus und wieder ein. Bis dahin prüft die App etwa alle 15 Minuten."
+
     fun registrationFailed(reason: String): String = when (reason) {
         "NETWORK" -> "Der Push-Dienst ist gerade nicht erreichbar. Die App prüft so lange etwa alle 15 Minuten."
         "ACTION_REQUIRED" -> "Bitte öffne die Push-App (z. B. ntfy) und bestätige dort Drink With Me."

@@ -7,6 +7,7 @@ import com.drinkwithme.app.data.ChangeSignal
 import com.drinkwithme.app.speech.AnnouncementPolicy
 import com.drinkwithme.app.speech.ScreenReaderDetector
 import com.drinkwithme.app.speech.Speaker
+import com.drinkwithme.app.stats.HistoryTexts
 import com.drinkwithme.app.ui.common.MessageQueue
 import com.drinkwithme.app.voice.VoiceInputAvailability
 import com.drinkwithme.app.voice.VoiceRequest
@@ -23,6 +24,7 @@ import com.drinkwithme.core.log.UndoResult
 import com.drinkwithme.core.sharing.AlcoholSharingConsent
 import com.drinkwithme.core.sharing.SharingPolicy
 import com.drinkwithme.core.social.FriendDrinkEvent
+import com.drinkwithme.core.speech.EventTexts
 import com.drinkwithme.core.speech.SpeechTexts
 import com.drinkwithme.core.stats.TodaySummary
 import com.drinkwithme.core.voice.VoiceCommand
@@ -217,8 +219,10 @@ class BarViewModel(
     private fun onVoiceCommand(command: VoiceCommand) {
         when (command) {
             VoiceCommand.UNDO -> onUndo()
+            // Antworten auch als Text: ohne (deutsche) Sprachausgabe bliebe die Antwort sonst unsichtbar und stumm.
             VoiceCommand.TODAY -> viewModelScope.launch {
                 val summary = withContext(io) { todaySummary() }
+                messages.show(todayText(summary))
                 announce(SpeechTexts.today(summary), explicit = true)
             }
             VoiceCommand.READ_ALOUD -> viewModelScope.launch {
@@ -229,9 +233,15 @@ class BarViewModel(
                 } catch (error: Exception) {
                     null
                 }
+                messages.show(event?.let(EventTexts::headline) ?: NO_FRIEND_EVENT)
                 announce(event?.let { SpeechTexts.drinkEvent(it) } ?: NO_FRIEND_EVENT, explicit = true)
             }
         }
+    }
+
+    private fun todayText(summary: TodaySummary): String {
+        val lines = HistoryTexts.todayLines(summary)
+        return if (summary.drinkCount == 0) lines.single() else "Heute: " + lines.take(TODAY_TEXT_LINES).joinToString(" · ")
     }
 
     private fun announce(text: String, explicit: Boolean) {
@@ -324,5 +334,6 @@ class BarViewModel(
         const val SHARED_HINT = "Mit deinen Freunden geteilt."
         const val PRIVATE_HINT = "Nicht geteilt."
         const val NO_FRIEND_EVENT = "Es gibt noch keine Getränke von Freunden zum Vorlesen."
+        private const val TODAY_TEXT_LINES = 3
     }
 }

@@ -119,7 +119,7 @@ class BarViewModelTest {
     private val screenReader = FakeScreenReader()
     private val messages = MessageQueue()
     private val ids = AtomicInteger()
-    private var friendEvent = friendEvent()
+    private var friendEvent: com.drinkwithme.core.social.FriendDrinkEvent? = friendEvent()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -189,7 +189,7 @@ class BarViewModelTest {
         vm.onUndo()
         assertTrue(all().isEmpty())
         assertNull(vm.state.value.confirmation)
-        assertEquals(listOf("Apfelschorle wieder entfernt."), messages.messages.value)
+        assertEquals(listOf("Apfelschorle wieder entfernt."), messages.texts)
     }
 
     @Test
@@ -298,7 +298,7 @@ class BarViewModelTest {
     fun undoWithoutEntriesSaysSo() = runTest(dispatcher) {
         val vm = viewModel()
         vm.onVoiceResults(listOf("rückgängig"))
-        assertEquals(listOf(BarViewModel.NOTHING_TO_UNDO), messages.messages.value)
+        assertEquals(listOf(BarViewModel.NOTHING_TO_UNDO), messages.texts)
     }
 
     @Test
@@ -317,10 +317,25 @@ class BarViewModelTest {
     }
 
     @Test
+    fun todayAndReadAloudAlsoShowTheirAnswerAsText() = runTest(dispatcher) {
+        // Ohne deutsche Stimme bliebe die Antwort sonst unsichtbar und stumm.
+        speaker.statusFlow.value = com.drinkwithme.app.speech.SpeakerStatus.NO_GERMAN_VOICE
+        val vm = viewModel()
+        vm.onVoiceResults(listOf("wie viel heute"))
+        assertEquals("Heute: Zucker aus Getränken: 35 g · Alkohol: 0 g · 1 Getränk, zusammen 500 ml", messages.texts.last())
+        vm.onVoiceResults(listOf("vorlesen"))
+        assertEquals("Anna trinkt eine Apfelschorle.", messages.texts.last())
+        friendEvent = null
+        vm.onVoiceResults(listOf("vorlesen"))
+        assertEquals(BarViewModel.NO_FRIEND_EVENT, messages.texts.last())
+        assertTrue(speaker.spoken.isEmpty())
+    }
+
+    @Test
     fun unknownSpeechIsExplained() = runTest(dispatcher) {
         val vm = viewModel()
         vm.onVoiceResults(listOf("Raumschiff"))
-        assertTrue(messages.messages.value.single().startsWith("Das habe ich leider nicht verstanden"))
+        assertTrue(messages.texts.single().startsWith("Das habe ich leider nicht verstanden"))
         assertTrue(all().isEmpty())
     }
 

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ANNA, APP, EVENT_ID, FakeSupabase, INVITE_TOKEN, recordSpeech, setUpBar, signIn, spoken, SUPABASE } from "./support";
+import { ANNA, APP, EVENT_ID, FakeSupabase, INVITE_TOKEN, recordSpeech, session, setUpBar, signIn, spoken, SUPABASE } from "./support";
 
 // Vernetzung mit Supabase – alle Server-Aufrufe beantwortet das FakeSupabase-Double (page.route).
 
@@ -55,6 +55,25 @@ test("Einladungsseite auf Android: „In der App öffnen“ mit drinkwithme://",
   await context.close();
 });
 
+test("Einladungsseite auf Android: nach der Anmeldung geht es im Browser direkt weiter (Review 3, Befund 22)", async ({ browser }) => {
+  const context = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36",
+    serviceWorkers: "block",
+  });
+  const page = await context.newPage();
+  const supabase = new FakeSupabase();
+  await supabase.install(page);
+  await page.goto(`${APP}einladung/${INVITE_TOKEN}`);
+  await page.getByRole("button", { name: "Stattdessen im Browser annehmen" }).click();
+  await page.getByRole("button", { name: "Mit Google anmelden" }).click();
+  await expect(page).toHaveURL(new RegExp(`/DrinkWithMe/einladung/${INVITE_TOKEN}$`));
+  // Kein zweiter Tipp auf „Stattdessen im Browser annehmen“ nötig.
+  await page.getByRole("button", { name: "Einladung annehmen" }).click();
+  await expect(page.getByText("Du bist jetzt mit Anna befreundet.").first()).toBeVisible();
+  expect(supabase.calls("POST", "/rest/v1/rpc/accept_invite")).toHaveLength(1);
+  await context.close();
+});
+
 test("Ungültiger Einladungs-Link", async ({ page }) => {
   await page.goto("einladung/kurz");
   await expect(page.getByRole("heading", { level: 1, name: "Seite nicht gefunden" })).toBeVisible();
@@ -80,6 +99,93 @@ test("Geteiltes Getränk: drink_events mit erlaubten Spalten (ignore-duplicates)
   // Rückgängig zieht das geteilte Ereignis zurück.
   await page.getByRole("button", { name: /Rückgängig/ }).click();
   await expect.poll(() => supabase.calls("DELETE", "/rest/v1/drink_events").length).toBe(1);
+});
+
+test("„Privat eintragen“ über „⋮“: wird nicht geteilt (wie lange Drücken in der Android-App)", async ({ page }) => {
+  const supabase = new FakeSupabase();
+  await supabase.install(page);
+  await setUpBar(page);
+  await signIn(page, "freunde");
+  await expect(page.getByText("Anna trinkt gerade")).toBeVisible();
+  await page.getByRole("navigation", { name: "Hauptbereiche" }).getByRole("link", { name: "Bar" }).click();
+  await page.getByRole("button", { name: "Mehr zu Pils" }).click();
+  const menu = page.getByRole("dialog", { name: "Pils" });
+  await menu.getByRole("button", { name: "Privat eintragen (nicht teilen)" }).click();
+  const snackbar = page.getByRole("region", { name: "Zuletzt eingetragen" });
+  await expect(snackbar).toContainText("Pils eingetragen.");
+  await expect(snackbar).toContainText("Nicht geteilt.");
+  // Privat: keine Frage nach Alkohol, nichts an den Server.
+  await expect(page.getByRole("dialog", { name: "Alkoholische Getränke mit Freunden teilen?" })).toBeHidden();
+  // Gegenprobe: ein normaler Tipp wird geteilt.
+  await page.getByRole("button", { name: /^Wasser/ }).click();
+  await expect(snackbar).toContainText("Mit deinen Freunden geteilt.");
+  await expect.poll(() => supabase.calls("POST", "/functions/v1/notify-friends").length).toBe(1);
+  expect(supabase.calls("POST", "/rest/v1/drink_events").map((call) => (call.body as { name: string }).name)).toEqual(["Wasser"]);
+  await page.goto("verlauf");
+  await expect(page.locator(".entry-row")).toHaveCount(2);
+});
+
+test("Ohne Verbindung: Teilen und Zurückziehen werden nachgeholt (online-Ereignis und App-Start)", async ({ page }) => {
+  const supabase = new FakeSupabase();
+  await supabase.install(page);
+  await setUpBar(page);
+  await signIn(page, "freunde");
+  await expect(page.getByText("Anna trinkt gerade")).toBeVisible();
+  await page.getByRole("navigation", { name: "Hauptbereiche" }).getByRole("link", { name: "Bar" }).click();
+  const snackbar = page.getByRole("region", { name: "Zuletzt eingetragen" });
+
+  // 1. Geteilt, dann ohne Netz zurückgenommen → DELETE wird nach „online“ nachgeholt.
+  await page.getByRole("button", { name: /^Wasser/ }).click();
+  await expect.poll(() => supabase.calls("POST", "/functions/v1/notify-friends").length).toBe(1);
+  const shared = (supabase.calls("POST", "/rest/v1/drink_events")[0].body as { id: string }).id;
+  supabase.offline = true;
+  await snackbar.getByRole("button", { name: /Rückgängig/ }).click();
+  await expect(snackbar).toBeHidden();
+  await page.waitForTimeout(300);
+  expect(supabase.calls("DELETE", "/rest/v1/drink_events")).toEqual([]);
+  supabase.offline = false;
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect.poll(() => supabase.calls("DELETE", "/rest/v1/drink_events").map((call) => call.search.get("id"))).toEqual([`eq.${shared}`]);
+
+  // 2. Ohne Netz eingetragen → wird beim nächsten App-Start geteilt.
+  supabase.offline = true;
+  await page.getByRole("button", { name: /^Kaffee/ }).click();
+  await expect(snackbar).toContainText("Kaffee eingetragen.");
+  await page.waitForTimeout(300);
+  expect(supabase.calls("POST", "/rest/v1/drink_events")).toHaveLength(1);
+  supabase.offline = false;
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
+  await expect.poll(() => supabase.calls("POST", "/rest/v1/drink_events").map((call) => (call.body as { name: string }).name)).toEqual([
+    "Wasser",
+    "Kaffee",
+  ]);
+  await expect.poll(() => supabase.calls("POST", "/functions/v1/notify-friends").length).toBe(2);
+});
+
+test("Gespeicherte Sitzung ohne gespeicherten Nutzer (z. B. nach altem Fehler): Start in der Bar teilt trotzdem (Review 3, Befund 1)", async ({ page }) => {
+  const supabase = new FakeSupabase();
+  await supabase.install(page);
+  await setUpBar(page);
+  // Nur die Sitzung von supabase-js liegt in IndexedDB – der gespeicherte Nutzer in den Einstellungen fehlt.
+  await page.evaluate(async (stored) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("drink-with-me");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("auth", "readwrite");
+      tx.objectStore("auth").put(stored, "drink-with-me-auth");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, JSON.stringify(session()));
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
+  await page.getByRole("button", { name: /^Wasser/ }).click();
+  await expect.poll(() => supabase.calls("POST", "/rest/v1/drink_events").length).toBe(1);
 });
 
 test("Alkohol: einmalige Frage, erst nach „Ja“ geteilt", async ({ page }) => {
@@ -132,6 +238,14 @@ test("Einladungs-Link erstellen und E-Mail-Anfrage mit neutraler Antwort", async
   await page.getByRole("button", { name: "Anfrage senden" }).click();
   await expect(page.getByText("Wenn es zu dieser Adresse ein Konto gibt, bekommt die Person deine Anfrage.")).toBeVisible();
   expect(supabase.calls("POST", "/rest/v1/rpc/send_friend_request")[0].body).toEqual({ email: "anna@example.org" });
+
+  // Gesendete Anfrage: nur die maskierte Adresse, nie Name oder Bild der Person (Review 3, Befund 6).
+  const row = page.locator(".person-row").filter({ hasText: "Anfrage an a***@example.org" });
+  await expect(row).toContainText("(wartet)");
+  await row.getByRole("button", { name: "Anfrage an a***@example.org zurückziehen" }).click();
+  await expect(row).toHaveCount(0);
+  expect(supabase.calls("POST", "/rest/v1/rpc/cancel_friend_request")[0].body).toMatchObject({ request_id: expect.any(String) });
+  expect(supabase.calls("DELETE", "/rest/v1/friend_requests")).toEqual([]);
 });
 
 test("Einstellungen: Konto, Abmelden und Konto löschen", async ({ page }) => {

@@ -69,7 +69,7 @@ class SupabaseAccountControllerTest {
                     events += "delete"
                 }
             },
-            pushSync = PushSubscriptionSync(endpoints, remote, session),
+            pushSync = PushSubscriptionSync(endpoints, remote, session) {},
             clearAccountData = { events += "clear" },
             onSessionChanged = { events += "changed" },
         )
@@ -98,6 +98,22 @@ class SupabaseAccountControllerTest {
         assertEquals(listOf("changed"), events)
         server.takeRequest(5, TimeUnit.SECONDS)
         assertEquals("in.(me-id)", server.takeRequest(5, TimeUnit.SECONDS)!!.requestUrl!!.queryParameter("id"))
+    }
+
+    @Test
+    fun lostSessionRunsTheSameCleanupAsSignOut() = runTest {
+        signInResponses()
+        controller.signInUrl()
+        controller.completeSignIn(AuthCallback.Code("code"))
+        server.takeRequest(5, TimeUnit.SECONDS)
+        server.takeRequest(5, TimeUnit.SECONDS)
+        // Das Refresh-Token wurde woanders widerrufen (z. B. Konto im Browser gelöscht).
+        server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error_code":"refresh_token_not_found"}"""))
+
+        assertFailsWith<SocialException.NotSignedIn> { session.refreshAfterUnauthorized("a1") }
+
+        assertEquals(listOf("changed", "clear", "changed"), events)
+        assertNull(controller.currentUser.value)
     }
 
     @Test

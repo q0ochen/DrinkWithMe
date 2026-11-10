@@ -19,8 +19,8 @@ interface AccountController {
     val currentUser: StateFlow<UserProfile?>
     val currentEmail: StateFlow<String?>
 
-    /** URL für den Anmelde-Browser (PKCE). @throws SocialException.NotConfigured */
-    fun signInUrl(): String
+    /** URL für den Anmelde-Browser (PKCE; merkt sich den Verifier im Speicher). @throws SocialException.NotConfigured */
+    suspend fun signInUrl(): String
 
     /** Rückkehr aus dem Browser. @throws SocialException mit deutscher Meldung */
     suspend fun completeSignIn(callback: AuthCallback): UserProfile
@@ -36,7 +36,7 @@ class UnconfiguredAccountController : AccountController {
     override val isConfigured: Boolean = false
     override val currentUser: StateFlow<UserProfile?> = MutableStateFlow<UserProfile?>(null).asStateFlow()
     override val currentEmail: StateFlow<String?> = MutableStateFlow<String?>(null).asStateFlow()
-    override fun signInUrl(): String = throw SocialException.NotConfigured()
+    override suspend fun signInUrl(): String = throw SocialException.NotConfigured()
     override suspend fun completeSignIn(callback: AuthCallback): UserProfile = throw SocialException.NotConfigured()
     override suspend fun signOut() = Unit
     override suspend fun deleteAccount(): Unit = throw SocialException.NotConfigured()
@@ -45,7 +45,9 @@ class UnconfiguredAccountController : AccountController {
 /**
  * Mit Supabase. Nach der Anmeldung wird das eigene Profil aus `profiles` geladen (Name/Bild), vor dem Abmelden das
  * Push-Abo dieses Geräts entfernt (solange noch ein Token da ist). [clearAccountData] räumt kontobezogene Merker
- * auf; [onSessionChanged] passt die Hintergrundarbeit an (Abruf, Push-Abo).
+ * auf; [onSessionChanged] passt die Hintergrundarbeit an (Abruf, Push-Abo). Beides passiert auch, wenn die Sitzung
+ * ohne Abmelden endet (der Server lehnt das Refresh-Token ab) – sonst bekäme ein danach angemeldetes Konto z. B. alte
+ * „zuletzt gesehen“-Merker und eine Flut alter Meldungen.
  */
 class SupabaseAccountController(
     private val session: SupabaseSession,
@@ -56,10 +58,19 @@ class SupabaseAccountController(
     private val onSessionChanged: () -> Unit,
 ) : AccountController {
     override val isConfigured: Boolean = true
-    override val currentUser: StateFlow<UserProfile?> = session.currentUser
-    override val currentEmail: StateFlow<String?> = session.currentEmail
 
-    override fun signInUrl(): String = session.beginSignIn()
+    // Getter: Die Sitzung wird erst beim ersten Zugriff gelesen (nicht beim Erzeugen auf dem Hauptthread).
+    override val currentUser: StateFlow<UserProfile?> get() = session.currentUser
+    override val currentEmail: StateFlow<String?> get() = session.currentEmail
+
+    init {
+        session.sessionLostListener = {
+            clearAccountData()
+            onSessionChanged()
+        }
+    }
+
+    override suspend fun signInUrl(): String = session.beginSignIn()
 
     override suspend fun completeSignIn(callback: AuthCallback): UserProfile {
         val code = when (callback) {

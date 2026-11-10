@@ -23,7 +23,8 @@ interface Recorded {
   body: unknown;
 }
 
-type Responder = (request: Recorded) => { status?: number; body?: unknown } | undefined;
+/** Antwort eines Responders; `offline` lässt `fetch` wie ohne Verbindung scheitern. */
+type Responder = (request: Recorded) => { status?: number; body?: unknown; offline?: true } | undefined;
 
 class MemoryStorage implements AsyncStorage {
   readonly values = new Map<string, string>();
@@ -38,14 +39,14 @@ class MemoryStorage implements AsyncStorage {
   }
 }
 
-function session(userId = ME) {
+function session(userId = ME, expiresInSeconds = 3600) {
   const now = Math.floor(Date.now() / 1000);
   return {
     access_token: ACCESS_TOKEN,
     refresh_token: "refresh",
     token_type: "bearer",
     expires_in: 3600,
-    expires_at: now + 3600,
+    expires_at: now + expiresInSeconds,
     user: {
       id: userId,
       aud: "authenticated",
@@ -57,10 +58,11 @@ function session(userId = ME) {
   };
 }
 
-function setUp(options: { signedIn?: boolean; responders?: Responder[]; push?: PushEnvironment } = {}) {
+function setUp(options: { signedIn?: boolean; storedSession?: unknown; responders?: Responder[]; push?: PushEnvironment } = {}) {
   const requests: Recorded[] = [];
   const storage = new MemoryStorage();
-  if (options.signedIn ?? true) storage.values.set("drink-with-me-auth", JSON.stringify(session()));
+  if (options.storedSession !== undefined) storage.values.set("drink-with-me-auth", JSON.stringify(options.storedSession));
+  else if (options.signedIn ?? true) storage.values.set("drink-with-me-auth", JSON.stringify(session()));
   const responders = options.responders ?? [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(input, init);
@@ -75,6 +77,7 @@ function setUp(options: { signedIn?: boolean; responders?: Responder[]; push?: P
     requests.push(recorded);
     for (const responder of responders) {
       const answer = responder(recorded);
+      if (answer?.offline) throw new TypeError("Failed to fetch");
       if (answer) {
         return new Response(answer.body === undefined ? null : JSON.stringify(answer.body), {
           status: answer.status ?? 200,
@@ -162,6 +165,71 @@ describe("Anmeldung (PKCE)", () => {
   });
 });
 
+describe("Sitzung erneuern: vorübergehende Fehler sind keine Abmeldung (Review 3, Befund 1)", () => {
+  /** supabase-js versucht das Erneuern ~25 s lang; mit falschen Timern läuft das sofort durch. */
+  async function restoreWithFakeTimers(options: Parameters<typeof setUp>[0]) {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
+    try {
+      const setup = setUp(options);
+      const seen: Array<string | null> = [];
+      setup.services.auth.subscribe((user) => seen.push(user?.id ?? null));
+      const ready = setup.services.auth.ready();
+      await vi.advanceTimersByTimeAsync(40_000);
+      await ready;
+      return { ...setup, seen };
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  const expired = session(ME, -60);
+
+  it("ohne Verbindung bleibt der gespeicherte Nutzer angemeldet (nichts wird gelöscht)", async () => {
+    const { services, storage, seen } = await restoreWithFakeTimers({
+      storedSession: expired,
+      responders: [(request) => (request.url.pathname === "/auth/v1/token" ? { offline: true } : undefined)],
+    });
+    expect(services.auth.currentUser()).toMatchObject({ id: ME, displayName: "Ich Selbst" });
+    expect(seen).not.toContain(null);
+    expect(storage.values.has("drink-with-me-auth")).toBe(true);
+  });
+
+  it("Serverfehler 503 beim Erneuern: ebenfalls weiter angemeldet", async () => {
+    const { services, seen } = await restoreWithFakeTimers({
+      storedSession: expired,
+      responders: [on("POST", "/auth/v1/token", 503, { message: "upstream" })],
+    });
+    expect(services.auth.currentUser()?.id).toBe(ME);
+    expect(seen).not.toContain(null);
+  });
+
+  it("abgelehnter Refresh-Token (400): wirklich abgemeldet", async () => {
+    const { services, storage } = await restoreWithFakeTimers({
+      storedSession: expired,
+      responders: [on("POST", "/auth/v1/token", 400, { code: "refresh_token_not_found", message: "Invalid Refresh Token" })],
+    });
+    expect(services.auth.currentUser()).toBeNull();
+    expect(storage.values.has("drink-with-me-auth")).toBe(false);
+  });
+
+  it("Teilen ohne gültige Sitzung schickt nichts mit dem Anon-Key, sondern meldet „Netz“ (wird nachgeholt)", async () => {
+    const { services, rest } = await restoreWithFakeTimers({
+      storedSession: expired,
+      responders: [(request) => (request.url.pathname === "/auth/v1/token" ? { offline: true } : undefined)],
+    });
+    const pils = entryOf(catalogItem(CatalogIds.PILS), Date.now(), { id: "6f1c2a4e-0000-4000-8000-0000000000aa", share: true });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const attempt = services.publisher.publish(pils).catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(40_000);
+      expect(await attempt).toMatchObject({ code: "network" });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(rest("/rest/v1/drink_events")).toEqual([]);
+  });
+});
+
 describe("Geteilte Ereignisse (wie Android)", () => {
   const pils = catalogItem(CatalogIds.PILS);
   const shared = entryOf(pils, Date.parse("2026-11-10T18:00:00.123Z"), { id: "6f1c2a4e-0000-4000-8000-000000000001", share: true });
@@ -200,6 +268,15 @@ describe("Geteilte Ereignisse (wie Android)", () => {
     await expect(broken.services.publisher.publish(shared)).rejects.toBeInstanceOf(SocialError);
   });
 
+  it("Limit des Servers (too_many_events): deutsche Meldung, keine Benachrichtigung", async () => {
+    const { services, requests } = setUp({ responders: [on("POST", "/rest/v1/drink_events", 400, rpcError("too_many_events"))] });
+    await services.auth.ready();
+    const failure = await services.publisher.publish(shared).catch((error: unknown) => error);
+    expect(failure).toMatchObject({ code: "too_many_events" });
+    expect(germanMessage(failure)).toBe("Heute wurden schon sehr viele Getränke geteilt. Weitere Einträge bleiben vorerst nur auf diesem Gerät.");
+    expect(requests.some((request) => request.url.pathname === "/functions/v1/notify-friends")).toBe(false);
+  });
+
   it("zieht ein Ereignis per DELETE zurück", async () => {
     const { services, rest } = setUp();
     await services.auth.ready();
@@ -233,22 +310,34 @@ describe("Freunde, Anfragen und Einladungen", () => {
     expect(rest("/rest/v1/profiles")[0].url.searchParams.get("id")).toMatch(/^in\.\(/);
   });
 
-  it("Anfragen: Richtung aus Sicht des Nutzers", async () => {
-    const { services } = setUp({
-      responders: [
-        on("GET", "/rest/v1/friend_requests", 200, [
-          { id: "r-1", from_user: ANNA, to_user: ME, created_at: "2026-11-09T10:00:00Z" },
-          { id: "r-2", from_user: ME, to_user: BEN, created_at: "2026-11-08T10:00:00Z" },
-        ]),
-        profiles,
-      ],
+  it("Eingehende Anfragen: nur als Empfänger, mit dem Profil des Absenders", async () => {
+    const { services, rest } = setUp({
+      responders: [on("GET", "/rest/v1/friend_requests", 200, [{ id: "r-1", from_user: ANNA, created_at: "2026-11-09T10:00:00Z" }]), profiles],
     });
     await services.auth.ready();
     const requests = await services.friends.requests();
-    expect(requests.map((request) => [request.id, request.direction, request.other.displayName])).toEqual([
-      ["r-1", "INCOMING", "Anna"],
-      ["r-2", "OUTGOING", "Ben"],
+    expect(requests.map((request) => [request.id, request.direction, request.other.displayName])).toEqual([["r-1", "INCOMING", "Anna"]]);
+    const query = rest("/rest/v1/friend_requests")[0].url.searchParams;
+    expect(query.get("select")).toBe("id,from_user,created_at");
+    expect(query.get("to_user")).toBe(`eq.${ME}`);
+    expect(query.get("order")).toBe("created_at.desc");
+  });
+
+  it("Ausgehende Anfragen nur per RPC: maskierte Adresse statt Profil (Review 3, Befund 6)", async () => {
+    const { services, rest } = setUp({
+      responders: [
+        on("POST", "/rest/v1/rpc/list_outgoing_friend_requests", 200, [
+          { id: "r-2", email_hint: "b***@example.org", created_at: "2026-11-08T10:00:00Z" },
+          { id: "kaputt" },
+        ]),
+      ],
+    });
+    await services.auth.ready();
+    expect(await services.friends.outgoingRequests()).toEqual([
+      { id: "r-2", emailHint: "b***@example.org", createdAt: Date.parse("2026-11-08T10:00:00Z") },
     ]);
+    expect(rest("/rest/v1/rpc/list_outgoing_friend_requests")[0].body).toEqual({});
+    expect(rest("/rest/v1/profiles")).toEqual([]);
   });
 
   it("RPCs mit den Parametern aus dem Vertrag", async () => {
@@ -262,8 +351,8 @@ describe("Freunde, Anfragen und Einladungen", () => {
     expect(rest("/rest/v1/rpc/send_friend_request")[0].body).toEqual({ email: "anna@example.org" });
     expect(rest("/rest/v1/rpc/respond_friend_request")[0].body).toEqual({ request_id: "r-1", accept: true });
     expect(rest("/rest/v1/rpc/remove_friend")[0].body).toEqual({ friend_id: ANNA });
-    expect(rest("/rest/v1/friend_requests")[0]).toMatchObject({ method: "DELETE" });
-    expect(rest("/rest/v1/friend_requests")[0].url.searchParams.get("id")).toBe("eq.r-2");
+    expect(rest("/rest/v1/rpc/cancel_friend_request")[0].body).toEqual({ request_id: "r-2" });
+    expect(rest("/rest/v1/friend_requests")).toEqual([]);
     expect(link).toBe(`${WEB}/einladung/AbCdEfGhIjKlMnOpQrStUvWxYz012345`);
   });
 
@@ -381,9 +470,14 @@ function fakePushEnvironment(initialPermission: NotificationPermission = "defaul
 }
 
 describe("Web Push", () => {
+  const serverRow = (request: Recorded) =>
+    request.method === "GET" && request.url.pathname === "/rest/v1/push_subscriptions"
+      ? { status: 200, body: [{ endpoint: request.url.searchParams.get("endpoint")?.slice(3) }] }
+      : undefined;
+
   it("abonniert mit dem VAPID-Schlüssel und speichert das Abo mit platform 'web'", async () => {
     const push = fakePushEnvironment();
-    const { services, rest } = setUp({ push: push.environment });
+    const { services, rest } = setUp({ push: push.environment, responders: [serverRow] });
     await services.auth.ready();
     expect(await services.push.status()).toMatchObject({ supported: true, subscribed: false, configured: true, needsHomeScreen: false });
     await services.push.enable();
@@ -395,22 +489,82 @@ describe("Web Push", () => {
     expect(calls[0].url.searchParams.get("endpoint")).toBe("eq.https://push.example/abo-1");
     expect(calls[1].body).toEqual({ endpoint: "https://push.example/abo-1", p256dh: "B".repeat(87), auth: "A".repeat(22), platform: "web" });
     expect(await services.push.status()).toMatchObject({ subscribed: true, permission: "granted" });
+    const check = rest("/rest/v1/push_subscriptions").at(-1);
+    expect(check?.method).toBe("GET");
+    expect(check?.url.searchParams.get("endpoint")).toBe("eq.https://push.example/abo-1");
 
     await services.push.disable();
     expect(rest("/rest/v1/push_subscriptions").at(-1)?.method).toBe("DELETE");
     expect(push.current()).toBeNull();
   });
 
-  it("zu viele Geräte: deutsche Meldung", async () => {
+  it("zu viele Geräte: deutsche Meldung, und das neue Browser-Abo wird wieder abbestellt (Review 3, Befund 21)", async () => {
     const push = fakePushEnvironment();
     const { services } = setUp({
       push: push.environment,
-      responders: [on("POST", "/rest/v1/push_subscriptions", 400, rpcError("too_many_subscriptions"))],
+      responders: [on("POST", "/rest/v1/push_subscriptions", 400, rpcError("too_many_subscriptions")), on("GET", "/rest/v1/push_subscriptions", 200, [])],
     });
     await services.auth.ready();
     const failure = await services.push.enable().catch((error: unknown) => error);
     expect(failure).toMatchObject({ code: "too_many_subscriptions" });
     expect(germanMessage(failure)).toContain("fünf Geräten");
+    expect(push.current()).toBeNull();
+    expect(await services.push.status()).toMatchObject({ subscribed: false, permission: "granted" });
+  });
+
+  it("Endpoint gehört noch einem anderen Konto und das erneute Speichern scheitert: kein verwaistes Abo", async () => {
+    const push = fakePushEnvironment();
+    let posts = 0;
+    const { services } = setUp({
+      push: push.environment,
+      responders: [
+        (request) => {
+          if (request.method !== "POST" || request.url.pathname !== "/rest/v1/push_subscriptions") return undefined;
+          posts++;
+          return posts === 1
+            ? { status: 409, body: { code: "23505", message: "duplicate key value violates unique constraint", details: null, hint: null } }
+            : { status: 400, body: rpcError("too_many_subscriptions") };
+        },
+      ],
+    });
+    await services.auth.ready();
+    await expect(services.push.enable()).rejects.toMatchObject({ code: "too_many_subscriptions" });
+    expect(push.subscribeCalls).toHaveLength(2);
+    expect(push.current()).toBeNull();
+  });
+
+  it("status() prüft die Zeile auf dem Server; ohne Verbindung zählt das Browser-Abo", async () => {
+    const push = fakePushEnvironment("granted");
+    let answer: { status?: number; body?: unknown; offline?: true } = { status: 200, body: [] };
+    const { services } = setUp({
+      push: push.environment,
+      responders: [(request) => (request.method === "GET" && request.url.pathname === "/rest/v1/push_subscriptions" ? answer : undefined)],
+    });
+    await services.auth.ready();
+    const registration = await push.environment.registration();
+    await registration?.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: new Uint8Array(65) });
+    expect(await services.push.status()).toMatchObject({ subscribed: false });
+    answer = { status: 200, body: [{ endpoint: "https://push.example/abo-1" }] };
+    expect(await services.push.status()).toMatchObject({ subscribed: true });
+    answer = { offline: true };
+    expect(await services.push.status()).toMatchObject({ subscribed: true });
+  });
+
+  it("sync(): ein gewünschtes, aber verlorenes Abo wird neu angelegt – ohne Berechtigungsabfrage (Review 3, Befund 1)", async () => {
+    const granted = fakePushEnvironment("granted");
+    const { services, rest } = setUp({ push: granted.environment });
+    await services.auth.ready();
+    await services.push.sync(false);
+    expect(granted.subscribeCalls).toHaveLength(0);
+    await services.push.sync(true);
+    expect(granted.subscribeCalls).toHaveLength(1);
+    expect(rest("/rest/v1/push_subscriptions").map((call) => call.method)).toEqual(["DELETE", "POST"]);
+
+    const notAsked = fakePushEnvironment("default");
+    const second = setUp({ push: notAsked.environment });
+    await second.services.auth.ready();
+    await second.services.push.sync(true);
+    expect(notAsked.subscribeCalls).toHaveLength(0);
   });
 
   it("abgelehnte Berechtigung und fehlende Anmeldung", async () => {

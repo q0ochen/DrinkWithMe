@@ -1,7 +1,8 @@
 -- pgTAP: Konto löschen – wird der Auth-Nutzer gelöscht (Edge Function delete-account über die Admin-API),
--- verschwinden per ON DELETE CASCADE alle seine Daten; die Daten anderer Nutzer bleiben.
+-- verschwinden per ON DELETE CASCADE alle seine Daten; die Daten anderer Nutzer bleiben. Anfragen anderer an
+-- die gelöschte Person bleiben beim Absender, aber ohne Empfänger (ihr Verschwinden würde das Konto verraten).
 begin;
-select plan(11);
+select plan(14);
 
 -- ---------------------------------------------------------------------------------------------------
 -- Testumgebung (in jeder Testdatei gleich; alles liegt in pg_temp und verschwindet mit dem ROLLBACK)
@@ -46,6 +47,7 @@ select pg_temp.nutzer('clara');
 -- Anna nutzt alles: Freundschaft, Anfragen (aus- und eingehend), Link, Ereignis, Push-Abo, Limit-Zähler.
 select pg_temp.als('anna');
 select public.send_friend_request('ben@example.org');
+select public.send_friend_request('niemand@example.org');    -- ausgehende Anfrage ohne Empfänger
 select public.create_invite_link() is not null as link_erzeugt;  -- Token selbst nicht ausgeben (TAP-Ausgabe)
 insert into public.drink_events (id, name, icon, category, volume_ml, consumed_at)
 values ('00000000-0000-4000-8000-0000000000a1', 'Wasser', 'water', 'WATER', 250, now());
@@ -58,6 +60,9 @@ values ('00000000-0000-4000-8000-0000000000b1', 'Tee', 'tea', 'TEA', 250, now())
 select pg_temp.als('clara');
 select public.send_friend_request('anna@example.org');       -- eingehende Anfrage an Anna
 select pg_temp.als_postgres();
+insert into private.friend_removals (remover, removed) values   -- Vermerke über entfernte Freunde
+  (pg_temp.id('anna'), pg_temp.id('clara')), (pg_temp.id('clara'), pg_temp.id('anna')),
+  (pg_temp.id('ben'), pg_temp.id('clara'));
 
 select is((select count(*)::int from public.friendships), 1, 'Vorher: Anna und Ben sind befreundet');
 
@@ -67,7 +72,14 @@ delete from auth.users where id = pg_temp.id('anna');
 select is_empty($$ select 1 from public.profiles where id = pg_temp.id('anna') $$, 'Profil gelöscht');
 select is_empty($$ select 1 from public.friendships $$, 'Freundschaften gelöscht');
 select is_empty($$ select 1 from public.friend_requests where pg_temp.id('anna') in (from_user, to_user) $$,
-  'Anfragen (ein- und ausgehend) gelöscht');
+  'Keine Anfrage verweist mehr auf Anna');
+select is_empty($$ select 1 from public.friend_requests where email_hint = 'n***@example.org' $$,
+  'Annas ausgehende Anfragen sind gelöscht (auch die ohne Empfänger)');
+select results_eq($$ select from_user, to_user, email_hint from public.friend_requests $$,
+  $$ values (pg_temp.id('clara'), null::uuid, 'a***@example.org'::text) $$,
+  'Claras Anfrage an Anna bleibt bei Clara, nur ohne Empfänger (verrät die Löschung nicht)');
+select set_eq($$ select remover from private.friend_removals $$, array[pg_temp.id('ben')],
+  'Vermerke über entfernte Freunde mit Anna sind gelöscht, andere bleiben');
 select is_empty($$ select 1 from public.invite_links where owner = pg_temp.id('anna') $$, 'Einladungs-Link gelöscht');
 select is_empty($$ select 1 from public.drink_events where author_id = pg_temp.id('anna') $$, 'Geteilte Ereignisse gelöscht');
 select is_empty($$ select 1 from public.push_subscriptions where user_id = pg_temp.id('anna') $$, 'Push-Abos gelöscht');

@@ -33,13 +33,34 @@ object IntentRouter {
     const val EXTRA_BODY = "com.drinkwithme.app.extra.BODY"
     const val EXTRA_AUTO_READ = "com.drinkwithme.app.extra.AUTO_READ"
 
-    fun route(action: String?, data: String?, extras: IntentExtras): AppRequest? = when (action) {
+    /**
+     * Nicht exportierter Einstieg (activity-alias auf MainActivity im Manifest) nur für die eigenen Benachrichtigungen.
+     * Andere Apps können ihn nicht starten; nur von dort kommende Intents gelten als vertrauenswürdig.
+     */
+    const val NOTIFICATION_ENTRY = "com.drinkwithme.app.NotificationEntry"
+
+    /** Ob ein Intent über den nicht exportierten [NOTIFICATION_ENTRY] kam (Klassenname der Intent-Komponente). */
+    fun isTrustedEntry(componentClassName: String?): Boolean = componentClassName == NOTIFICATION_ENTRY
+
+    /**
+     * Nur beim echten Start auswerten: nicht nach einer Drehung ([restored]) und nicht, wenn Android die Aufgabe aus
+     * „Zuletzt verwendet“ mit ihrem ursprünglichen Intent neu startet ([launchedFromHistory]) – sonst kämen eine
+     * abgelehnte Einladung oder ein schon vorgelesenes Getränk noch einmal.
+     */
+    fun shouldRoute(restored: Boolean, launchedFromHistory: Boolean): Boolean = !restored && !launchedFromHistory
+
+    /**
+     * @param trusted `true` nur für Intents über [NOTIFICATION_ENTRY]. Die exportierte MainActivity kann jede App
+     *   starten: Dann zählt nur die Ereignis-ID; Titel, Text und „sofort vorlesen“ werden ignoriert (sonst könnte
+     *   eine fremde App beliebige Sätze als Getränk eines Freundes zeigen und vorlesen lassen).
+     */
+    fun route(action: String?, data: String?, extras: IntentExtras, trusted: Boolean = false): AppRequest? = when (action) {
         ACTION_OPEN_EVENT -> extras.string(EXTRA_EVENT_ID)?.takeIf { it.isNotBlank() }?.let { id ->
             AppRequest.OpenEvent(
                 eventId = id,
-                title = extras.string(EXTRA_TITLE),
-                body = extras.string(EXTRA_BODY),
-                autoRead = extras.boolean(EXTRA_AUTO_READ),
+                title = if (trusted) extras.string(EXTRA_TITLE) else null,
+                body = if (trusted) extras.string(EXTRA_BODY) else null,
+                autoRead = trusted && extras.boolean(EXTRA_AUTO_READ),
             )
         }
         ACTION_VIEW -> data?.let(::routeLink)

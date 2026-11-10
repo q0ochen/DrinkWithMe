@@ -27,13 +27,21 @@ interface SessionStore {
 interface TokenCipher {
     fun encrypt(plain: String): String
 
-    /** `null`, wenn sich der Text nicht (mehr) entschlüsseln lässt, z. B. nach einer Wiederherstellung auf einem neuen Gerät. */
+    /**
+     * `null`, wenn sich der Text nicht (mehr) entschlüsseln lässt, z. B. nach einer Wiederherstellung auf einem neuen Gerät.
+     * @throws KeystoreUnavailableException wenn der Schlüsselspeicher gerade nicht antwortet (der Text ist dann nicht
+     *   unbedingt verloren – nicht löschen)
+     */
     fun decrypt(encrypted: String): String?
 }
 
+/** Der Schlüsselspeicher hat mit einem Laufzeitfehler geantwortet (z. B. `ProviderException`, „Keystore busy“). */
+class KeystoreUnavailableException(cause: Throwable) : Exception("Schlüsselspeicher nicht verfügbar", cause)
+
 /**
  * Speichert die Sitzung im [store]; das Refresh-Token nur verschlüsselt ([cipher], unter Android mit einem
- * Schlüssel im Android-Keystore). Unlesbare Einträge gelten als „nicht angemeldet“ und werden gelöscht.
+ * Schlüssel im Android-Keystore). Unlesbare Einträge gelten als „nicht angemeldet“ und werden gelöscht. Antwortet
+ * der Schlüsselspeicher gerade nicht, gilt der Nutzer nur diesmal als abgemeldet; der Eintrag bleibt.
  */
 class EncryptedSessionStore(
     private val store: KeyValueStore,
@@ -59,6 +67,8 @@ class EncryptedSessionStore(
             }
         } catch (error: JSONException) {
             null
+        } catch (error: KeystoreUnavailableException) {
+            return null
         }
         if (session == null) clear()
         return session

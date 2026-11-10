@@ -9,15 +9,64 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
+/** Die Teile von Androids `TextToSpeech`, die das Vorlesen braucht (dadurch ohne Android testbar). */
+interface SpeechEngine {
+    /** Wie `TextToSpeech.setLanguage`: ≥ 0 verfügbar, −1 Daten fehlen, −2 nicht unterstützt. */
+    fun setLanguage(locale: Locale): Int
+
+    /** Spricht sofort und unterbricht Vorheriges. */
+    fun speak(text: String, utteranceId: String)
+
+    fun stop()
+
+    fun shutdown()
+
+    companion object {
+        /** Wie `TextToSpeech.SUCCESS`. */
+        const val SUCCESS = 0
+    }
+}
+
+/** Startet eine Sprachausgabe; [create]s Rückruf meldet, ob sie bereit ist (manche melden sich schon währenddessen). */
+fun interface SpeechEngineFactory {
+    fun create(onInit: (Int) -> Unit): SpeechEngine
+}
+
+/** [SpeechEngineFactory] mit Androids `TextToSpeech` und der vom Nutzer gewählten Sprachausgabe (z. B. SherpaTTS). */
+class AndroidTextToSpeechFactory(context: Context) : SpeechEngineFactory {
+    private val appContext = context.applicationContext
+
+    override fun create(onInit: (Int) -> Unit): SpeechEngine {
+        val tts = TextToSpeech(appContext) { status -> onInit(status) }
+        return object : SpeechEngine {
+            override fun setLanguage(locale: Locale): Int = tts.setLanguage(locale)
+            override fun speak(text: String, utteranceId: String) {
+                tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            }
+            override fun stop() {
+                tts.stop()
+            }
+            override fun shutdown() {
+                tts.shutdown()
+            }
+        }
+    }
+}
+
 /**
  * Vorlesen mit Androids `TextToSpeech` – mit der vom Nutzer gewählten Sprachausgabe (frei, z. B. SherpaTTS).
- * Deutsch: `Locale.GERMANY`, Rückfall `Locale.GERMAN`.
+ * Deutsch: `Locale.GERMANY`, Rückfall `Locale.GERMAN`. Fehlt etwas, startet [recheckIfNotReady] die Sprachausgabe
+ * nach der Rückkehr in die App neu (eine laufende `TextToSpeech`-Instanz bemerkt neu installierte Stimmen oder eine
+ * neu gewählte Sprachausgabe nicht von selbst).
  */
-class AndroidSpeaker(context: Context) : Speaker, TextToSpeech.OnInitListener {
-    private val appContext = context.applicationContext
+class AndroidSpeaker(private val engines: SpeechEngineFactory) : Speaker {
+
+    constructor(context: Context) : this(AndroidTextToSpeechFactory(context))
+
     private val statusFlow = MutableStateFlow(SpeakerStatus.INITIALIZING)
     private val lock = Any()
-    private var engine: TextToSpeech? = null
+    private var engine: SpeechEngine? = null
+    private var generation = 0
     private var pendingText: String? = null
     private var earlyInitStatus: Int? = null
     private var utteranceCounter = 0
@@ -27,20 +76,26 @@ class AndroidSpeaker(context: Context) : Speaker, TextToSpeech.OnInitListener {
     override fun prepare() {
         val created = synchronized(lock) {
             if (engine != null) return
-            TextToSpeech(appContext, this).also { engine = it }
+            val current = ++generation
+            engines.create { status -> onEngineInit(current, status) }.also { engine = it }
         }
-        // Manche Sprachausgaben melden sich schon im Konstruktor zurück (bevor engine gesetzt war).
+        // Manche Sprachausgaben melden sich schon beim Erzeugen zurück (bevor engine gesetzt war).
         val early = synchronized(lock) { earlyInitStatus.also { earlyInitStatus = null } }
         if (early != null) applyInit(created, early)
     }
 
-    override fun onInit(status: Int) {
-        val tts = synchronized(lock) { engine.also { if (it == null) earlyInitStatus = status } } ?: return
+    private fun onEngineInit(engineGeneration: Int, status: Int) {
+        val tts = synchronized(lock) {
+            // Rückmeldung einer schon ersetzten Sprachausgabe.
+            if (engineGeneration != generation) return
+            engine.also { if (it == null) earlyInitStatus = status }
+        } ?: return
         applyInit(tts, status)
     }
 
-    private fun applyInit(tts: TextToSpeech, status: Int) {
-        if (status != TextToSpeech.SUCCESS) {
+    private fun applyInit(tts: SpeechEngine, status: Int) {
+        if (status != SpeechEngine.SUCCESS) {
+            synchronized(lock) { pendingText = null }
             statusFlow.value = SpeakerStatus.NO_ENGINE
             return
         }
@@ -51,32 +106,36 @@ class AndroidSpeaker(context: Context) : Speaker, TextToSpeech.OnInitListener {
         if (text != null) speak(text)
     }
 
-    override fun speak(text: String) {
+    override fun speak(text: String): Boolean {
         prepare()
         val tts = synchronized(lock) {
             // Prüfung im Lock: applyInit setzt erst den Status und holt dann den vorgemerkten Text ab.
             if (statusFlow.value == SpeakerStatus.INITIALIZING) {
                 pendingText = text
-                return
+                return true
             }
             engine.takeIf { statusFlow.value == SpeakerStatus.READY }
-        } ?: return
+        } ?: return false
         val id = synchronized(lock) { "drinkwithme-${++utteranceCounter}" }
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id)
+        tts.speak(text, id)
+        return true
+    }
+
+    override fun recheckIfNotReady() {
+        val old = synchronized(lock) {
+            if (engine == null || !statusFlow.value.needsSetup) return
+            engine.also {
+                engine = null
+                pendingText = null
+            }
+        }
+        old?.shutdown()
+        statusFlow.value = SpeakerStatus.INITIALIZING
+        prepare()
     }
 
     override fun stop() {
         synchronized(lock) { engine }?.stop()
-    }
-
-    /** Nach dem Installieren von Sprachdaten neu starten, damit die Stimme erkannt wird. */
-    fun restart() {
-        synchronized(lock) {
-            engine?.shutdown()
-            engine = null
-        }
-        statusFlow.value = SpeakerStatus.INITIALIZING
-        prepare()
     }
 }
 

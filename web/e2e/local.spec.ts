@@ -6,9 +6,11 @@ import { APP_WITHOUT_SERVER, recordSpeech, setUpBar, spoken } from "./support";
 
 test("Erster Start → Getränk eintragen → Rückgängig → Diagramm-Texte im Verlauf", async ({ page }) => {
   await setUpBar(page);
-  const tiles = page.getByRole("list", { name: "Getränke in deiner Bar" }).getByRole("button");
+  const tiles = page.getByRole("list", { name: "Getränke in deiner Bar" }).locator(".drink-tile");
   await expect(tiles).toHaveCount(7);
   await expect(tiles.first()).toContainText("Wasser");
+  // Je Kachel ein „⋮“ für weitere Möglichkeiten (Privat eintragen, Bar bearbeiten).
+  await expect(page.getByRole("button", { name: /^Mehr zu / })).toHaveCount(7);
 
   // Ein Tipp = getrunken, mit 10-Sekunden-Rückgängig.
   await page.getByRole("button", { name: /^Apfelschorle/ }).click();
@@ -79,7 +81,95 @@ test("Bedienung nur mit der Tastatur", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByRole("region", { name: "Zuletzt eingetragen" })).toContainText("Wasser eingetragen.");
   await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Mehr zu Wasser" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: /^Kaffee/ })).toBeFocused();
+  // Das Menü geht auch per Tastatur auf und mit Escape wieder zu (Fokus zurück auf „⋮“).
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Enter");
+  const menu = page.getByRole("dialog", { name: "Wasser" });
+  await expect(menu.getByRole("button", { name: "Privat eintragen (nicht teilen)" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(page.getByRole("button", { name: "Mehr zu Wasser" })).toBeFocused();
+});
+
+test("Sicherung: speichern, in einem frischen Browser beim ersten Start einlesen (Review 3, Befund 11)", async ({ page, browser }) => {
+  await page.addInitScript(() => {
+    // Kein Teilen-Dialog im Test (iPhone-Projekt): Rückfall auf Herunterladen.
+    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
+  });
+  await setUpBar(page);
+  await page.getByRole("button", { name: /^Cola/ }).click();
+  await expect(page.getByRole("region", { name: "Zuletzt eingetragen" })).toContainText("Cola eingetragen.");
+  await page.goto("einstellungen");
+  await expect(page.getByText("Manche Browser (z. B. Safari) löschen Websitedaten auch von selbst")).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Sicherung speichern" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^drink-with-me-sicherung-\d{4}-\d{2}-\d{2}\.json$/);
+  const file = await download.path();
+  await expect(page.getByRole("status").filter({ hasText: "gespeichert" }).first()).toBeAttached();
+
+  // Neuer, leerer Browser (wie die App auf dem Home-Bildschirm mit eigenem Speicher): direkt beim ersten Start einlesen.
+  const fresh = await browser.newContext({ serviceWorkers: "block", locale: "de-DE", timezoneId: "Europe/Berlin" });
+  const other = await fresh.newPage();
+  await other.goto(new URL(".", page.url()).href);
+  await expect(other.getByRole("heading", { level: 1, name: "Willkommen bei Drink With Me" })).toBeVisible();
+  await other.getByTestId("sicherung-datei").setInputFiles(file);
+  await expect(other.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
+  await expect(other.getByText(/Heute:\s*1 Getränk\b/)).toBeVisible();
+  await expect(other.locator(".drink-tile")).toHaveCount(7);
+
+  // Nochmal einlesen ändert nichts (zusammenführen, nichts doppelt).
+  await other.goto(new URL("einstellungen", other.url()).href);
+  await other.getByTestId("sicherung-datei").setInputFiles(file);
+  await expect(other.getByRole("status").filter({ hasText: "Sicherung eingelesen: 0 Einträge und 0 Getränke übernommen." }).first()).toBeAttached();
+  await other.goto(new URL("verlauf", other.url()).href);
+  await expect(other.locator(".entry-row")).toHaveCount(1);
+
+  // Eine fremde Datei wird abgewiesen.
+  await other.goto(new URL("einstellungen", other.url()).href);
+  await other.getByTestId("sicherung-datei").setInputFiles({ name: "falsch.json", mimeType: "application/json", buffer: Buffer.from('{"hallo":1}') });
+  await expect(other.getByRole("alert").filter({ hasText: "Die Datei ist keine Sicherung von Drink With Me." })).toBeVisible();
+  await fresh.close();
+});
+
+test("Dauerhafter Speicher: nach dem Einrichten der Bar einmal angefragt", async ({ page }) => {
+  await page.addInitScript(() => {
+    const calls: string[] = [];
+    (window as unknown as { __persist: string[] }).__persist = calls;
+    Object.defineProperty(navigator, "storage", {
+      configurable: true,
+      value: {
+        persisted: async () => (calls.push("persisted"), false),
+        persist: async () => (calls.push("persist"), true),
+        estimate: async () => ({ usage: 0, quota: 1 }),
+      },
+    });
+  });
+  await setUpBar(page);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __persist: string[] }).__persist)).toEqual(["persisted", "persist"]);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
+  // Nur einmal fragen – auch nicht bei jedem Start.
+  expect(await page.evaluate(() => (window as unknown as { __persist: string[] }).__persist)).toEqual([]);
+});
+
+test("iPhone im Safari-Tab: Hinweis „zuerst auf den Home-Bildschirm“ und dass Daten nicht mitwandern", async ({ browser }) => {
+  const context = await browser.newContext({
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
+    serviceWorkers: "block",
+    baseURL: APP_WITHOUT_SERVER,
+  });
+  const page = await context.newPage();
+  await page.goto(APP_WITHOUT_SERVER);
+  await expect(page.getByText("Tipp fürs iPhone: zuerst auf den Home-Bildschirm")).toBeVisible();
+  await expect(page.getByText("Was du hier im Safari-Tab einträgst, ist dort nicht zu sehen.")).toBeVisible();
+  await page.getByRole("button", { name: /Bar einrichten/ }).click();
+  await page.goto(`${APP_WITHOUT_SERVER}einstellungen`);
+  await expect(page.getByText("Wechselst du zur App auf dem Home-Bildschirm?")).toBeVisible();
+  await context.close();
 });
 
 test("Als Bild teilen: Vorschau als PNG", async ({ page }) => {

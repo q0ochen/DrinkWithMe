@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drinkwithme.app.BuildConfig
 import com.drinkwithme.app.di.AppContainer
 import com.drinkwithme.app.routing.AppRequest
+import com.drinkwithme.app.share.ShareImageFiles
 import com.drinkwithme.app.share.StatisticsCard
 import com.drinkwithme.app.share.StatisticsImageRenderer
 import com.drinkwithme.app.supabase.ErrorMessages
@@ -34,6 +35,9 @@ import com.drinkwithme.app.supabase.SocialException
 import com.drinkwithme.app.ui.bar.BarScreen
 import com.drinkwithme.app.ui.bar.BarViewModel
 import com.drinkwithme.app.ui.common.ConfirmDialog
+import com.drinkwithme.app.ui.common.ScopedViewModelStores
+import com.drinkwithme.app.ui.common.ScopedViewModels
+import com.drinkwithme.app.ui.common.SpeechHelpActions
 import com.drinkwithme.app.ui.event.EventScreen
 import com.drinkwithme.app.ui.event.EventViewModel
 import com.drinkwithme.app.ui.friends.FriendsScreen
@@ -63,10 +67,12 @@ fun DrinkWithMeApp(container: AppContainer, appViewModel: AppViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val queued by messages.messages.collectAsStateWithLifecycle()
 
-    LaunchedEffect(queued.firstOrNull()) {
-        val message = queued.firstOrNull() ?: return@LaunchedEffect
-        snackbar.showSnackbar(message, duration = if (message.length > 60) SnackbarDuration.Long else SnackbarDuration.Short)
-        messages.consume(message)
+    // Nach der ID, nicht nach dem Text: Zwei gleiche Meldungen hintereinander dürfen die Reihe nicht anhalten.
+    val head = queued.firstOrNull()
+    LaunchedEffect(head?.id) {
+        val message = head ?: return@LaunchedEffect
+        snackbar.showSnackbar(message.text, duration = if (message.text.length > 60) SnackbarDuration.Long else SnackbarDuration.Short)
+        messages.consume(message.id)
     }
 
     var notificationsAllowed by remember { mutableStateOf(notificationsAllowed(context)) }
@@ -90,13 +96,25 @@ fun DrinkWithMeApp(container: AppContainer, appViewModel: AppViewModel) {
     }
 
     val signIn: () -> Unit = {
-        try {
-            val url = container.accountController.signInUrl()
-            if (container.links.openSignIn(context, url)) appViewModel.onSignInStarted() else messages.show(ErrorMessages.NO_BROWSER)
-        } catch (error: SocialException) {
-            messages.show(error.userMessage)
+        scope.launch {
+            try {
+                val url = container.accountController.signInUrl()
+                if (container.links.openSignIn(context, url)) appViewModel.onSignInStarted() else messages.show(ErrorMessages.NO_BROWSER)
+            } catch (error: SocialException) {
+                messages.show(error.userMessage)
+            }
         }
     }
+
+    val speechHelp = SpeechHelpActions(
+        openUrl = { url -> if (!container.links.openInBrowser(context, url)) messages.show(ErrorMessages.NO_BROWSER) },
+        installSpeechData = { if (!container.links.installSpeechData(context)) messages.show(NO_SPEECH_DATA_INSTALLER) },
+        openSpeechSettings = { if (!container.links.openSpeechSettings(context)) messages.show(NO_SPEECH_SETTINGS) },
+    )
+
+    // Je geöffnetem Ereignis ein eigener ViewModel-Speicher (übersteht Drehungen, wird beim Schließen geleert).
+    val eventStores: ScopedViewModelStores = viewModel(factory = container.viewModelFactory)
+    LaunchedEffect(state.openEvent?.key) { eventStores.retainOnly(state.openEvent?.key) }
 
     Surface(Modifier.fillMaxSize()) {
         when (state.needsOnboarding) {
@@ -114,11 +132,10 @@ fun DrinkWithMeApp(container: AppContainer, appViewModel: AppViewModel) {
                 if (openEvent != null) {
                     BackHandler(onBack = appViewModel::onEventClosed)
                     PlainScreen {
-                        val eventViewModel: EventViewModel = viewModel(
-                            key = "event-${openEvent.eventId}-${openEvent.autoRead}",
-                            factory = container.eventViewModelFactory(openEvent),
-                        )
-                        EventScreen(eventViewModel, onClose = appViewModel::onEventClosed)
+                        ScopedViewModels(eventStores, openEvent.key) {
+                            val eventViewModel: EventViewModel = viewModel(factory = container.eventViewModelFactory(openEvent.request))
+                            EventScreen(eventViewModel, onClose = appViewModel::onEventClosed, speechHelp = speechHelp)
+                        }
                     }
                 } else {
                     BackHandler(enabled = state.section != AppSection.BAR) { appViewModel.onSectionSelected(AppSection.BAR) }
@@ -139,11 +156,13 @@ fun DrinkWithMeApp(container: AppContainer, appViewModel: AppViewModel) {
                                     val file = withContext(Dispatchers.IO) {
                                         container.sharing.saveImage(StatisticsImageRenderer().render(card), LocalDate.now())
                                     }
-                                    if (!container.sharing.shareImage(context, file, "Statistik teilen")) {
-                                        messages.show(NOTHING_TO_SHARE_WITH)
+                                    when {
+                                        file == null -> messages.show(ShareImageFiles.SAVE_FAILED)
+                                        !container.sharing.shareImage(context, file, "Statistik teilen") -> messages.show(NOTHING_TO_SHARE_WITH)
                                     }
                                 }
                             },
+                            speechHelp = speechHelp,
                         )
                     }
                 }
@@ -174,6 +193,7 @@ private fun SectionContent(
     requestNotificationPermission: () -> Unit,
     onOpenEvent: (com.drinkwithme.core.social.FriendDrinkEvent) -> Unit,
     shareImage: (StatisticsCard) -> Unit,
+    speechHelp: SpeechHelpActions,
 ) {
     val context = LocalContext.current
     when (section) {
@@ -212,15 +232,8 @@ private fun SectionContent(
                 signingIn = signingIn,
                 actions = SettingsActions(
                     onSignIn = onSignIn,
-                    openUrl = { url ->
-                        if (!container.links.openInBrowser(context, url)) container.messageQueue.show(ErrorMessages.NO_BROWSER)
-                    },
-                    installSpeechData = {
-                        if (!container.links.installSpeechData(context)) container.messageQueue.show(NO_SPEECH_DATA_INSTALLER)
-                    },
-                    openSpeechSettings = {
-                        if (!container.links.openSpeechSettings(context)) container.messageQueue.show(NO_SPEECH_SETTINGS)
-                    },
+                    openUrl = speechHelp.openUrl,
+                    speechHelp = speechHelp,
                     notificationsAllowed = notificationsAllowed,
                     requestNotificationPermission = requestNotificationPermission,
                     versionName = BuildConfig.VERSION_NAME,

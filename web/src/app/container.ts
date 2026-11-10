@@ -9,14 +9,19 @@ import { StatisticsCalculator } from "../core/stats/statisticsCalculator";
 import { systemClock, type Clock, type IdGenerator, randomIdGenerator } from "../core/time/clock";
 import { systemTimeZone, type TimeZone } from "../core/time/localDate";
 import { defaultVoiceMatcher, type VoiceMatcher } from "../core/voice/voiceCommandMatcher";
+import { BackupService } from "../data/backup";
 import type { SettingsStore } from "../data/settingsStore";
+import { InMemoryStoredValue, type StoredValue } from "../data/storedValue";
 import type { PlatformInfo } from "../platform/platform";
 import type { SpeechRecognizer } from "../platform/recognition";
 import type { ImageSharer } from "../platform/share";
 import type { Speaker } from "../platform/speech";
+import type { PersistentStorage } from "../platform/storage";
+import { SocialError } from "../social/errors";
 import type { SocialServices } from "../social/types";
 import { ChangeNotifier, NotifyingBarRepository, NotifyingHistoryRepository } from "./changeNotifier";
 import type { AppConfig } from "./config";
+import { PendingShareQueue, RetryingEventPublisher, ShareRetryProcessor, type RetryOutcome } from "./pendingShares";
 
 /** Angemeldeter Nutzer als beobachtbarer Zustand (zuerst aus dem lokalen Speicher, dann aus der Sitzung). */
 export class SessionState {
@@ -66,10 +71,20 @@ export interface AppServices {
   readonly imageSharer: ImageSharer;
   readonly ids: IdGenerator;
   readonly changes: ChangeNotifier;
+  /** Export/Import von Bar und Verlauf (direkt lokal – Eingelesenes wird nie geteilt). */
+  readonly backup: BackupService;
+  /** Ohne Verbindung vorgemerkte Teilen-/Zurückziehen-Aufträge. */
+  readonly pendingShares: PendingShareQueue;
+  /** Holt vorgemerkte Aufträge nach (beim Start, wenn wieder online, wenn die App sichtbar wird). */
+  retryPendingShares(): Promise<RetryOutcome>;
+  /** Bittet einmalig um dauerhaften Speicher (nach dem Einrichten der Bar). */
+  requestPersistentStorage(): Promise<void>;
   /** Vernetzung (lädt supabase-js erst bei Bedarf); `null`, wenn der Server nicht eingerichtet ist. */
   social(): Promise<SocialServices | null>;
   /** Meldet Hintergrundfehler (z. B. Teilen fehlgeschlagen) – blockiert nie. */
   reportBackgroundError(error: unknown): void;
+  /** Hintergrundfehler beobachten (z. B. „too_many_events“ in der Bar anzeigen). */
+  subscribeBackgroundErrors(listener: (error: unknown) => void): () => void;
 }
 
 export interface AppDependencies {
@@ -83,8 +98,14 @@ export interface AppDependencies {
   readonly imageSharer: ImageSharer;
   /** Lädt die Vernetzung (z. B. per dynamischem Import); nur aufgerufen, wenn der Server eingerichtet ist. */
   readonly loadSocial: () => Promise<SocialServices>;
-  /** Wird bei jeder Änderung der Anmeldung aufgerufen (z. B. für den Service Worker). */
+  /**
+   * Wird bei jeder Änderung der Anmeldung aufgerufen (z. B. für den Service Worker). `null` heißt **ausdrücklich
+   * abgemeldet** – ein vorübergehender Fehler beim Erneuern der Sitzung meldet nie `null`.
+   */
   readonly onSignedInUserChanged?: (user: UserProfile | null) => Promise<void> | void;
+  /** Speicher der vorgemerkten Teilen-Aufträge (Standard: flüchtig). */
+  readonly pendingShareStore?: StoredValue;
+  readonly persistentStorage?: PersistentStorage;
   readonly clock?: Clock;
   readonly zone?: TimeZone;
   readonly ids?: IdGenerator;
@@ -99,8 +120,10 @@ export function createAppServices(dependencies: AppDependencies): AppServices {
   const changes = new ChangeNotifier();
   const stored = settings.current().signedInUser;
   const session = new SessionState(config.supabase && stored ? { id: stored.id, displayName: stored.displayName, avatarUrl: null } : null);
+  const backgroundErrorListeners = new Set<(error: unknown) => void>();
   const reportBackgroundError = (error: unknown) => {
     dependencies.onBackgroundError?.(error);
+    for (const listener of backgroundErrorListeners) listener(error);
   };
 
   let socialPromise: Promise<SocialServices | null> | null = null;
@@ -122,7 +145,10 @@ export function createAppServices(dependencies: AppDependencies): AppServices {
         });
         await services.auth.ready();
         await apply(services.auth.currentUser());
-        if (services.auth.currentUser()) services.push.sync().catch(reportBackgroundError);
+        if (services.auth.currentUser()) {
+          services.push.sync(settings.current().pushWanted).catch(reportBackgroundError);
+          void retryPendingShares();
+        }
         return services;
       })
       .catch((error: unknown) => {
@@ -136,21 +162,57 @@ export function createAppServices(dependencies: AppDependencies): AppServices {
   const policy = new SharingPolicy({
     current: () => ({ isSignedIn: session.current() !== null, alcoholConsent: settings.current().alcoholConsent }),
   });
+  /** Der echte Publisher der Vernetzung (lädt sie bei Bedarf); lädt sie nicht, ist das wie „keine Verbindung“. */
+  const remotePublisher = async (): Promise<EventPublisher | null> => {
+    if (!config.supabase) return null;
+    const services = await social();
+    if (!services) throw new SocialError("network");
+    return services.publisher;
+  };
   const lazyPublisher: EventPublisher = {
     async publish(entry) {
-      const services = await social();
-      await services?.publisher.publish(entry);
+      await (await remotePublisher())?.publish(entry);
     },
     async unpublish(entryId) {
-      const services = await social();
-      await services?.publisher.unpublish(entryId);
+      await (await remotePublisher())?.unpublish(entryId);
     },
   };
+  // Ohne Verbindung vormerken und später nachholen (wie PendingShareQueue in der Android-App).
+  const pendingShares = new PendingShareQueue(dependencies.pendingShareStore ?? new InMemoryStoredValue());
+  const retryProcessor = new ShareRetryProcessor(
+    pendingShares,
+    dependencies.history,
+    policy,
+    () => remotePublisher().catch(() => null),
+    clock,
+  );
+  let retrying: Promise<RetryOutcome> | null = null;
+  const retryPendingShares = (): Promise<RetryOutcome> => {
+    retrying ??= retryProcessor
+      .run()
+      .catch((error: unknown): RetryOutcome => {
+        reportBackgroundError(error);
+        return "retryLater";
+      })
+      .finally(() => {
+        retrying = null;
+      });
+    return retrying;
+  };
   const history = new NotifyingHistoryRepository(
-    new SharingHistoryRepository(dependencies.history, lazyPublisher, policy, reportBackgroundError),
+    new SharingHistoryRepository(dependencies.history, new RetryingEventPublisher(lazyPublisher, pendingShares), policy, reportBackgroundError),
     changes,
   );
   const bar = new NotifyingBarRepository(dependencies.bar, changes);
+  const backup = new BackupService(dependencies.bar, dependencies.history, clock, () => {
+    changes.notify("bar");
+    changes.notify("history");
+  });
+  const requestPersistentStorage = async (): Promise<void> => {
+    if (!dependencies.persistentStorage || settings.current().persistentStorageRequested) return;
+    await settings.update({ persistentStorageRequested: true });
+    await dependencies.persistentStorage.request();
+  };
 
   return {
     config,
@@ -174,7 +236,15 @@ export function createAppServices(dependencies: AppDependencies): AppServices {
     imageSharer: dependencies.imageSharer,
     ids,
     changes,
+    backup,
+    pendingShares,
+    retryPendingShares,
+    requestPersistentStorage,
     social,
     reportBackgroundError,
+    subscribeBackgroundErrors(listener) {
+      backgroundErrorListeners.add(listener);
+      return () => backgroundErrorListeners.delete(listener);
+    },
   };
 }

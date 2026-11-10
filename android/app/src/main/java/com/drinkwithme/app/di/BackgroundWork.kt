@@ -88,8 +88,12 @@ class FeedPollingWorker(context: Context, params: WorkerParameters) : CoroutineW
 /** Push-Abo mit dem Server abgleichen. */
 class PushSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val sync = applicationContext.container.pushSubscriptionSync ?: return Result.success()
-        return when (sync.sync()) {
+        val container = applicationContext.container
+        val sync = container.pushSubscriptionSync ?: return Result.success()
+        val outcome = sync.sync()
+        // Erst ein bestätigtes Abo ersetzt den Abruf alle 15 Minuten (und ein abgelehntes schaltet ihn wieder ein).
+        container.socialBackground.updatePolling()
+        return when (outcome) {
             SyncOutcome.DONE -> Result.success()
             SyncOutcome.RETRY_LATER -> Result.retry()
         }

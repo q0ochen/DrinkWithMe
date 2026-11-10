@@ -1,6 +1,7 @@
 package com.drinkwithme.app.supabase
 
 import com.drinkwithme.app.FixedUser
+import com.drinkwithme.app.social.OutgoingRequest
 import com.drinkwithme.app.config.ServerConfig
 import com.drinkwithme.app.entry
 import com.drinkwithme.core.bar.DrinkCategory
@@ -84,18 +85,33 @@ class SupabaseServicesTest {
     }
 
     @Test
-    fun requestsAreSplitIntoIncomingAndOutgoing() = runTest {
-        json("""[{"id":"r1","from_user":"x-id","to_user":"me-id","created_at":"2026-11-09T10:00:00Z"},
-                 {"id":"r2","from_user":"me-id","to_user":"y-id","created_at":"2026-11-08T10:00:00Z"}]""")
+    fun incomingRequestsComeFromTheTableWithTheSendersProfile() = runTest {
+        json("""[{"id":"r1","from_user":"x-id","created_at":"2026-11-09T10:00:00Z"}]""")
         json("""[{"id":"x-id","display_name":"Xaver"}]""")
 
         val result = friends.requests()
 
+        assertEquals(1, result.size)
         assertEquals(FriendRequest.Direction.INCOMING, result[0].direction)
         assertEquals("Xaver", result[0].other.displayName)
-        assertEquals(FriendRequest.Direction.OUTGOING, result[1].direction)
-        assertEquals(SupabaseMappers.UNKNOWN_NAME, result[1].other.displayName, "unsichtbares Profil → Ersatzname")
-        assertEquals("created_at.desc", take().requestUrl!!.queryParameter("order"))
+        val request = take().requestUrl!!
+        assertEquals("id,from_user,created_at", request.queryParameter("select"), "Absender lesen to_user nie")
+        assertEquals("eq.me-id", request.queryParameter("to_user"))
+        assertEquals("created_at.desc", request.queryParameter("order"))
+    }
+
+    @Test
+    fun outgoingRequestsShowOnlyTheMaskedAddress() = runTest {
+        json("""[{"id":"r2","email_hint":"b***@example.org","created_at":"2026-11-08T10:00:00Z"},
+                 {"id":"kaputt"}]""")
+
+        val result = friends.outgoingRequests()
+
+        assertEquals(listOf(OutgoingRequest("r2", "b***@example.org", Instant.parse("2026-11-08T10:00:00Z"))), result)
+        val request = take()
+        assertEquals("POST", request.method)
+        assertEquals("/rest/v1/rpc/list_outgoing_friend_requests", request.path)
+        assertEquals(1, server.requestCount, "kein Profil-Abruf – der Server verrät nicht, wen die Anfrage erreicht")
     }
 
     @Test
@@ -117,12 +133,13 @@ class SupabaseServicesTest {
     }
 
     @Test
-    fun cancelDeletesOwnRequest() = runTest {
+    fun cancelUsesTheRpc() = runTest {
         server.enqueue(MockResponse().setResponseCode(204))
         friends.cancel("r9")
         val request = take()
-        assertEquals("DELETE", request.method)
-        assertEquals("eq.r9", request.requestUrl!!.queryParameter("id"))
+        assertEquals("POST", request.method)
+        assertEquals("/rest/v1/rpc/cancel_friend_request", request.path)
+        assertEquals("r9", JSONObject(request.body.readUtf8()).getString("request_id"))
     }
 
     @Test
@@ -293,6 +310,7 @@ class ErrorMappingTest {
             "invite_own" to ErrorMessages.INVITE_OWN,
             "request_not_found" to ErrorMessages.REQUEST_NOT_FOUND,
             "too_many_subscriptions" to ErrorMessages.TOO_MANY_SUBSCRIPTIONS,
+            "too_many_events" to ErrorMessages.TOO_MANY_EVENTS,
             "not_authenticated" to ErrorMessages.SESSION_EXPIRED,
             "unauthorized" to ErrorMessages.SESSION_EXPIRED,
         ).forEach { (code, text) -> assertEquals(text, ErrorMessages.forCode(code, 400), code) }

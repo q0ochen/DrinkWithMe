@@ -6,6 +6,7 @@
 import { decodeBase64Url } from "../bytes.ts";
 import type { Clock } from "../clock.ts";
 import { encryptAes128Gcm, type EphemeralSource, PushEncryptionError, randomEphemeralSource } from "./encryption.ts";
+import { pushEndpointHost, type PushHostVerifier } from "./endpoint_policy.ts";
 import { VapidHeaderFactory } from "./vapid.ts";
 import type { VapidCredentials } from "./vapid.ts";
 
@@ -43,35 +44,13 @@ export interface PushSender {
   send(target: PushTarget, payload: Uint8Array, options: PushOptions): Promise<PushResult>;
 }
 
-/**
- * Prüft, ob ein Endpoint ein öffentlicher https-Dienst ist. Schützt davor, dass jemand über ein präpariertes
- * Abo interne Adressen aus der Edge Function heraus ansprechen lässt (SSRF).
- */
-export function isAllowedPushEndpoint(endpoint: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(endpoint);
-  } catch {
-    return false;
-  }
-  if (url.protocol !== "https:" || url.username !== "" || url.password !== "") {
-    return false;
-  }
-  const host = url.hostname.toLowerCase();
-  if (host.startsWith("[") || /^[0-9.]+$/.test(host)) {
-    return false; // IP-Adressen (v4/v6) statt Hostnamen
-  }
-  if (!host.includes(".") || host === "localhost" || host.endsWith(".localhost")) {
-    return false;
-  }
-  return !/\.(local|internal|lan|home|intranet|corp|private)$/.test(host);
-}
-
 /** Abhängigkeiten des WebPushSender (alles injiziert, damit er sich ohne Netz testen lässt). */
 export interface WebPushSenderDeps {
   credentials: VapidCredentials;
   fetch: typeof fetch;
   clock: Clock;
+  /** DNS-Prüfung des Ziel-Hosts (SSRF-Schutz, siehe endpoint_policy.ts). */
+  hosts: PushHostVerifier;
   ephemeral?: EphemeralSource;
   /** Zeitlimit pro Anfrage an den Push-Dienst (Millisekunden). */
   timeoutMs?: number;
@@ -85,8 +64,14 @@ export class WebPushSender implements PushSender {
     this.#vapid = new VapidHeaderFactory(deps.credentials);
   }
 
+  /**
+   * Reihenfolge: erst die Prüfungen ohne Netz (Form des Endpoints, Schlüssel des Empfängers), dann die DNS-Prüfung
+   * des Hosts, erst danach der Versand. Unzulässige Endpoints und Schlüssel → `invalid` (Abo wird gelöscht);
+   * eine DNS-Störung → `failed` (Abo bleibt, nächster Versuch beim nächsten Getränk).
+   */
   async send(target: PushTarget, payload: Uint8Array, options: PushOptions): Promise<PushResult> {
-    if (!isAllowedPushEndpoint(target.endpoint)) {
+    const host = pushEndpointHost(target.endpoint);
+    if (host === null) {
       return { kind: "invalid", reason: "endpoint_not_allowed" };
     }
     let body: Uint8Array;
@@ -101,6 +86,14 @@ export class WebPushSender implements PushSender {
         return { kind: "invalid", reason: "receiver_keys_invalid" };
       }
       throw error;
+    }
+
+    const verdict = await this.deps.hosts.verify(host);
+    if (verdict.kind === "not_allowed") {
+      return { kind: "invalid", reason: "endpoint_not_allowed" };
+    }
+    if (verdict.kind === "unresolved") {
+      return { kind: "failed", reason: verdict.reason };
     }
 
     const headers = new Headers({

@@ -1,3 +1,5 @@
+import type { RecipientState } from "./recipientStore";
+
 /**
  * Inhalt der Push-Nachrichten von `notify-friends` (siehe supabase/README.md):
  * `{ type: "drink", eventId, authorId, recipientId, title, body }`.
@@ -72,4 +74,21 @@ export function planNotification(payload: DrinkPushPayload | null, signedInUserI
       data: { url: eventUrl(scope, payload.eventId), eventId: payload.eventId },
     },
   };
+}
+
+/** Was der Service Worker mit einer Push-Nachricht tut. */
+export type PushDecision =
+  | { readonly kind: "show"; readonly plan: NotificationPlan }
+  | { readonly kind: "unsubscribe" }
+  | { readonly kind: "ignore" };
+
+/**
+ * Anzeigen nur für den angemeldeten Empfänger. Abbestellen **nur** nach ausdrücklicher Abmeldung – nicht, weil die
+ * Nutzer-ID gerade fehlt oder nicht lesbar ist (z. B. nach einem vorübergehenden Fehler beim Erneuern der Sitzung).
+ */
+export function decidePush(payload: DrinkPushPayload | null, recipient: RecipientState, scope: string): PushDecision {
+  if (payload === null) return { kind: "ignore" };
+  if (recipient.kind === "signedOut") return { kind: "unsubscribe" };
+  const plan = planNotification(payload, recipient.kind === "signedIn" ? recipient.userId : null, scope);
+  return plan ? { kind: "show", plan } : { kind: "ignore" };
 }

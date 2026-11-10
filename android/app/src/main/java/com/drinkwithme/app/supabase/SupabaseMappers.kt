@@ -4,6 +4,7 @@ import com.drinkwithme.app.data.instantOrNull
 import com.drinkwithme.app.data.intOrNull
 import com.drinkwithme.app.data.nonBlankStringOrNull
 import com.drinkwithme.app.data.objects
+import com.drinkwithme.app.social.OutgoingRequest
 import com.drinkwithme.core.bar.DrinkCategory
 import com.drinkwithme.core.bar.DrinkIcon
 import com.drinkwithme.core.sharing.SharedDrink
@@ -19,8 +20,8 @@ import java.time.Instant
 /** Zeilen der Tabelle `friendships` aus Sicht von [myId]: die andere Person und seit wann. */
 data class FriendshipRow(val otherId: String, val since: Instant)
 
-/** Zeile der Tabelle `friend_requests`. */
-data class FriendRequestRow(val id: String, val fromUser: String, val toUser: String, val createdAt: Instant)
+/** Zeile der Tabelle `friend_requests` aus Sicht des Empfängers (nur Empfänger dürfen sie lesen). */
+data class IncomingRequestRow(val id: String, val fromUser: String, val createdAt: Instant)
 
 /** Zeile der Tabelle `drink_events` (ohne Profil). */
 data class DrinkEventRow(
@@ -96,25 +97,28 @@ object SupabaseMappers {
         FriendshipRow(other, since)
     }
 
-    fun friendRequests(body: String): List<FriendRequestRow> = array(body).objects().mapNotNull { json ->
-        FriendRequestRow(
+    fun incomingRequests(body: String): List<IncomingRequestRow> = array(body).objects().mapNotNull { json ->
+        IncomingRequestRow(
             id = json.nonBlankStringOrNull("id") ?: return@mapNotNull null,
             fromUser = json.nonBlankStringOrNull("from_user") ?: return@mapNotNull null,
-            toUser = json.nonBlankStringOrNull("to_user") ?: return@mapNotNull null,
             createdAt = json.instantOrNull("created_at") ?: return@mapNotNull null,
         )
     }
 
-    /** Anfragen aus Sicht von [myId] mit dem Profil der jeweils anderen Person. */
-    fun toFriendRequests(rows: List<FriendRequestRow>, myId: String, profiles: Map<String, UserProfile>): List<FriendRequest> =
-        rows.mapNotNull { row ->
-            val (otherId, direction) = when (myId) {
-                row.toUser -> row.fromUser to FriendRequest.Direction.INCOMING
-                row.fromUser -> row.toUser to FriendRequest.Direction.OUTGOING
-                else -> return@mapNotNull null
-            }
-            FriendRequest(row.id, profiles[otherId] ?: placeholder(otherId), direction, row.createdAt)
+    /** Eingehende Anfragen mit dem Profil des Absenders. */
+    fun toIncomingRequests(rows: List<IncomingRequestRow>, profiles: Map<String, UserProfile>): List<FriendRequest> =
+        rows.map { row ->
+            FriendRequest(row.id, profiles[row.fromUser] ?: placeholder(row.fromUser), FriendRequest.Direction.INCOMING, row.createdAt)
         }
+
+    /** Ergebnis von `list_outgoing_friend_requests`: `[{ id, email_hint, created_at }]`. */
+    fun outgoingRequests(body: String): List<OutgoingRequest> = array(body).objects().mapNotNull { json ->
+        OutgoingRequest(
+            id = json.nonBlankStringOrNull("id") ?: return@mapNotNull null,
+            emailHint = json.nonBlankStringOrNull("email_hint")?.trim() ?: return@mapNotNull null,
+            createdAt = json.instantOrNull("created_at") ?: return@mapNotNull null,
+        )
+    }
 
     fun drinkEvents(body: String): List<DrinkEventRow> = array(body).objects().mapNotNull(::drinkEvent)
 

@@ -80,6 +80,21 @@ class ShareImageFilesTest {
         assertEquals(listOf(newest.name), files.directory.listFiles()!!.map { it.name })
         assertEquals("shared_images", newest.parentFile!!.name, "nur dieser Ordner ist per FileProvider freigegeben")
     }
+
+    @Test
+    fun writingAnImageReportsFailuresInsteadOfThrowing() {
+        val files = ShareImageFiles(folder.root)
+        val written = files.writeImage(LocalDate.of(2026, 11, 10)) { out -> out.write(byteArrayOf(1, 2, 3)); true }
+        assertEquals(3L, written!!.length())
+
+        assertNull(files.writeImage(LocalDate.of(2026, 11, 10)) { false }, "PNG nicht vollständig geschrieben (z. B. Speicher voll)")
+        assertFalse(files.directory.listFiles()!!.any { it.length() == 0L }, "keine halbe Datei liegen lassen")
+
+        // Der Cache-Ordner lässt sich nicht anlegen (z. B. Speicher voll, Cache gerade geleert).
+        val blocked = ShareImageFiles(folder.newFile("kein-ordner"))
+        assertNull(blocked.writeImage(LocalDate.of(2026, 11, 10)) { true })
+        assertEquals("Das Bild konnte nicht gespeichert werden. Ist der Speicher voll?", ShareImageFiles.SAVE_FAILED)
+    }
 }
 
 class SpeechPolicyTest {

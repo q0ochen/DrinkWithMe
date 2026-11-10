@@ -1,4 +1,4 @@
-import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
+import { isAuthRetryableFetchError, type Session, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { UserProfile } from "../core/social/ports";
 import { SocialError } from "./errors";
 import type { AuthService } from "./types";
@@ -30,7 +30,17 @@ export interface SupabaseAuthOptions {
   readonly openUrl: (url: string) => void;
 }
 
-/** {@link AuthService} über supabase-js (PKCE-Ablauf, Sitzung in IndexedDB). */
+/** Liest die gespeicherte Sitzung roh (ohne Erneuern) – `null`, wenn keine da ist. */
+export type StoredSessionReader = () => Promise<{ user?: User } | null>;
+
+/**
+ * {@link AuthService} über supabase-js (PKCE-Ablauf, Sitzung in IndexedDB).
+ *
+ * Abgemeldet ist nur, wer sich abmeldet, wessen Sitzung der Server ablehnt (`SIGNED_OUT`) oder wer keine
+ * gespeicherte Sitzung hat. Scheitert das Erneuern der Sitzung nur vorübergehend (offline, 5xx – supabase-js
+ * meldet `AuthRetryableFetchError` und behält die Sitzung im Speicher), bleibt der zuletzt bekannte Nutzer
+ * angemeldet; supabase-js erneuert die Sitzung später selbst (`TOKEN_REFRESHED`).
+ */
 export class SupabaseAuthService implements AuthService {
   private user: UserProfile | null = null;
   private readonly listeners = new Set<(user: UserProfile | null) => void>();
@@ -39,15 +49,40 @@ export class SupabaseAuthService implements AuthService {
   constructor(
     private readonly client: SupabaseClient,
     private readonly options: SupabaseAuthOptions,
+    private readonly storedSession: StoredSessionReader = async () => null,
   ) {
-    this.client.auth.onAuthStateChange((_event, session) => {
+    this.client.auth.onAuthStateChange((event, session) => {
       // Keine weiteren Supabase-Aufrufe direkt im Rückruf (Empfehlung von supabase-js) – nur Zustand setzen.
-      this.apply(session);
+      if (session) this.apply(session);
+      else if (event === "SIGNED_OUT") this.apply(null);
+      // INITIAL_SESSION ohne Sitzung (auch nach einem vorübergehenden Fehler) entscheidet restore().
     });
-    this.initialized = this.client.auth
-      .getSession()
-      .then(({ data }) => this.apply(data.session))
-      .catch(() => this.apply(null));
+    this.initialized = this.restore();
+  }
+
+  private async restore(): Promise<void> {
+    try {
+      const { data, error } = await this.client.auth.getSession();
+      if (data.session) {
+        this.apply(data.session);
+        return;
+      }
+      if (error && isAuthRetryableFetchError(error)) {
+        await this.keepStoredUser();
+        return;
+      }
+      this.apply(null);
+    } catch {
+      // Speicher oder Bibliothek gestört – nicht abmelden, sondern beim gespeicherten Stand bleiben.
+      await this.keepStoredUser();
+    }
+  }
+
+  /** Vorübergehender Fehler: Nutzer aus der gespeicherten Sitzung übernehmen (supabase-js löscht sie dabei nicht). */
+  private async keepStoredUser(): Promise<void> {
+    const stored = await this.storedSession().catch(() => null);
+    if (stored?.user?.id) this.applyUser(profileFromUser(stored.user));
+    else this.applyUser(null);
   }
 
   ready(): Promise<void> {
@@ -98,7 +133,10 @@ export class SupabaseAuthService implements AuthService {
   }
 
   private apply(session: Session | null): void {
-    const next = session?.user ? profileFromUser(session.user) : null;
+    this.applyUser(session?.user ? profileFromUser(session.user) : null);
+  }
+
+  private applyUser(next: UserProfile | null): void {
     if (next?.id === this.user?.id && next?.displayName === this.user?.displayName) return;
     this.user = next;
     for (const listener of this.listeners) listener(next);

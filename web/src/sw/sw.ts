@@ -2,11 +2,12 @@
  * Service Worker der Web-App (bewusst klein, ohne Bibliothek):
  * - Offline-Start: alle ausgelieferten Dateien werden beim Installieren zwischengespeichert; Seitenaufrufe gehen
  *   zuerst ans Netz (damit Updates sofort ankommen) und fallen offline auf die gespeicherte index.html zurück.
- * - Web Push: zeigt eine Nachricht nur an, wenn `recipientId` dem angemeldeten Nutzer entspricht.
+ * - Web Push: zeigt eine Nachricht nur an, wenn `recipientId` dem angemeldeten Nutzer entspricht; abbestellt wird
+ *   nur nach ausdrücklicher Abmeldung.
  * - Tipp auf die Nachricht öffnet den Ereignis-Bildschirm /ereignis/<eventId>.
  */
-import { parsePushPayload, planNotification } from "./pushMessages";
-import { readRecipientId } from "./recipientStore";
+import { decidePush, parsePushPayload } from "./pushMessages";
+import { readRecipient, type RecipientState } from "./recipientStore";
 
 declare const __DWM_PRECACHE__: string[];
 declare const __DWM_SW_VERSION__: string;
@@ -97,21 +98,13 @@ sw.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
       const payload = parsePushPayload(event.data?.text());
-      let userId: string | null = null;
-      let readFailed = false;
-      try {
-        userId = await readRecipientId();
-      } catch {
-        readFailed = true;
-      }
-      const plan = planNotification(payload, userId, scope());
-      if (plan) {
-        await sw.registration.showNotification(plan.title, plan.options);
-        return;
-      }
-      // Abo gehört zu keinem angemeldeten Nutzer mehr (z. B. abgemeldet): abbestellen, damit keine weiteren
-      // Nachrichten kommen. Der Server löscht das Abo beim nächsten Versuch (404/410).
-      if (payload !== null && userId === null && !readFailed) {
+      const recipient = await readRecipient().catch((): RecipientState => ({ kind: "unknown" }));
+      const decision = decidePush(payload, recipient, scope());
+      if (decision.kind === "show") {
+        await sw.registration.showNotification(decision.plan.title, decision.plan.options);
+      } else if (decision.kind === "unsubscribe") {
+        // Ausdrücklich abgemeldet: abbestellen, damit keine weiteren Nachrichten kommen. Der Server löscht das Abo
+        // beim nächsten Versuch (404/410). Fehlt nur die Nutzer-ID, bleibt das Abo (siehe decidePush).
         const subscription = await sw.registration.pushManager.getSubscription();
         await subscription?.unsubscribe();
       }

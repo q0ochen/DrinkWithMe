@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
 import { drinkCategoryFromName } from "../core/bar/drinkCategory";
 import { drinkIconFromKey } from "../core/bar/drinkIcon";
 import type { DrinkEntry } from "../core/log/drinkEntry";
@@ -15,6 +15,7 @@ import {
   type UserProfile,
 } from "../core/social/ports";
 import { fromPostgrestError, SocialError } from "./errors";
+import type { OutgoingFriendRequest, OutgoingRequestsService } from "./types";
 
 interface ProfileRow {
   id: string;
@@ -73,8 +74,11 @@ function placeholder(id: string): UserProfile {
 
 const byName = (a: UserProfile, b: UserProfile) => a.displayName.localeCompare(b.displayName, "de");
 
-/** {@link FriendsService} über PostgREST-Tabellen und die RPCs aus supabase/README.md. */
-export class SupabaseFriendsService implements FriendsService {
+/**
+ * {@link FriendsService} über PostgREST-Tabellen und die RPCs aus supabase/README.md. Ausgehende Anfragen gibt es
+ * nur ohne Empfänger (RPC `list_outgoing_friend_requests`), damit niemand per E-Mail-Adresse Konten ausforschen kann.
+ */
+export class SupabaseFriendsService implements FriendsService, OutgoingRequestsService {
   private readonly access: SupabaseAccess;
 
   constructor(
@@ -101,21 +105,30 @@ export class SupabaseFriendsService implements FriendsService {
       .sort((a, b) => byName(a.profile, b.profile));
   }
 
+  /** Eingehende Anfragen (nur Empfänger dürfen die Tabelle lesen) mit dem Profil des Absenders. */
   async requests(): Promise<FriendRequest[]> {
     const me = this.access.me();
-    const rows = unwrap<Array<{ id: string; from_user: string; to_user: string; created_at: string }>>(
-      await this.client.from("friend_requests").select("id,from_user,to_user,created_at").order("created_at", { ascending: false }),
+    const rows = unwrap<Array<{ id: string; from_user: string; created_at: string }>>(
+      await this.client.from("friend_requests").select("id,from_user,created_at").eq("to_user", me).order("created_at", { ascending: false }),
     );
-    const profiles = await this.access.profiles(rows.map((row) => (row.to_user === me ? row.from_user : row.to_user)));
-    return rows.map((row) => {
-      const incoming = row.to_user === me;
-      const otherId = incoming ? row.from_user : row.to_user;
-      return {
-        id: row.id,
-        other: profiles.get(otherId) ?? placeholder(otherId),
-        direction: incoming ? "INCOMING" : "OUTGOING",
-        createdAt: Date.parse(row.created_at),
-      };
+    const profiles = await this.access.profiles(rows.map((row) => row.from_user));
+    return rows.map((row) => ({
+      id: row.id,
+      other: profiles.get(row.from_user) ?? placeholder(row.from_user),
+      direction: "INCOMING",
+      createdAt: Date.parse(row.created_at),
+    }));
+  }
+
+  /** Eigene offene Anfragen: nur ID, maskierte Adresse und Zeitpunkt – nie, ob bzw. wen sie erreichen. */
+  async outgoingRequests(): Promise<OutgoingFriendRequest[]> {
+    this.access.me();
+    const rows = unwrap<unknown[] | null>(await this.client.rpc("list_outgoing_friend_requests", {})) ?? [];
+    return rows.flatMap((row): OutgoingFriendRequest[] => {
+      const { id, email_hint: emailHint, created_at: createdAt } = (row ?? {}) as Record<string, unknown>;
+      if (typeof id !== "string" || typeof emailHint !== "string" || typeof createdAt !== "string") return [];
+      const at = Date.parse(createdAt);
+      return Number.isFinite(at) ? [{ id, emailHint, createdAt: at }] : [];
     });
   }
 
@@ -128,8 +141,9 @@ export class SupabaseFriendsService implements FriendsService {
     unwrap(await this.client.rpc("respond_friend_request", { request_id: requestId, accept }));
   }
 
+  /** Eigene Anfrage zurückziehen (idempotent; fremde oder erledigte Anfragen ignoriert der Server). */
   async cancel(requestId: string): Promise<void> {
-    unwrap(await this.client.from("friend_requests").delete().eq("id", requestId));
+    unwrap(await this.client.rpc("cancel_friend_request", { request_id: requestId }));
   }
 
   async createInviteLink(): Promise<string> {
@@ -210,6 +224,7 @@ export class SupabaseEventPublisher implements EventPublisher {
   ) {}
 
   async publish(entry: DrinkEntry): Promise<void> {
+    await this.requireSession();
     const shared = toSharedDrink(entry);
     const row = {
       id: shared.id,
@@ -233,6 +248,17 @@ export class SupabaseEventPublisher implements EventPublisher {
   }
 
   async unpublish(entryId: string): Promise<void> {
+    await this.requireSession();
     unwrap(await this.client.from("drink_events").delete().eq("id", entryId));
+  }
+
+  /**
+   * Ohne gültige Sitzung würde supabase-js mit dem Anon-Key senden (und der Server lehnt ab). Scheitert nur das
+   * Erneuern (offline, 5xx), ist das ein Netzfehler – der Auftrag wird dann später nachgeholt.
+   */
+  private async requireSession(): Promise<void> {
+    const { data, error } = await this.client.auth.getSession();
+    if (data.session) return;
+    throw new SocialError(error && isAuthRetryableFetchError(error) ? "network" : "not_authenticated", error);
   }
 }

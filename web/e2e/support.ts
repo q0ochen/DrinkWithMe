@@ -25,7 +25,7 @@ const CORS = {
   "access-control-expose-headers": "*",
 };
 
-function session() {
+export function session() {
   const now = Math.floor(Date.now() / 1000);
   return {
     access_token: "e2e-jwt",
@@ -54,7 +54,12 @@ export class FakeSupabase {
     { id: BEN, display_name: "Ben", avatar_url: null },
   ];
   friendships = [{ user_a: ME, user_b: ANNA, created_at: "2026-11-01T10:00:00Z" }];
+  /** Eingehende Anfragen (nur die darf der Empfänger lesen). */
   friendRequests = [{ id: "r-1", from_user: BEN, to_user: ME, created_at: "2026-11-09T10:00:00Z" }];
+  /** Eigene Anfragen per E-Mail – der Server liefert nur die maskierte Adresse (list_outgoing_friend_requests). */
+  outgoingRequests: Array<{ id: string; email_hint: string; created_at: string }> = [];
+  /** `true`: Supabase nicht erreichbar (wie ohne Netz) – Anfragen werden abgebrochen und nicht aufgezeichnet. */
+  offline = false;
   events = [
     {
       id: EVENT_ID,
@@ -81,6 +86,10 @@ export class FakeSupabase {
     const method = request.method();
     if (method === "OPTIONS") {
       await route.fulfill({ status: 204, headers: CORS });
+      return;
+    }
+    if (this.offline) {
+      await route.abort("internetdisconnected");
       return;
     }
     let body: unknown = undefined;
@@ -122,13 +131,27 @@ export class FakeSupabase {
       case "GET /rest/v1/friendships":
         await json(200, this.friendships);
         return;
-      case "GET /rest/v1/friend_requests":
-        await json(200, this.friendRequests);
+      case "GET /rest/v1/friend_requests": {
+        const to = url.searchParams.get("to_user")?.replace(/^eq\./, "");
+        await json(200, this.friendRequests.filter((request) => request.to_user === to).map(({ id, from_user, created_at }) => ({ id, from_user, created_at })));
         return;
-      case "DELETE /rest/v1/friend_requests":
-        this.friendRequests = [];
+      }
+      case "POST /rest/v1/rpc/list_outgoing_friend_requests":
+        await json(200, this.outgoingRequests);
+        return;
+      case "POST /rest/v1/rpc/cancel_friend_request": {
+        const id = (body as { request_id?: string })?.request_id;
+        this.outgoingRequests = this.outgoingRequests.filter((request) => request.id !== id);
         await route.fulfill({ status: 204, headers: CORS });
         return;
+      }
+      case "POST /rest/v1/rpc/send_friend_request": {
+        const email = String((body as { email?: string })?.email ?? "");
+        const [local, domain] = email.split("@");
+        this.outgoingRequests.unshift({ id: `r-${this.outgoingRequests.length + 10}`, email_hint: `${local[0]}***@${domain}`, created_at: new Date().toISOString() });
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
       case "GET /rest/v1/drink_events": {
         const id = url.searchParams.get("id");
         const since = url.searchParams.get("consumed_at");
@@ -159,7 +182,6 @@ export class FakeSupabase {
           await json(400, { code: "P0001", message: "invite_invalid", details: null, hint: null });
         }
         return;
-      case "POST /rest/v1/rpc/send_friend_request":
       case "POST /rest/v1/rpc/respond_friend_request":
       case "POST /rest/v1/rpc/remove_friend":
         await route.fulfill({ status: 204, headers: CORS });

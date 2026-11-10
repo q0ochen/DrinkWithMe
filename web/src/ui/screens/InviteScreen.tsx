@@ -9,6 +9,8 @@ import { useAction, useAnnouncer, useDocumentTitle, useServices, useSessionUser,
 /**
  * Einladungsseite `/einladung/<token>`: auf Android „In der App öffnen“ (drinkwithme://einladung/<token>),
  * sonst nach der Anmeldung direkt im Browser annehmen. Angenommen wird erst nach einem Tipp (Zustimmung).
+ * Wer im Browser angemeldet ist (z. B. nach „Stattdessen im Browser annehmen“ → Google → zurück), sieht das
+ * Annehmen sofort – die Wahl geht beim Umweg über Google nicht verloren.
  */
 export function InviteScreen({ token }: { token: string }) {
   useDocumentTitle("Einladung");
@@ -17,7 +19,8 @@ export function InviteScreen({ token }: { token: string }) {
   const user = useSessionUser();
   const announcer = useAnnouncer();
   const [friend, setFriend] = useState<UserProfile | null>(null);
-  const [inBrowser, setInBrowser] = useState(!services.platform.isAndroid);
+  const [browserChosen, setInBrowser] = useState(false);
+  const inBrowser = !services.platform.isAndroid || browserChosen || user !== null;
   const accept = useAction(async () => {
     if (!social) return;
     const profile = await social.friends.acceptInvite(token);

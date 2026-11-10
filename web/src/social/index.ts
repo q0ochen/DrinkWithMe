@@ -1,7 +1,8 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { SupabaseConfig } from "../app/config";
+import { AUTH_STORAGE_KEY } from "../data/repositories";
 import { SocialError } from "./errors";
-import { SupabaseAuthService, type SupabaseAuthOptions } from "./supabaseAuth";
+import { SupabaseAuthService, type StoredSessionReader, type SupabaseAuthOptions } from "./supabaseAuth";
 import { SupabaseEventPublisher, SupabaseFeedService, SupabaseFriendsService } from "./supabaseFriends";
 import type { AccountService, AuthService, SocialServices } from "./types";
 import { WebPushService, type PushEnvironment } from "./webPush";
@@ -25,6 +26,21 @@ export interface SocialDependencies {
   readonly onNotifyProblem?: (message: string) => void;
 }
 
+
+/** Liest die gespeicherte Sitzung (JSON von supabase-js) ohne sie zu erneuern. */
+export function storedSessionReader(storage: AsyncStorage): StoredSessionReader {
+  return async () => {
+    const text = await storage.getItem(AUTH_STORAGE_KEY);
+    if (!text) return null;
+    try {
+      const value: unknown = JSON.parse(text);
+      return typeof value === "object" && value !== null ? (value as { user?: User }) : null;
+    } catch {
+      return null;
+    }
+  };
+}
+
 export function createSupabaseClient(dependencies: Pick<SocialDependencies, "supabase" | "storage" | "fetch">): SupabaseClient {
   return createClient(dependencies.supabase.url, dependencies.supabase.anonKey, {
     auth: {
@@ -34,7 +50,7 @@ export function createSupabaseClient(dependencies: Pick<SocialDependencies, "sup
       persistSession: true,
       autoRefreshToken: true,
       storage: dependencies.storage,
-      storageKey: "drink-with-me-auth",
+      storageKey: AUTH_STORAGE_KEY,
     },
     global: dependencies.fetch ? { fetch: dependencies.fetch } : {},
   });
@@ -61,7 +77,7 @@ export class SupabaseAccountService implements AccountService {
 /** Kompositionswurzel der Vernetzung (wird erst bei Bedarf geladen, damit der Start schnell bleibt). */
 export function createSocialServices(dependencies: SocialDependencies): SocialServices {
   const client = createSupabaseClient(dependencies);
-  const auth = new SupabaseAuthService(client, dependencies.auth);
+  const auth = new SupabaseAuthService(client, dependencies.auth, storedSessionReader(dependencies.storage));
   const currentUserId = () => auth.currentUser()?.id ?? null;
   return {
     auth,

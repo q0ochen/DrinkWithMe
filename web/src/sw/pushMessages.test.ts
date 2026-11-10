@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventUrl, parsePushPayload, planNotification } from "./pushMessages";
+import { decidePush, eventUrl, parsePushPayload, planNotification } from "./pushMessages";
 
 const SCOPE = "https://q0ochen.github.io/DrinkWithMe/";
 const payload = {
@@ -38,6 +38,15 @@ describe("Push-Nachrichten im Service Worker", () => {
         data: { url: `${SCOPE}ereignis/${payload.eventId}`, eventId: payload.eventId },
       },
     });
+  });
+
+  it("bestellt nur nach ausdrücklicher Abmeldung ab – nie, nur weil keine Nutzer-ID gespeichert ist", () => {
+    const parsed = parsePushPayload(JSON.stringify(payload));
+    expect(decidePush(parsed, { kind: "signedIn", userId: "me-1" }, SCOPE)).toMatchObject({ kind: "show", plan: { title: "Anna trinkt gerade" } });
+    expect(decidePush(parsed, { kind: "signedIn", userId: "someone-else" }, SCOPE)).toEqual({ kind: "ignore" });
+    expect(decidePush(parsed, { kind: "unknown" }, SCOPE)).toEqual({ kind: "ignore" });
+    expect(decidePush(parsed, { kind: "signedOut" }, SCOPE)).toEqual({ kind: "unsubscribe" });
+    expect(decidePush(null, { kind: "signedOut" }, SCOPE)).toEqual({ kind: "ignore" });
   });
 
   it("Tipp öffnet /ereignis/<eventId> innerhalb der App", () => {

@@ -1,11 +1,12 @@
 import "fake-indexeddb/auto";
+import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 import { CatalogIds, defaultSelection } from "../core/bar/defaultBarCatalog";
 import { HISTORY_EARLIEST, HISTORY_LATEST } from "../core/log/drinkEntry";
 import { catalogItem, entry, entryOf, HOUR } from "../core/testing/fixtures";
-import { readRecipientId, writeRecipientId } from "../sw/recipientStore";
+import { readRecipient, readRecipientId, writeRecipientId } from "../sw/recipientStore";
 import { openDatabase } from "./database";
-import { IndexedDbAuthStorage, IndexedDbBarRepository, IndexedDbHistoryRepository, parseBarItem, parseDrinkEntry } from "./repositories";
+import { AUTH_STORAGE_KEY, IndexedDbAuthStorage, IndexedDbBarRepository, IndexedDbHistoryRepository, parseBarItem, parseDrinkEntry } from "./repositories";
 import { DEFAULT_SETTINGS, IndexedDbSettingsStore } from "./settingsStore";
 
 let counter = 0;
@@ -127,6 +128,9 @@ describe("IndexedDbAuthStorage", () => {
     expect(await storage.getItem("k")).toBe("v");
     await storage.removeItem("k");
     expect(await storage.getItem("k")).toBeNull();
+    expect(await storage.hasSession()).toBe(false);
+    await storage.setItem(AUTH_STORAGE_KEY, "{}");
+    expect(await storage.hasSession()).toBe(true);
   });
 });
 
@@ -137,5 +141,16 @@ describe("Empfänger-Speicher für den Service Worker", () => {
     expect(await readRecipientId()).toBe("user-1");
     await writeRecipientId(null);
     expect(await readRecipientId()).toBeNull();
+  });
+
+  it("unterscheidet „abgemeldet“ (ausdrücklich) von „unbekannt“ (nichts gespeichert)", async () => {
+    const factory = new IDBFactory();
+    expect(await readRecipient(factory)).toEqual({ kind: "unknown" });
+    await writeRecipientId("user-1", factory);
+    expect(await readRecipient(factory)).toEqual({ kind: "signedIn", userId: "user-1" });
+    await writeRecipientId(null, factory);
+    expect(await readRecipient(factory)).toEqual({ kind: "signedOut" });
+    await writeRecipientId("user-2", factory);
+    expect(await readRecipient(factory)).toEqual({ kind: "signedIn", userId: "user-2" });
   });
 });

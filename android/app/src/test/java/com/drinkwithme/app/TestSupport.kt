@@ -67,15 +67,22 @@ fun friendEvent(
     at: Instant = Instant.parse("2026-11-10T11:55:00Z"),
 ) = FriendDrinkEvent(id, author, name, DrinkIcon.APPLE_SPRITZER, DrinkCategory.JUICE, volume, at)
 
-class FakeSpeaker : Speaker {
+class FakeSpeaker(initial: SpeakerStatus = SpeakerStatus.READY) : Speaker {
     val spoken = mutableListOf<String>()
     var prepared = 0
-    override val status: StateFlow<SpeakerStatus> = MutableStateFlow(SpeakerStatus.READY)
+    var rechecks = 0
+    val statusFlow = MutableStateFlow(initial)
+    override val status: StateFlow<SpeakerStatus> = statusFlow
     override fun prepare() {
         prepared++
     }
-    override fun speak(text: String) {
+    override fun speak(text: String): Boolean {
+        if (statusFlow.value.needsSetup) return false
         spoken += text
+        return true
+    }
+    override fun recheckIfNotReady() {
+        rechecks++
     }
     override fun stop() = Unit
 }

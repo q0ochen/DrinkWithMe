@@ -117,4 +117,34 @@ class PollingPolicyTest {
         background.refresh()
         assertEquals(listOf("schedule", "sync", "cancel", "sync", "cancel"), calls)
     }
+
+    @Test
+    fun afterAnUploadOnlyThePollingIsAdjustedWithoutAnotherSync() {
+        val calls = mutableListOf<String>()
+        val scheduler = object : PollingScheduler {
+            override fun schedule() { calls += "schedule" }
+            override fun cancel() { calls += "cancel" }
+        }
+        var confirmed = false
+        val background = SocialBackground(true, { true }, { confirmed }, scheduler) { calls += "sync" }
+        background.updatePolling()
+        confirmed = true
+        background.updatePolling()
+        assertEquals(listOf("schedule", "cancel"), calls, "kein neuer Abgleich – sonst entstünde eine Schleife")
+    }
+}
+
+class ForegroundRefreshThrottleTest {
+    @Test
+    fun refreshesAtMostEveryFewMinutes() {
+        val clock = MutableClock(Instant.parse("2026-11-10T12:00:00Z"))
+        val throttle = ForegroundRefreshThrottle(clock, Duration.ofMinutes(5))
+        assertTrue(throttle.tryAcquire(), "erstes Öffnen")
+        clock.advance(Duration.ofSeconds(30))
+        assertFalse(throttle.tryAcquire(), "kurz danach wieder im Vordergrund (z. B. Rückkehr aus dem Browser)")
+        clock.advance(Duration.ofMinutes(5))
+        assertTrue(throttle.tryAcquire())
+        clock.now = clock.now.minus(Duration.ofHours(1))
+        assertTrue(throttle.tryAcquire(), "Uhr zurückgestellt: nicht stundenlang sperren")
+    }
 }

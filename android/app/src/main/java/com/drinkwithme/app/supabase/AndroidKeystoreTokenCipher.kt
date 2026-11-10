@@ -2,6 +2,7 @@ package com.drinkwithme.app.supabase
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.KeyStore
 import java.util.Base64
@@ -10,15 +11,30 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+/** Woher der AES-Schlüssel kommt (unter Android: der Android-Keystore; in Tests: ein Software-Schlüssel). */
+internal interface SecretKeySource {
+    /** Vorhandener Schlüssel oder `null`. */
+    fun existing(): SecretKey?
+
+    /** Vorhandener oder neu erzeugter Schlüssel. */
+    fun existingOrNew(): SecretKey
+}
+
 /**
  * AES-256-GCM mit einem Schlüssel, der den Android-Keystore nie verlässt. Format: `v1:<IV base64>:<Daten base64>`.
  * Ohne Fremdbibliothek (kein security-crypto nötig).
+ *
+ * Manche Geräte melden Keystore-Störungen als Laufzeitfehler (`ProviderException`, z. B. „Keystore busy“, oder
+ * `IllegalStateException`). Beim Entschlüsseln wird dann einmal wiederholt und sonst [KeystoreUnavailableException]
+ * gemeldet – nie ein Absturz beim App-Start.
  */
-class AndroidKeystoreTokenCipher(private val alias: String = DEFAULT_ALIAS) : TokenCipher {
+class AndroidKeystoreTokenCipher internal constructor(private val keys: SecretKeySource) : TokenCipher {
+
+    constructor(alias: String = DEFAULT_ALIAS) : this(AndroidKeystoreKeys(alias))
 
     override fun encrypt(plain: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, key())
+        cipher.init(Cipher.ENCRYPT_MODE, keys.existingOrNew())
         val encrypted = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
         return listOf(VERSION, encoder.encodeToString(cipher.iv), encoder.encodeToString(encrypted)).joinToString(":")
     }
@@ -26,24 +42,48 @@ class AndroidKeystoreTokenCipher(private val alias: String = DEFAULT_ALIAS) : To
     override fun decrypt(encrypted: String): String? {
         val parts = encrypted.split(':')
         if (parts.size != 3 || parts[0] != VERSION) return null
-        return try {
-            val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-            val key = keyStore.getKey(alias, null) as? SecretKey ?: return null
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_BITS, decoder.decode(parts[1])))
-            String(cipher.doFinal(decoder.decode(parts[2])), Charsets.UTF_8)
-        } catch (error: GeneralSecurityException) {
-            null
-        } catch (error: IllegalArgumentException) {
-            null
-        } catch (error: java.io.IOException) {
-            null
+        var failure: RuntimeException? = null
+        repeat(ATTEMPTS) {
+            try {
+                return decryptOnce(parts[1], parts[2])
+            } catch (error: GeneralSecurityException) {
+                return null
+            } catch (error: IllegalArgumentException) {
+                return null
+            } catch (error: IOException) {
+                return null
+            } catch (error: RuntimeException) {
+                failure = error
+            }
         }
+        throw KeystoreUnavailableException(checkNotNull(failure))
     }
 
-    private fun key(): SecretKey {
-        val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        (keyStore.getKey(alias, null) as? SecretKey)?.let { return it }
+    private fun decryptOnce(iv: String, data: String): String? {
+        val key = keys.existing() ?: return null
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_BITS, decoder.decode(iv)))
+        return String(cipher.doFinal(decoder.decode(data)), Charsets.UTF_8)
+    }
+
+    private companion object {
+        const val DEFAULT_ALIAS = "drinkwithme_refresh_token"
+        const val TRANSFORMATION = "AES/GCM/NoPadding"
+        const val TAG_BITS = 128
+        const val VERSION = "v1"
+        const val ATTEMPTS = 2
+        val encoder: Base64.Encoder = Base64.getEncoder()
+        val decoder: Base64.Decoder = Base64.getDecoder()
+    }
+}
+
+/** Schlüssel im Android-Keystore (wird beim ersten Verschlüsseln erzeugt). */
+private class AndroidKeystoreKeys(private val alias: String) : SecretKeySource {
+
+    override fun existing(): SecretKey? = keyStore().getKey(alias, null) as? SecretKey
+
+    override fun existingOrNew(): SecretKey {
+        existing()?.let { return it }
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE)
         generator.init(
             KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
@@ -56,14 +96,10 @@ class AndroidKeystoreTokenCipher(private val alias: String = DEFAULT_ALIAS) : To
         return generator.generateKey()
     }
 
+    private fun keyStore(): KeyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+
     private companion object {
-        const val DEFAULT_ALIAS = "drinkwithme_refresh_token"
         const val KEYSTORE = "AndroidKeyStore"
-        const val TRANSFORMATION = "AES/GCM/NoPadding"
-        const val TAG_BITS = 128
         const val KEY_BITS = 256
-        const val VERSION = "v1"
-        val encoder: Base64.Encoder = Base64.getEncoder()
-        val decoder: Base64.Decoder = Base64.getDecoder()
     }
 }

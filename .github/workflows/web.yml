@@ -1,5 +1,7 @@
 # Prüft und baut die Web-App (PWA für iPhone und Browser) bei jedem Push; auf main wird sie zusätzlich auf
 # GitHub Pages veröffentlicht: https://q0ochen.github.io/DrinkWithMe/
+# Erneut veröffentlichen (z. B. nachdem die Repository-Variablen gesetzt wurden): Actions → „Web-App“ →
+# „Run workflow“ mit Branch main.
 # Einmalig in den Repository-Einstellungen: Pages → Build and deployment → Source „GitHub Actions“.
 # Öffentliche (unkritische) Werte als Repository-Variablen (Settings → Secrets and variables → Actions → Variables):
 #   SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY  (optional WEB_APP_URL, Standard siehe unten).
@@ -90,7 +92,8 @@ jobs:
   deploy:
     name: Auf GitHub Pages veröffentlichen
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Push auf main oder manueller Start („Run workflow“) auf main – nie für Pull Requests oder andere Branches.
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read

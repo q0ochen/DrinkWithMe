@@ -1,7 +1,8 @@
 -- pgTAP: Aufruflimits (rate_limits, consume_rate_limit) und tägliches Aufräumen per pg_cron
--- (drink_events älter als 30 Tage, abgelaufene invite_links, veraltete Zähler).
+-- (drink_events und friend_requests älter als 30 Tage, abgelaufene invite_links, veraltete Zähler und
+-- Vermerke über entfernte Freunde).
 begin;
-select plan(21);
+select plan(23);
 
 -- ---------------------------------------------------------------------------------------------------
 -- Testumgebung (in jeder Testdatei gleich; alles liegt in pg_temp und verschwindet mit dem ROLLBACK)
@@ -109,6 +110,20 @@ insert into public.invite_links (token, owner, created_at, expires_at) values
   ('gueltigBBBBBBBBBBBBBBBBBBBBBBBBB', pg_temp.id('ben'), now(), now() + interval '14 days');
 insert into public.rate_limits (user_id, action, window_start, count) values
   (pg_temp.id('ben'), 'send_friend_request', now() - interval '3 days', 20);
+-- Anfragen: mit und ohne Empfänger, älter und jünger als 30 Tage
+insert into public.friend_requests (from_user, to_user, email_hash, email_hint, created_at) values
+  (pg_temp.id('anna'), pg_temp.id('ben'), private.friend_request_hash(pg_temp.id('anna'), 'ben@example.org'),
+   'b***@example.org', now() - interval '30 days 1 second'),
+  (pg_temp.id('anna'), null, private.friend_request_hash(pg_temp.id('anna'), 'alt@example.org'),
+   'a***@example.org', now() - interval '30 days 1 second'),
+  (pg_temp.id('ben'), null, private.friend_request_hash(pg_temp.id('ben'), 'neu@example.org'),
+   'n***@example.org', now() - interval '29 days'),
+  (pg_temp.id('ben'), pg_temp.id('anna'), private.friend_request_hash(pg_temp.id('ben'), 'anna@example.org'),
+   'a***@example.org', now() - interval '29 days');
+-- Vermerke über entfernte Freunde: nach 14 Tagen ist jeder ältere Link abgelaufen
+insert into private.friend_removals (remover, removed, removed_at) values
+  (pg_temp.id('anna'), pg_temp.id('ben'), now() - interval '14 days 1 second'),
+  (pg_temp.id('ben'), pg_temp.id('anna'), now() - interval '13 days');
 
 select lives_ok($$ select private.cleanup_expired_data() $$, 'Aufräumen läuft ohne Fehler');
 select set_eq($$ select id from public.drink_events $$, array['00000000-0000-4000-8000-000000000029'::uuid],
@@ -121,6 +136,10 @@ select is_empty(
 );
 select is((select count(*)::int from public.rate_limits where user_id = pg_temp.id('anna')), 2,
   'Aktuelle Limit-Zähler bleiben');
+select set_eq($$ select email_hint from public.friend_requests $$, array['n***@example.org', 'a***@example.org'],
+  'Anfragen älter als 30 Tage sind gelöscht – mit und ohne Empfänger gleich (verrät nichts)');
+select set_eq($$ select remover from private.friend_removals $$, array[pg_temp.id('ben')],
+  'Vermerke über entfernte Freunde älter als 14 Tage sind gelöscht, jüngere bleiben');
 
 select results_eq(
   $$ select schedule, command from cron.job where jobname = 'drinkwithme-aufraeumen' $$,

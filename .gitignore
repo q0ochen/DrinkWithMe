@@ -16,15 +16,8 @@ captures/
 .externalNativeBuild/
 .cxx/
 
-# Firebase (Cloud Functions, Emulatoren)
+# Node.js-Abhängigkeiten (Web-App, Werkzeuge)
 node_modules/
-firebase/functions/lib/
-firebase/functions/coverage/
-firebase/.firebase/
-firebase-debug.log
-firebase-debug.*.log
-firestore-debug.log
-ui-debug.log
 
 # Supabase CLI (lokale Daten, Verknüpfung mit dem Projekt, Geheimnisse)
 supabase/.temp/

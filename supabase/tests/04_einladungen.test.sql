@@ -1,7 +1,8 @@
 -- pgTAP: Einladungs-Links – Token-Format, Ablauf nach 14 Tagen, ein neuer Link ersetzt den alten,
 -- eigener Link, Freundschaft sofort, Limit 30 pro Tag, kein direkter Client-Zugriff auf invite_links.
+-- Wer entfernt wurde, kann sich mit einem alten Link nicht selbst wieder befreunden.
 begin;
-select plan(29);
+select plan(41);
 
 -- ---------------------------------------------------------------------------------------------------
 -- Testumgebung (in jeder Testdatei gleich; alles liegt in pg_temp und verschwindet mit dem ROLLBACK)
@@ -52,12 +53,17 @@ create function pg_temp.befreundet(a text, b text) returns boolean language sql 
                  where f.user_a = least(pg_temp.id(a), pg_temp.id(b))
                    and f.user_b = greatest(pg_temp.id(a), pg_temp.id(b)))
 $$;
+create function pg_temp.entfernt(von text, wen text) returns boolean language sql security definer as $$
+  select exists (select 1 from private.friend_removals e
+                 where e.remover = pg_temp.id(von) and e.removed = pg_temp.id(wen))
+$$;
 grant execute on all functions in schema pg_temp to public;
 
 select pg_temp.nutzer('anna');
 select pg_temp.nutzer('ben');
 select pg_temp.nutzer('clara');
 select pg_temp.nutzer('dora');
+select pg_temp.nutzer('emil');
 
 -- ---------------------------------------------------------------------------------------------------
 -- create_invite_link
@@ -117,12 +123,51 @@ select pg_temp.als_postgres();
 select is((select count(*)::int from public.friendships), 1, 'Weiterhin genau eine Freundschaft');
 
 -- Offene Anfragen zwischen beiden werden mit aufgeräumt; der Link gilt für mehrere Personen.
-insert into public.friend_requests (from_user, to_user) values (pg_temp.id('clara'), pg_temp.id('anna'));
 select pg_temp.als('clara');
+select public.send_friend_request('anna@example.org');
 select lives_ok(format('select public.accept_invite(%L)', :'token'), 'Clara nimmt denselben Link an');
 select ok(pg_temp.befreundet('anna', 'clara'), 'Auch Clara ist jetzt mit Anna befreundet');
 select pg_temp.als_postgres();
 select is_empty($$ select 1 from public.friend_requests $$, 'Die offene Anfrage Clara → Anna ist erledigt');
+
+-- ---------------------------------------------------------------------------------------------------
+-- Entfernen: Der alte Link bringt die entfernte Person nicht zurück (Review 3, Befund 8)
+-- ---------------------------------------------------------------------------------------------------
+select pg_temp.als('anna');
+select lives_ok(format('select public.remove_friend(%L)', pg_temp.id('ben')), 'Anna entfernt Ben');
+select ok(pg_temp.entfernt('anna', 'ben'), 'Das Entfernen wird vermerkt');
+select pg_temp.als('ben');
+select throws_ok(format('select public.accept_invite(%L)', :'token'), 'P0001', 'invite_invalid',
+  'Ben kann sich mit Annas altem Link nicht selbst wieder befreunden');
+select ok(not pg_temp.befreundet('anna', 'ben'), 'Anna und Ben bleiben getrennt');
+select pg_temp.als('emil');
+select lives_ok(format('select public.accept_invite(%L)', :'token'), 'Für alle anderen gilt Annas Link weiter');
+select ok(pg_temp.befreundet('anna', 'emil'), 'Emil ist mit Anna befreundet');
+
+-- Wer selbst entfernt hat, darf den Link der anderen Person weiter nutzen (deren Zustimmung gilt noch).
+select pg_temp.als('ben');
+select public.create_invite_link() as token_ben_frueh \gset
+select pg_temp.als('anna');
+select lives_ok(format('select public.accept_invite(%L)', :'token_ben_frueh'),
+  'Anna nimmt Bens Link an, nachdem sie selbst Ben entfernt hatte');
+select ok(pg_temp.befreundet('anna', 'ben') and not pg_temp.entfernt('anna', 'ben'),
+  'Wieder befreundet: der Vermerk über das Entfernen ist gelöscht');
+
+-- Ein NACH dem Entfernen erzeugter Link ist eine neue Zustimmung.
+select public.remove_friend(pg_temp.id('ben'));
+select pg_temp.als_postgres();
+update private.friend_removals set removed_at = now() - interval '1 minute'
+ where remover = pg_temp.id('anna') and removed = pg_temp.id('ben');   -- „vor einer Minute entfernt“
+select pg_temp.als('anna');
+select public.create_invite_link() as token \gset
+select pg_temp.als('ben');
+select lives_ok(format('select public.accept_invite(%L)', :'token'), 'Ben nimmt Annas NEUEN Link an');
+select ok(pg_temp.befreundet('anna', 'ben'), 'Mit einem neuen Link sind beide wieder befreundet');
+
+-- Ohne bestehende Freundschaft wird nichts vermerkt.
+select pg_temp.als('anna');
+select lives_ok(format('select public.remove_friend(%L)', pg_temp.id('dora')), 'Anna entfernt Dora (keine Freundin)');
+select ok(not pg_temp.entfernt('anna', 'dora'), 'Ohne Freundschaft kein Vermerk');
 
 -- Unbekannte und ungültige Tokens
 select pg_temp.als('dora');

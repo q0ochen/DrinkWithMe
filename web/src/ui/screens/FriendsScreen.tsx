@@ -5,7 +5,7 @@ import { SpeechTexts } from "../../core/speech/speechTexts";
 import { needsHomeScreenForPush } from "../../platform/platform";
 import { copyText, shareLink } from "../../platform/share";
 import { germanMessage } from "../../social/errors";
-import type { SocialServices } from "../../social/types";
+import type { OutgoingFriendRequest, SocialServices } from "../../social/types";
 import { Dialog } from "../components/Dialog";
 import { SignInPanel } from "../components/SignInPanel";
 import { Avatar, DrinkIconImage, ErrorText, IosHomeScreenHint, Link, Notice, PageHeader, Section, ServerNotConfigured, Spinner, UiIcon } from "../components/common";
@@ -47,7 +47,9 @@ export function FriendsScreen() {
 interface FriendsData {
   feed: FriendDrinkEvent[];
   friends: Friend[];
-  requests: FriendRequest[];
+  incoming: FriendRequest[];
+  /** Eigene Anfragen per E-Mail – nur mit maskierter Adresse (der Server verrät nicht, ob es das Konto gibt). */
+  outgoing: OutgoingFriendRequest[];
 }
 
 function SignedInFriends({ social }: { social: SocialServices }) {
@@ -61,8 +63,13 @@ function SignedInFriends({ social }: { social: SocialServices }) {
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const [feed, friends, requests] = await Promise.all([social.feed.recentEvents(null), social.friends.friends(), social.friends.requests()]);
-      setData({ feed, friends, requests });
+      const [feed, friends, incoming, outgoing] = await Promise.all([
+        social.feed.recentEvents(null),
+        social.friends.friends(),
+        social.friends.requests(),
+        social.friends.outgoingRequests(),
+      ]);
+      setData({ feed, friends, incoming: incoming.filter((request) => request.direction === "INCOMING"), outgoing });
       const newest = feed[0]?.consumedAt;
       if (newest && newest > (services.settings.current().feedLastSeenAt ?? 0)) await services.settings.update({ feedLastSeenAt: newest });
     } catch (error) {
@@ -79,7 +86,7 @@ function SignedInFriends({ social }: { social: SocialServices }) {
     announcer.announce(accept ? `Du bist jetzt mit ${request.other.displayName} befreundet.` : "Anfrage abgelehnt.");
     await load();
   });
-  const cancel = useAction(async (request: FriendRequest) => {
+  const cancel = useAction(async (request: OutgoingFriendRequest) => {
     await social.friends.cancel(request.id);
     announcer.announce("Anfrage zurückgezogen.");
     await load();
@@ -90,8 +97,8 @@ function SignedInFriends({ social }: { social: SocialServices }) {
     await load();
   });
 
-  const incoming = data?.requests.filter((request) => request.direction === "INCOMING") ?? [];
-  const outgoing = data?.requests.filter((request) => request.direction === "OUTGOING") ?? [];
+  const incoming = data?.incoming ?? [];
+  const outgoing = data?.outgoing ?? [];
   const actionError = respond.error ?? cancel.error ?? remove.error;
 
   return (
@@ -158,7 +165,7 @@ function SignedInFriends({ social }: { social: SocialServices }) {
       </Section>
 
       <InviteSection social={social} />
-      <EmailSection social={social} />
+      <EmailSection social={social} onSent={load} />
 
       <Section title="Deine Freunde" id="freundesliste">
         {data === null ? null : data.friends.length === 0 ? (
@@ -184,12 +191,18 @@ function SignedInFriends({ social }: { social: SocialServices }) {
             <ul class="people-list">
               {outgoing.map((request) => (
                 <li key={request.id} class="person-row">
-                  <Avatar name={request.other.displayName} />
+                  <Avatar name={request.emailHint} />
                   <span class="person-name">
-                    {request.other.displayName} <span class="muted">(wartet)</span>
+                    Anfrage an {request.emailHint} <span class="muted">(wartet)</span>
                   </span>
                   <span class="person-actions">
-                    <button type="button" class="button button-secondary" onClick={() => void cancel.run(request)} disabled={cancel.busy}>
+                    <button
+                      type="button"
+                      class="button button-secondary"
+                      onClick={() => void cancel.run(request)}
+                      disabled={cancel.busy}
+                      aria-label={`Anfrage an ${request.emailHint} zurückziehen`}
+                    >
                       Zurückziehen
                     </button>
                   </span>
@@ -264,7 +277,7 @@ function InviteSection({ social }: { social: SocialServices }) {
   );
 }
 
-function EmailSection({ social }: { social: SocialServices }) {
+function EmailSection({ social, onSent }: { social: SocialServices; onSent: () => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [invalid, setInvalid] = useState(false);
@@ -279,6 +292,7 @@ function EmailSection({ social }: { social: SocialServices }) {
     await social.friends.sendRequestByEmail(value);
     setEmail("");
     setSent(true);
+    await onSent();
   });
 
   return (

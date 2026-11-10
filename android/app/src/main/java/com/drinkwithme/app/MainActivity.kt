@@ -16,7 +16,8 @@ import com.drinkwithme.app.ui.theme.DrinkWithMeTheme
 
 /**
  * Einzige Activity. Nimmt Links (Anmelde-Rücksprung, Einladung) und Benachrichtigungen entgegen; `singleTask` im
- * Manifest sorgt dafür, dass sie in dieser Instanz ankommen (onNewIntent).
+ * Manifest sorgt dafür, dass sie in dieser Instanz ankommen (onNewIntent). Benachrichtigungen kommen über den nicht
+ * exportierten Einstieg [IntentRouter.NOTIFICATION_ENTRY]; nur ihnen glaubt die App Texte und „sofort vorlesen“.
  */
 class MainActivity : ComponentActivity() {
 
@@ -27,8 +28,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Nach einer Drehung nicht erneut auswerten – nur beim echten Start.
-        if (savedInstanceState == null) route(intent)
+        // Nur beim echten Start auswerten – nicht nach einer Drehung und nicht beim Neustart aus „Zuletzt verwendet“.
+        if (IntentRouter.shouldRoute(restored = savedInstanceState != null, launchedFromHistory = intent.launchedFromHistory())) {
+            route(intent)
+        }
         setContent {
             DrinkWithMeTheme {
                 DrinkWithMeApp(container, appViewModel)
@@ -39,7 +42,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        route(intent)
+        if (IntentRouter.shouldRoute(restored = false, launchedFromHistory = intent.launchedFromHistory())) route(intent)
     }
 
     override fun onResume() {
@@ -47,15 +50,23 @@ class MainActivity : ComponentActivity() {
         // Browser ohne Rücksprung geschlossen: „Anmeldung läuft“ beenden.
         if (!receivedSignInCallback) appViewModel.onResumedWithoutCallback()
         receivedSignInCallback = false
-        container.onAppForeground()
+        // Zurück aus den Einstellungen/F-Droid: Vielleicht gibt es jetzt eine (deutsche) Sprachausgabe.
+        container.speaker.recheckIfNotReady()
+        // Freunde neu laden und abrufen nur beim echten Wechsel in den Vordergrund (DrinkWithMeApplication).
     }
 
     private fun route(intent: Intent?) {
         if (intent == null) return
-        val request = IntentRouter.route(intent.action, intent.dataString, AndroidIntentExtras(intent)) ?: return
+        val trusted = IntentRouter.isTrustedEntry(intent.component?.className)
+        val request = IntentRouter.route(intent.action, intent.dataString, AndroidIntentExtras(intent), trusted)
+        // Erledigt: Ein späteres getIntent() sieht nur noch einen einfachen Start, nicht noch einmal diesen Auftrag.
+        setIntent(Intent(Intent.ACTION_MAIN))
+        if (request == null) return
         if (request is AppRequest.SignInCallback) receivedSignInCallback = true
         appViewModel.handle(request)
     }
+
+    private fun Intent.launchedFromHistory(): Boolean = flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
 
     private class AndroidIntentExtras(private val intent: Intent) : IntentExtras {
         override fun string(key: String): String? = intent.getStringExtra(key)

@@ -1,7 +1,9 @@
 import { useState } from "preact/hooks";
 import { CATALOG_ENTRIES, DEFAULT_SELECTION_IDS, type CatalogEntry } from "../../core/bar/defaultBarCatalog";
 import { HealthReferences } from "../../core/health/healthReferences";
-import { DrinkIconImage, ErrorText, Notice, PageHeader } from "../components/common";
+import { needsHomeScreenForPush } from "../../platform/platform";
+import { ImportBackupButton } from "../components/BackupControls";
+import { DrinkIconImage, ErrorText, IosInstallFirstHint, Notice, PageHeader, Section } from "../components/common";
 import { useAction, useDocumentTitle, useRouter, useServices } from "../context";
 import { describeContents } from "./drinkTexts";
 
@@ -25,9 +27,15 @@ export function OnboardingScreen() {
     }
     const existing = await services.bar.items();
     if (existing.length === 0) await services.setUpBar.execute(selected);
-    await services.settings.update({ onboardingDone: true });
-    router.navigate("/", { replace: true });
+    await done();
   });
+
+  const done = async () => {
+    await services.settings.update({ onboardingDone: true });
+    // Bar und Verlauf liegen nur auf dem Gerät: Browser bitten, sie nicht bei Platzmangel zu räumen.
+    void services.requestPersistentStorage();
+    router.navigate("/", { replace: true });
+  };
 
   return (
     <div class="screen">
@@ -37,6 +45,7 @@ export function OnboardingScreen() {
           du gerade trinkst. Alles bleibt auf diesem Gerät.
         </p>
       </PageHeader>
+      {needsHomeScreenForPush(services.platform) ? <IosInstallFirstHint /> : null}
       <form
         class="card"
         onSubmit={(event) => {
@@ -74,6 +83,14 @@ export function OnboardingScreen() {
           </button>
         </div>
       </form>
+      <Section title="Schon eine Sicherung?" id="sicherung">
+        <p>Du hast Drink With Me schon in einem anderen Browser oder auf einem anderen Gerät benutzt? Lies die Sicherungsdatei ein – Bar und Verlauf werden übernommen.</p>
+        <ImportBackupButton
+          onImported={async (summary) => {
+            if (summary.addedBarItems + summary.updatedBarItems + summary.addedEntries > 0) await done();
+          }}
+        />
+      </Section>
       <Notice>
         <p>{HealthReferences.INFO_TEXT}</p>
       </Notice>

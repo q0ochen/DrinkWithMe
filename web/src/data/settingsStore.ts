@@ -21,6 +21,8 @@ export interface AppSettings {
   readonly feedLastSeenAt: number | null;
   /** Der Nutzer möchte Benachrichtigungen (Web Push) bekommen. */
   readonly pushWanted: boolean;
+  /** Schon einmal um dauerhaften Speicher gebeten (`navigator.storage.persist()`, nur einmal fragen). */
+  readonly persistentStorageRequested: boolean;
   readonly signedInUser: StoredUser | null;
   /** Wohin nach der Google-Anmeldung zurückgekehrt wird (z. B. /einladung/<token>). */
   readonly returnPath: string | null;
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showReferenceBands: true,
   feedLastSeenAt: null,
   pushWanted: false,
+  persistentStorageRequested: false,
   signedInUser: null,
   returnPath: null,
 };
@@ -48,6 +51,7 @@ function sanitize<K extends Key>(key: K, value: unknown): AppSettings[K] {
     case "speakConfirmations":
     case "showReferenceBands":
     case "pushWanted":
+    case "persistentStorageRequested":
       return (typeof value === "boolean" ? value : fallback) as AppSettings[K];
     case "alcoholConsent":
       return (value === "ALLOWED" || value === "DENIED" || value === "UNKNOWN" ? value : fallback) as AppSettings[K];

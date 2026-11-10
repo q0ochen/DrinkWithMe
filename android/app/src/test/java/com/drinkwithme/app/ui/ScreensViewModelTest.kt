@@ -13,6 +13,9 @@ import com.drinkwithme.app.friendEvent
 import com.drinkwithme.app.profile
 import com.drinkwithme.app.push.DistributorInfo
 import com.drinkwithme.app.routing.AppRequest
+import com.drinkwithme.app.social.OutgoingRequest
+import com.drinkwithme.app.social.OutgoingRequestsService
+import com.drinkwithme.app.speech.SpeakerStatus
 import com.drinkwithme.app.supabase.AuthCallback
 import com.drinkwithme.app.supabase.ErrorMessages
 import com.drinkwithme.app.supabase.PushSubscription
@@ -67,7 +70,7 @@ class FakeAccount(configured: Boolean = true, user: UserProfile? = null) : Accou
     var signInError: SocialException? = null
     var deleted = false
     var signedOut = false
-    override fun signInUrl(): String = "https://example.supabase.co/auth/v1/authorize"
+    override suspend fun signInUrl(): String = "https://example.supabase.co/auth/v1/authorize"
     override suspend fun completeSignIn(callback: AuthCallback): UserProfile {
         signInError?.let { throw it }
         return profile("me-id", "Ich").also { user.value = it }
@@ -83,16 +86,17 @@ class FakeAccount(configured: Boolean = true, user: UserProfile? = null) : Accou
 }
 
 /** Freunde-Fake mit Protokoll. */
-class FakeFriends : FriendsService {
+class FakeFriends : FriendsService, OutgoingRequestsService {
     val calls = mutableListOf<String>()
     var friends = listOf(Friend(profile("anna-id", "Anna"), Instant.parse("2026-11-01T00:00:00Z")))
     var requests = listOf(
         FriendRequest("r1", profile("bob-id", "Bob"), FriendRequest.Direction.INCOMING, Instant.parse("2026-11-09T00:00:00Z")),
-        FriendRequest("r2", profile("cleo-id", "Cleo"), FriendRequest.Direction.OUTGOING, Instant.parse("2026-11-08T00:00:00Z")),
     )
+    var outgoing = listOf(OutgoingRequest("r2", "c***@example.org", Instant.parse("2026-11-08T00:00:00Z")))
     var failure: SocialException? = null
     override suspend fun friends(): List<Friend> = friends.also { failure?.let { throw it } }
     override suspend fun requests(): List<FriendRequest> = requests
+    override suspend fun outgoingRequests(): List<OutgoingRequest> = outgoing
     override suspend fun sendRequestByEmail(email: String) {
         failure?.let { throw it }
         calls += "email:$email"
@@ -158,7 +162,7 @@ class HistoryViewModelTest : MainDispatcherTest() {
         vm.onDeleteRequested(history.entry("a")!!)
         vm.onDeleteConfirmed(true)
         assertNull(history.entry("a"))
-        assertEquals(listOf("Apfelschorle gelöscht."), messages.messages.value)
+        assertEquals(listOf("Apfelschorle gelöscht."), messages.texts)
     }
 
     @Test
@@ -199,7 +203,7 @@ class FriendsViewModelTest : MainDispatcherTest() {
     private val refresh = RefreshSignal()
     private val messages = MessageQueue()
 
-    private fun viewModel() = FriendsViewModel(account, friends, feed, refresh, messages, clock)
+    private fun viewModel() = FriendsViewModel(account, friends, friends, feed, refresh, messages, clock)
 
     @Test
     fun signedOutShowsOnlySignInCard() = runTest(dispatcher) {
@@ -212,7 +216,7 @@ class FriendsViewModelTest : MainDispatcherTest() {
 
     @Test
     fun notConfiguredIsShown() = runTest(dispatcher) {
-        val vm = FriendsViewModel(FakeAccount(configured = false), null, null, refresh, messages, clock)
+        val vm = FriendsViewModel(FakeAccount(configured = false), null, null, null, refresh, messages, clock)
         assertFalse(vm.state.value.configured)
     }
 
@@ -232,13 +236,13 @@ class FriendsViewModelTest : MainDispatcherTest() {
         val vm = viewModel()
         vm.onOpenEmailDialog()
         vm.onSendEmailRequest("keine-adresse")
-        assertEquals(listOf(FriendsViewModel.INVALID_EMAIL), messages.messages.value)
+        assertEquals(listOf(FriendsViewModel.INVALID_EMAIL), messages.texts)
         assertTrue(vm.state.value.emailDialogOpen)
 
         vm.onSendEmailRequest(" anna@example.org ")
         assertEquals(listOf("email:anna@example.org"), friends.calls)
         assertFalse(vm.state.value.emailDialogOpen)
-        assertEquals(FriendsViewModel.EMAIL_SENT, messages.messages.value.last())
+        assertEquals(FriendsViewModel.EMAIL_SENT, messages.texts.last())
     }
 
     @Test
@@ -246,7 +250,7 @@ class FriendsViewModelTest : MainDispatcherTest() {
         val vm = viewModel()
         friends.failure = SocialException.Server("rate_limited", 400)
         vm.onSendEmailRequest("anna@example.org")
-        assertEquals(ErrorMessages.RATE_LIMITED, messages.messages.value.single())
+        assertEquals(ErrorMessages.RATE_LIMITED, messages.texts.single())
         assertFalse(vm.state.value.busy)
     }
 
@@ -254,11 +258,18 @@ class FriendsViewModelTest : MainDispatcherTest() {
     fun requestsAndRemovalCallTheService() = runTest(dispatcher) {
         val vm = viewModel()
         vm.onRespond(friends.requests[0], accept = true)
-        vm.onCancelRequest(friends.requests[1])
+        vm.onCancelRequest(friends.outgoing[0])
         vm.onRemoveRequested(friends.friends[0])
         vm.onRemoveConfirmed(true)
         assertEquals(listOf("respond:r1:true", "cancel:r2", "remove:anna-id"), friends.calls)
-        assertEquals("Du bist jetzt mit Bob befreundet.", messages.messages.value.first())
+        assertEquals("Du bist jetzt mit Bob befreundet.", messages.texts.first())
+        assertEquals("Anfrage an c***@example.org zurückgezogen.", messages.texts[1])
+    }
+
+    @Test
+    fun outgoingRequestsShowOnlyTheMaskedAddress() = runTest(dispatcher) {
+        val vm = viewModel()
+        assertEquals(listOf("Anfrage an c***@example.org"), vm.state.value.outgoing.map(FriendsViewModel::outgoingLabel))
     }
 
     @Test
@@ -343,6 +354,39 @@ class EventViewModelTest : MainDispatcherTest() {
     }
 
     @Test
+    fun missingGermanVoiceShowsSetupHelpRightOnTheEventScreen() = runTest(dispatcher) {
+        val speaker = FakeSpeaker(SpeakerStatus.NO_ENGINE)
+        val vm = EventViewModel(
+            AppRequest.OpenEvent("ev-1", null, null, autoRead = false),
+            { id -> friendEvent(id, at = clock.now.minusSeconds(180)) },
+            speaker, screenReader, { autoRead }, clock, { ZoneOffset.UTC },
+        )
+        assertEquals(SpeakerStatus.NO_ENGINE, vm.state.value.speakerStatus, "Karte „Vorlesen einrichten“")
+        assertFalse(vm.state.value.speechHelpOpen)
+
+        vm.onReadAloud()
+        assertTrue(vm.state.value.speechHelpOpen, "Tippen auf „Vorlesen“ bleibt nicht folgenlos")
+        vm.onSpeechHelp(false)
+        assertFalse(vm.state.value.speechHelpOpen)
+
+        speaker.statusFlow.value = SpeakerStatus.READY
+        assertEquals(SpeakerStatus.READY, vm.state.value.speakerStatus)
+        vm.onReadAloud()
+        assertFalse(vm.state.value.speechHelpOpen)
+        assertEquals(1, speaker.spoken.size)
+    }
+
+    @Test
+    fun notificationActionWithoutVoiceOpensTheHelp() = runTest(dispatcher) {
+        val vm = EventViewModel(
+            AppRequest.OpenEvent("ev-1", null, null, autoRead = true),
+            { id -> friendEvent(id) },
+            FakeSpeaker(SpeakerStatus.MISSING_DATA), screenReader, { autoRead }, clock, { ZoneOffset.UTC },
+        )
+        assertTrue(vm.state.value.speechHelpOpen)
+    }
+
+    @Test
     fun notificationParserHandlesOddTexts() {
         assertEquals(NotificationTextParser.Parsed("Bob", "Mate", null), NotificationTextParser.parse("Bob trinkt gerade", "Mate"))
         assertNull(NotificationTextParser.parse("Neue Nachricht", "Mate (330 ml)"))
@@ -393,7 +437,7 @@ class SettingsViewModelTest : MainDispatcherTest() {
 
         vm.onDisablePush()
         assertEquals(PushStatus.Choose(push.installed), vm.state.value.push)
-        assertEquals(SettingsViewModel.PUSH_DISABLED, messages.messages.value.last())
+        assertEquals(SettingsViewModel.PUSH_DISABLED, messages.texts.last())
     }
 
     @Test
@@ -427,7 +471,16 @@ class SettingsViewModelTest : MainDispatcherTest() {
         vm.onDeleteAccountConfirmed(true)
         assertTrue(account.deleted)
         assertNull(vm.state.value.user)
-        assertEquals(SettingsViewModel.ACCOUNT_DELETED, messages.messages.value.last())
+        assertEquals(SettingsViewModel.ACCOUNT_DELETED, messages.texts.last())
+    }
+
+    @Test
+    fun testSpeechWithoutUsableVoiceOpensTheHelp() = runTest(dispatcher) {
+        val speaker = FakeSpeaker(SpeakerStatus.MISSING_DATA)
+        val vm = SettingsViewModel(account, settings, push, speaker, messages, dispatcher)
+        vm.onTestSpeech()
+        assertTrue(vm.state.value.speechHelpOpen, "auch wenn nur Sprachdaten fehlen")
+        assertTrue(speaker.spoken.isEmpty())
     }
 
     @Test
@@ -470,16 +523,16 @@ class AppViewModelTest : MainDispatcherTest() {
         vm.handle(AppRequest.AcceptInvite("AbCdEfGhIjKlMnOpQrStUv"))
         assertEquals(AppSection.FRIENDS, vm.state.value.section)
         assertNull(vm.state.value.inviteToConfirm)
-        assertEquals(AppViewModel.SIGN_IN_FOR_INVITE, messages.messages.value.single())
+        assertEquals(AppViewModel.SIGN_IN_FOR_INVITE, messages.texts.single())
 
         vm.handle(AppRequest.SignInCallback(AuthCallback.Code("code")))
         assertEquals("AbCdEfGhIjKlMnOpQrStUv", vm.state.value.inviteToConfirm, "nach der Anmeldung nachfragen")
         assertTrue(vm.state.value.askNotificationPermission)
-        assertEquals("Angemeldet als Ich.", messages.messages.value.last())
+        assertEquals("Angemeldet als Ich.", messages.texts.last())
 
         vm.onInviteAnswered(true)
         assertEquals(listOf("accept:AbCdEfGhIjKlMnOpQrStUv"), friends.calls)
-        assertEquals("Du bist jetzt mit Anna befreundet.", messages.messages.value.last())
+        assertEquals("Du bist jetzt mit Anna befreundet.", messages.texts.last())
         assertEquals(2L, refresh.value.value, "Freunde neu laden: nach Anmeldung und nach Annahme")
         assertNull(settings.pendingInviteToken)
     }
@@ -498,7 +551,7 @@ class AppViewModelTest : MainDispatcherTest() {
         account.signInError = SocialException.NotSignedIn(ErrorMessages.SIGN_IN_CANCELLED)
         val vm = viewModel()
         vm.handle(AppRequest.SignInCallback(AuthCallback.Failure("access_denied", null)))
-        assertEquals(ErrorMessages.SIGN_IN_CANCELLED, messages.messages.value.single())
+        assertEquals(ErrorMessages.SIGN_IN_CANCELLED, messages.texts.single())
         assertFalse(vm.state.value.signingIn)
     }
 
@@ -507,16 +560,32 @@ class AppViewModelTest : MainDispatcherTest() {
         val vm = viewModel()
         val request = AppRequest.OpenEvent("ev-1", "Anna trinkt gerade", "Tee (250 ml)", autoRead = true)
         vm.handle(request)
-        assertEquals(request, vm.state.value.openEvent)
+        assertEquals(request, vm.state.value.openEvent?.request)
         vm.onEventClosed()
         assertNull(vm.state.value.openEvent)
+    }
+
+    @Test
+    fun everyOpeningOfAnEventIsANewScreen() = runTest(dispatcher) {
+        // Zweimal dieselbe Benachrichtigungs-Aktion „Vorlesen“: Jedes Öffnen braucht ein eigenes ViewModel (das liest vor).
+        val vm = viewModel()
+        val request = AppRequest.OpenEvent("ev-1", null, null, autoRead = true)
+        vm.handle(request)
+        val first = vm.state.value.openEvent!!
+        vm.onEventClosed()
+        vm.handle(request)
+        val second = vm.state.value.openEvent!!
+        vm.handle(request)
+        val third = vm.state.value.openEvent!!
+        assertEquals(setOf(request), setOf(first.request, second.request, third.request))
+        assertEquals(3, setOf(first.key, second.key, third.key).size)
     }
 
     @Test
     fun withoutServerInvitesExplainWhy() = runTest(dispatcher) {
         val vm = AppViewModel(settings, bar, FakeAccount(configured = false), null, refresh, messages, dispatcher)
         vm.handle(AppRequest.AcceptInvite("AbCdEfGhIjKlMnOpQrStUv"))
-        assertEquals(ErrorMessages.NOT_CONFIGURED, messages.messages.value.single())
+        assertEquals(ErrorMessages.NOT_CONFIGURED, messages.texts.single())
     }
 }
 

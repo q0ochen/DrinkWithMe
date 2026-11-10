@@ -28,10 +28,16 @@ data class AppUiState(
     /** Einladung, deren Annahme der Nutzer noch bestätigen soll. */
     val inviteToConfirm: String? = null,
     val acceptingInvite: Boolean = false,
-    val openEvent: AppRequest.OpenEvent? = null,
+    val openEvent: OpenedEvent? = null,
     /** Nach der Anmeldung einmal nach der Benachrichtigungs-Erlaubnis fragen (Android 13+). */
     val askNotificationPermission: Boolean = false,
 )
+
+/**
+ * Ein geöffneter Ereignis-Bildschirm. [key] ist bei jedem Öffnen neu (auch für dieselbe Benachrichtigung): Jedes
+ * Öffnen bekommt ein eigenes ViewModel, das lädt und – bei der Aktion „Vorlesen“ – vorliest.
+ */
+data class OpenedEvent(val request: AppRequest.OpenEvent, val key: Long)
 
 /**
  * Wurzel der Oberfläche: erster Start, Bereich, eingehende Links (Anmeldung, Einladung) und Benachrichtigungen.
@@ -48,6 +54,7 @@ class AppViewModel(
 
     private val mutableState = MutableStateFlow(AppUiState())
     val state: StateFlow<AppUiState> = mutableState.asStateFlow()
+    private var openedEvents = 0L
 
     init {
         viewModelScope.launch {
@@ -80,7 +87,10 @@ class AppViewModel(
                     else -> mutableState.update { it.copy(inviteToConfirm = request.token) }
                 }
             }
-            is AppRequest.OpenEvent -> mutableState.update { it.copy(openEvent = request) }
+            is AppRequest.OpenEvent -> {
+                val opened = OpenedEvent(request, ++openedEvents)
+                mutableState.update { it.copy(openEvent = opened) }
+            }
         }
     }
 

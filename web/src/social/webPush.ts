@@ -65,16 +65,25 @@ export class WebPushService implements PushService {
     private readonly isSignedIn: () => boolean,
   ) {}
 
+  /**
+   * „Eingeschaltet“ heißt: Browser-Abo **und** Zeile auf dem Server. Fehlt die Zeile (z. B. weil das Speichern
+   * scheiterte), ist es aus. Ist der Server nicht erreichbar, zählt das Browser-Abo.
+   */
   async status(): Promise<PushStatus> {
     const registration = await this.environment.registration().catch(() => null);
     const permission = this.environment.permission();
     const supported = registration !== null && permission !== "unsupported" && "pushManager" in registration;
     const subscription = supported ? await registration.pushManager.getSubscription().catch(() => null) : null;
+    let subscribed = subscription !== null && permission === "granted";
+    if (subscribed && subscription && this.isSignedIn()) {
+      const onServer = await this.hasServerRow(subscription).catch(() => null);
+      if (onServer === false) subscribed = false;
+    }
     return {
       supported,
       needsHomeScreen: needsHomeScreenForPush(this.environment.platform),
       permission,
-      subscribed: subscription !== null && permission === "granted",
+      subscribed,
       configured: this.vapidPublicKey !== null,
     };
   }
@@ -86,16 +95,7 @@ export class WebPushService implements PushService {
     if (!registration || this.environment.permission() === "unsupported") throw new SocialError("push_unsupported");
     const permission = await this.environment.requestPermission();
     if (permission !== "granted") throw new SocialError("push_denied");
-    let subscription = await registration.pushManager.getSubscription();
-    if (subscription && !this.sameKey(subscription)) {
-      await subscription.unsubscribe();
-      subscription = null;
-    }
-    subscription ??= await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64UrlToBytes(this.vapidPublicKey),
-    });
-    await this.register(subscription);
+    await this.subscribeAndRegister(registration, this.vapidPublicKey);
   }
 
   async disable(): Promise<void> {
@@ -110,11 +110,44 @@ export class WebPushService implements PushService {
     await subscription.unsubscribe();
   }
 
-  async sync(): Promise<void> {
+  async sync(wanted: boolean): Promise<void> {
     if (!this.vapidPublicKey || !this.isSignedIn() || this.environment.permission() !== "granted") return;
     const registration = await this.environment.registration();
-    const subscription = registration ? await registration.pushManager.getSubscription() : null;
-    if (subscription) await this.register(subscription);
+    if (!registration) return;
+    const subscription = await registration.pushManager.getSubscription();
+    // Ohne Browser-Abo nur neu abonnieren, wenn der Nutzer Benachrichtigungen eingeschaltet hatte (z. B. hat der
+    // Browser das Abo verworfen). Die Berechtigung ist schon erteilt – es erscheint keine Abfrage.
+    if (subscription || wanted) await this.subscribeAndRegister(registration, this.vapidPublicKey);
+  }
+
+  /** Vorhandenes Abo (mit passendem Schlüssel) verwenden oder neu abonnieren; ein **neues** Abo bei Fehlern zurücknehmen. */
+  private async subscribeAndRegister(registration: ServiceWorkerRegistration, vapidPublicKey: string): Promise<void> {
+    let subscription = await registration.pushManager.getSubscription();
+    if (subscription && !this.sameKey(subscription)) {
+      await subscription.unsubscribe();
+      subscription = null;
+    }
+    const created = subscription === null;
+    subscription ??= await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToBytes(vapidPublicKey),
+    });
+    try {
+      await this.register(subscription);
+    } catch (error) {
+      // Sonst bliebe ein Browser-Abo ohne Zeile auf dem Server (die Einstellungen zeigten fälschlich „Eingeschaltet“).
+      if (created) await subscription.unsubscribe().catch(() => false);
+      throw error;
+    }
+  }
+
+  private async hasServerRow(subscription: PushSubscription): Promise<boolean> {
+    const keys = keysOf(subscription);
+    if (!keys) return false;
+    // Ohne Wiederholungen: Die Anzeige soll offline sofort auf das Browser-Abo zurückfallen.
+    const result = await this.client.from("push_subscriptions").select("endpoint").eq("endpoint", keys.endpoint).limit(1).retry(false);
+    if (result.error) throw fromPostgrestError(result.error, result.status);
+    return Array.isArray(result.data) && result.data.length > 0;
   }
 
   /** Abo für den angemeldeten Nutzer speichern (vorher eigenes gleiches Abo löschen – kein UPDATE). */
@@ -141,7 +174,10 @@ export class WebPushService implements PushService {
         const retry = await this.client
           .from("push_subscriptions")
           .insert({ endpoint: freshKeys.endpoint, p256dh: freshKeys.p256dh, auth: freshKeys.auth, platform: "web" });
-        if (retry.error) throw fromPostgrestError(retry.error, retry.status);
+        if (retry.error) {
+          await fresh.unsubscribe().catch(() => false);
+          throw fromPostgrestError(retry.error, retry.status);
+        }
         return;
       }
       throw fromPostgrestError(inserted.error, inserted.status);

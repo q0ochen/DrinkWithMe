@@ -4,6 +4,7 @@ import com.drinkwithme.app.MutableClock
 import com.drinkwithme.app.config.ServerConfig
 import com.drinkwithme.app.data.InMemoryKeyValueStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -323,4 +324,76 @@ class SupabaseSessionTest {
         assertNull(session().currentUser.value)
         assertNull(kv.getString("session"))
     }
+
+    @Test
+    fun keystoreFailureWhileLoadingNeverCrashesAndKeepsTheEntry() = runTest {
+        session().apply { beginSignIn(); completeSignIn("code") }
+        val stored = kv.getString("session")
+        val busy = SupabaseSession(auth, EncryptedSessionStore(kv, ThrowingCipher(KeystoreUnavailableException(java.security.ProviderException("busy")))), kv, clock)
+        assertNull(busy.currentUser.value, "diesmal abgemeldet")
+        assertEquals(stored, kv.getString("session"), "Eintrag bleibt für den nächsten Start")
+
+        val broken = SupabaseSession(auth, EncryptedSessionStore(kv, ThrowingCipher(IllegalStateException("kaputt"))), kv, clock)
+        assertNull(broken.currentUser.value, "auch unerwartete Laufzeitfehler führen nicht zum Absturz")
+    }
+
+    @Test
+    fun storedSessionIsReadLazilyAndStoreIoRunsOnTheIoDispatcher() = runTest {
+        val threads = mutableListOf<String>()
+        val recordingKv = RecordingKeyValueStore(kv, threads)
+        val io = java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it, "session-io") }.asCoroutineDispatcher()
+        try {
+            val session = SupabaseSession(auth, EncryptedSessionStore(recordingKv, ReversingCipher()), recordingKv, clock, io = io)
+            assertTrue(threads.isEmpty(), "der Konstruktor (Application.onCreate) liest nichts")
+            session.warmUp()
+            assertEquals(listOf("session-io:get:session"), threads)
+
+            session.beginSignIn()
+            session.completeSignIn("code")
+            session.accessToken()
+            clock.advance(Duration.ofHours(2))
+            session.accessToken()
+            session.signOut()
+            assertTrue(threads.size > 4)
+            assertTrue(threads.all { it.startsWith("session-io:") }, threads.toString())
+        } finally {
+            io.close()
+        }
+    }
+
+    @Test
+    fun rejectedRefreshTokenReportsTheLostSession() = runTest {
+        session().apply { beginSignIn(); completeSignIn("code") }
+        val restarted = session()
+        var lost = 0
+        restarted.sessionLostListener = { lost++ }
+        auth.refreshError = SocialException.Network(java.io.IOException("offline"))
+        assertFailsWith<SocialException.Network> { restarted.accessToken() }
+        assertEquals(0, lost, "Netzfehler beenden die Sitzung nicht")
+        auth.refreshError = SocialException.Server("refresh_token_not_found", 400)
+        assertFailsWith<SocialException.NotSignedIn> { restarted.accessToken() }
+        assertEquals(1, lost)
+        assertNull(restarted.currentUser.value)
+    }
+}
+
+private class ThrowingCipher(private val failure: Exception) : TokenCipher {
+    override fun encrypt(plain: String): String = "enc:$plain"
+    override fun decrypt(encrypted: String): String? = throw failure
+}
+
+/** Merkt sich, auf welchem Thread gelesen und geschrieben wird. */
+private class RecordingKeyValueStore(private val delegate: InMemoryKeyValueStore, private val threads: MutableList<String>) :
+    com.drinkwithme.app.data.KeyValueStore {
+    override fun getString(key: String): String? {
+        record("get:$key")
+        return delegate.getString(key)
+    }
+
+    override fun putString(key: String, value: String?) {
+        record("put:$key")
+        delegate.putString(key, value)
+    }
+
+    private fun record(what: String) = synchronized(threads) { threads += "${Thread.currentThread().name}:$what" }
 }

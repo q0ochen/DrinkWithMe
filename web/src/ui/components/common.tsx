@@ -128,12 +128,33 @@ export function IosHomeScreenHint() {
         Auf dem iPhone gibt es Benachrichtigungen nur, wenn Drink With Me auf dem Home-Bildschirm liegt: Tippe in Safari auf „Teilen“ und
         dann auf „Zum Home-Bildschirm“. Öffne die App danach über das neue Symbol.
       </p>
+      <p>
+        <strong>Wichtig:</strong> Die App auf dem Home-Bildschirm hat einen eigenen Speicher – deine Bar und dein Verlauf aus diesem
+        Safari-Tab werden nicht übernommen. Speichere vorher unter „Einstellungen“ → „Bar und Verlauf“ eine Sicherung und lies sie in der
+        App auf dem Home-Bildschirm wieder ein.
+      </p>
+    </Notice>
+  );
+}
+
+/** Erster Start im Safari-Tab auf dem iPhone: lieber gleich in der App auf dem Home-Bildschirm anfangen. */
+export function IosInstallFirstHint() {
+  return (
+    <Notice tone="info">
+      <p>
+        <strong>Tipp fürs iPhone: zuerst auf den Home-Bildschirm</strong>
+      </p>
+      <p>
+        Lege Drink With Me am besten jetzt auf den Home-Bildschirm (in Safari „Teilen“ → „Zum Home-Bildschirm“) und richte die Bar dort
+        ein. Die App auf dem Home-Bildschirm hat einen eigenen Speicher: Was du hier im Safari-Tab einträgst, ist dort nicht zu sehen. Nur
+        dort gibt es auch Benachrichtigungen.
+      </p>
     </Notice>
   );
 }
 
 /** Kleine, selbst gezeichnete Linien-Icons für Navigation und Knöpfe (CC0). */
-export function UiIcon({ name }: { name: "bar" | "history" | "friends" | "settings" | "mic" | "speaker" | "share" | "plus" | "up" | "down" | "edit" | "trash" | "undo" | "back" }) {
+export function UiIcon({ name }: { name: "bar" | "history" | "friends" | "settings" | "mic" | "speaker" | "share" | "plus" | "up" | "down" | "edit" | "trash" | "undo" | "back" | "more" }) {
   const common = { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round" as const, "stroke-linejoin": "round" as const, "aria-hidden": "true" as const, focusable: "false" as const };
   switch (name) {
     case "bar":
@@ -240,6 +261,14 @@ export function UiIcon({ name }: { name: "bar" | "history" | "friends" | "settin
       return (
         <svg {...common}>
           <path d="m15 18-6-6 6-6" />
+        </svg>
+      );
+    case "more":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="5" r="1.4" fill="currentColor" />
+          <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+          <circle cx="12" cy="19" r="1.4" fill="currentColor" />
         </svg>
       );
   }

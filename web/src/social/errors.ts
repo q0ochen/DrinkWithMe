@@ -6,6 +6,7 @@ export type SocialErrorCode =
   | "invite_invalid"
   | "invite_own"
   | "too_many_subscriptions"
+  | "too_many_events"
   | "request_not_found"
   | "push_unsupported"
   | "push_denied"
@@ -20,6 +21,7 @@ const MESSAGES: Record<SocialErrorCode, string> = {
   invite_own: "Das ist dein eigener Einladungs-Link. Schicke ihn an jemanden, mit dem du dich vernetzen möchtest.",
   too_many_subscriptions:
     "Benachrichtigungen sind schon auf fünf Geräten eingeschaltet. Schalte sie auf einem anderen Gerät aus und versuche es erneut.",
+  too_many_events: "Heute wurden schon sehr viele Getränke geteilt. Weitere Einträge bleiben vorerst nur auf diesem Gerät.",
   request_not_found: "Diese Anfrage gibt es nicht mehr.",
   push_unsupported: "Dieser Browser unterstützt keine Benachrichtigungen.",
   push_denied: "Benachrichtigungen sind für diese Seite blockiert. Du kannst sie in den Einstellungen des Browsers erlauben.",
@@ -33,6 +35,7 @@ const SERVER_CODES: ReadonlySet<string> = new Set([
   "invite_invalid",
   "invite_own",
   "too_many_subscriptions",
+  "too_many_events",
   "request_not_found",
 ]);
 

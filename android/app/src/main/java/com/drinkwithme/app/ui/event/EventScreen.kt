@@ -27,14 +27,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.drinkwithme.app.ui.common.AppIcons
 import com.drinkwithme.app.ui.common.BigButton
 import com.drinkwithme.app.ui.common.DrinkIconImage
+import com.drinkwithme.app.ui.common.SpeechHelpActions
+import com.drinkwithme.app.ui.common.SpeechHelpDialog
+import com.drinkwithme.app.ui.common.SpeechSetupCard
 import com.drinkwithme.app.ui.theme.EventHeadlineStyle
 
 /**
  * Ereignis-Bildschirm (nach Tipp auf eine Benachrichtigung): großer Satz (32 sp) und ein bildschirmbreiter
- * Knopf „Vorlesen“ (mindestens 96 dp hoch), der auf dem Fernseher sofort den Fokus hat.
+ * Knopf „Vorlesen“ (mindestens 96 dp hoch), der auf dem Fernseher sofort den Fokus hat. Fehlt eine deutsche
+ * Sprachausgabe, steht die Hilfe „Vorlesen einrichten“ gleich hier (nicht nur in den Einstellungen).
  */
 @Composable
-fun EventScreen(viewModel: EventViewModel, onClose: () -> Unit) {
+fun EventScreen(viewModel: EventViewModel, onClose: () -> Unit, speechHelp: SpeechHelpActions) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val readFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
@@ -66,7 +70,11 @@ fun EventScreen(viewModel: EventViewModel, onClose: () -> Unit) {
                 minHeight = 96.dp,
                 modifier = Modifier.fillMaxWidth().focusRequester(readFocus),
             )
+            SpeechSetupCard(state.speakerStatus, { viewModel.onSpeechHelp(true) }, speechHelp)
             BigButton("Schließen", onClose, icon = AppIcons.Close, outlined = true, modifier = Modifier.fillMaxWidth())
         }
+    }
+    if (state.speechHelpOpen) {
+        SpeechHelpDialog(state.speakerStatus, { viewModel.onSpeechHelp(false) }, speechHelp)
     }
 }

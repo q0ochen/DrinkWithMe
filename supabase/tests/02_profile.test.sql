@@ -1,7 +1,9 @@
 -- pgTAP: Profil-Trigger auf auth.users und RLS-Matrix für public.profiles
--- (selbst / Freund / offene Anfrage in beide Richtungen / Fremder / nicht angemeldet).
+-- (selbst / Freund / Absender einer eingehenden Anfrage / Empfänger einer ausgehenden Anfrage / Fremder /
+-- nicht angemeldet). Der Absender einer Anfrage sieht das Profil des Empfängers NICHT – sonst ließe sich prüfen,
+-- ob es zu einer E-Mail-Adresse ein Konto gibt.
 begin;
-select plan(32);
+select plan(33);
 
 -- ---------------------------------------------------------------------------------------------------
 -- Testumgebung (in jeder Testdatei gleich; alles liegt in pg_temp und verschwindet mit dem ROLLBACK)
@@ -50,6 +52,13 @@ $$;
 create function pg_temp.befreunden(a text, b text) returns void language sql as $$
   insert into public.friendships (user_a, user_b)
   values (least(pg_temp.id(a), pg_temp.id(b)), greatest(pg_temp.id(a), pg_temp.id(b)))
+$$;
+-- Offene Anfrage, wie send_friend_request sie anlegt (Kennung und Hinweis aus der Adresse des Empfängers).
+create function pg_temp.anfrage_anlegen(von text, an text) returns uuid language sql as $$
+  insert into public.friend_requests (from_user, to_user, email_hash, email_hint)
+  values (pg_temp.id(von), pg_temp.id(an), private.friend_request_hash(pg_temp.id(von), an || '@example.org'),
+          private.email_hint(an || '@example.org'))
+  returning id
 $$;
 grant execute on all functions in schema pg_temp to public;
 
@@ -104,15 +113,18 @@ select is(
 --   Anna ↔ Ben befreundet · Clara → Anna offene Anfrage · Anna → Emil offene Anfrage · Dora fremd
 -- ---------------------------------------------------------------------------------------------------
 select pg_temp.befreunden('anna', 'ben');
-insert into public.friend_requests (from_user, to_user) values
-  (pg_temp.id('clara'), pg_temp.id('anna')),
-  (pg_temp.id('anna'), pg_temp.id('emil'));
+select pg_temp.anfrage_anlegen('clara', 'anna');
+select pg_temp.anfrage_anlegen('anna', 'emil');
 
 select pg_temp.als('anna');
 select set_eq(
   'select id from public.profiles',
-  array[pg_temp.id('anna'), pg_temp.id('ben'), pg_temp.id('clara'), pg_temp.id('emil')],
-  'Anna sieht sich, ihren Freund Ben und beide Personen mit offener Anfrage (ein- und ausgehend)'
+  array[pg_temp.id('anna'), pg_temp.id('ben'), pg_temp.id('clara')],
+  'Anna sieht sich, ihren Freund Ben und Clara (Absenderin einer eingehenden Anfrage)'
+);
+select is_empty(
+  $$ select 1 from public.profiles where id = pg_temp.id('emil') $$,
+  'Anna sieht Emil NICHT, obwohl sie ihm eine Anfrage geschickt hat (keine Bestätigung, dass es das Konto gibt)'
 );
 select pg_temp.als('ben');
 select set_eq(
@@ -123,14 +135,14 @@ select set_eq(
 select pg_temp.als('clara');
 select set_eq(
   'select id from public.profiles',
-  array[pg_temp.id('clara'), pg_temp.id('anna')],
-  'Clara (Absenderin einer Anfrage) sieht sich und Anna'
+  array[pg_temp.id('clara')],
+  'Clara (Absenderin einer Anfrage) sieht nur sich – Annas Profil erst nach der Annahme'
 );
 select pg_temp.als('emil');
 select set_eq(
   'select id from public.profiles',
   array[pg_temp.id('emil'), pg_temp.id('anna')],
-  'Emil (Empfänger einer Anfrage) sieht sich und Anna'
+  'Emil (Empfänger einer Anfrage) sieht sich und Anna (Name der Absenderin)'
 );
 select pg_temp.als('dora');
 select set_eq(

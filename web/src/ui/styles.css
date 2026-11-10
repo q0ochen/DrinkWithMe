@@ -573,6 +573,19 @@ main:focus {
   list-style: none;
 }
 
+.drink-cell {
+  position: relative;
+}
+
+/* „⋮“ in der Ecke der Kachel: Privat eintragen, Bar bearbeiten (wie das Menü in der Android-App). */
+.drink-cell .tile-more {
+  position: absolute;
+  top: 0.125rem;
+  right: 0.125rem;
+  border-color: transparent;
+  background: transparent;
+}
+
 .drink-tile {
   display: flex;
   flex-direction: column;

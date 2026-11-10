@@ -6,6 +6,7 @@ import com.drinkwithme.app.routing.AppRequest
 import com.drinkwithme.app.speech.AnnouncementPolicy
 import com.drinkwithme.app.speech.ScreenReaderDetector
 import com.drinkwithme.app.speech.Speaker
+import com.drinkwithme.app.speech.SpeakerStatus
 import com.drinkwithme.app.stats.GermanFormat
 import com.drinkwithme.app.supabase.EventLookup
 import com.drinkwithme.app.supabase.SocialException
@@ -17,6 +18,7 @@ import com.drinkwithme.core.speech.SpeechTexts
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Duration
@@ -29,6 +31,9 @@ data class EventUiState(
     val detail: String? = null,
     val speech: String = "",
     val icon: DrinkIcon = DrinkIcon.OTHER,
+    /** Fehlt eine (deutsche) Sprachausgabe, zeigt der Bildschirm die Hilfe „Vorlesen einrichten“. */
+    val speakerStatus: SpeakerStatus = SpeakerStatus.INITIALIZING,
+    val speechHelpOpen: Boolean = false,
 )
 
 /** Liest „Anna trinkt gerade“ / „Apfelschorle (500 ml)“ aus einer Benachrichtigung, falls das Ereignis offline nicht ladbar ist. */
@@ -71,22 +76,32 @@ class EventViewModel(
     init {
         speaker.prepare()
         viewModelScope.launch {
+            speaker.status.collect { status -> mutableState.update { it.copy(speakerStatus = status) } }
+        }
+        viewModelScope.launch {
             val event = try {
                 lookup?.event(request.eventId)
             } catch (error: SocialException) {
                 null
             }
-            mutableState.value = event?.let(::stateFor) ?: fallbackState(loading = false)
+            val loaded = event?.let(::stateFor) ?: fallbackState(loading = false)
+            mutableState.update { loaded.copy(speakerStatus = it.speakerStatus, speechHelpOpen = it.speechHelpOpen) }
             val explicit = request.autoRead
-            if (explicit || (autoReadSetting() && AnnouncementPolicy.shouldSpeak(screenReader.isScreenReaderActive(), false))) {
+            if (explicit) {
+                speakOrHelp()
+            } else if (autoReadSetting() && AnnouncementPolicy.shouldSpeak(screenReader.isScreenReaderActive(), false)) {
                 speaker.speak(state.value.speech)
             }
         }
     }
 
-    /** Knopf „Vorlesen“. */
-    fun onReadAloud() {
-        speaker.speak(state.value.speech)
+    /** Knopf „Vorlesen“. Ohne nutzbare Stimme öffnet er die Hilfe „Vorlesen einrichten“. */
+    fun onReadAloud() = speakOrHelp()
+
+    fun onSpeechHelp(open: Boolean) = mutableState.update { it.copy(speechHelpOpen = open) }
+
+    private fun speakOrHelp() {
+        if (!speaker.speak(state.value.speech)) onSpeechHelp(true)
     }
 
     private fun stateFor(event: FriendDrinkEvent): EventUiState {

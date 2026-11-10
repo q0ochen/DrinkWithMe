@@ -2,7 +2,8 @@
 
 import { assert, assertEquals, assertMatch } from "@std/assert";
 import { importVapidCredentials } from "../_shared/webpush/vapid.ts";
-import { isAllowedPushEndpoint, type PushTarget, WebPushSender } from "../_shared/webpush/sender.ts";
+import type { HostVerdict, PushHostVerifier } from "../_shared/webpush/endpoint_policy.ts";
+import { type PushTarget, WebPushSender } from "../_shared/webpush/sender.ts";
 import { utf8 } from "../_shared/bytes.ts";
 import { fakeFetch, FixedClock } from "./helpers/fakes.ts";
 import { decryptAsReceiver, RFC8291 } from "./helpers/rfc8291.ts";
@@ -13,10 +14,23 @@ const target: PushTarget = {
   auth: RFC8291.authSecret,
 };
 
-async function senderWith(respond: () => Response | Promise<Response>) {
+/** DNS-Prüfung als Attrappe: liefert für jeden Host dasselbe Ergebnis und merkt sich die Hosts. */
+class FakeHostVerifier implements PushHostVerifier {
+  readonly hosts: string[] = [];
+  constructor(private readonly verdict: HostVerdict = { kind: "allowed" }) {}
+  verify(hostname: string): Promise<HostVerdict> {
+    this.hosts.push(hostname);
+    return Promise.resolve(this.verdict);
+  }
+}
+
+async function senderWith(
+  respond: () => Response | Promise<Response>,
+  hosts: FakeHostVerifier = new FakeHostVerifier(),
+) {
   const credentials = await importVapidCredentials(RFC8291.asPublic, RFC8291.asPrivate, "mailto:betrieb@example.org");
   const http = fakeFetch(respond);
-  return { sender: new WebPushSender({ credentials, fetch: http.fetch, clock: new FixedClock() }), http };
+  return { sender: new WebPushSender({ credentials, fetch: http.fetch, clock: new FixedClock(), hosts }), http };
 }
 
 Deno.test("Versand: POST an den Endpoint mit aes128gcm, TTL, Urgency und VAPID; Inhalt entschlüsselbar", async () => {
@@ -58,48 +72,55 @@ Deno.test("Versand: andere Fehler und Netzwerkfehler behalten das Abo", async ()
   assertEquals((await sender.send(target, utf8("x"), { ttlSeconds: 60 })).kind, "failed");
 });
 
-Deno.test("Versand: kaputte Schlüssel im Abo → invalid, ohne Netzwerkzugriff", async () => {
-  const { sender, http } = await senderWith(() => new Response(null, { status: 201 }));
+Deno.test("Versand: kaputte Schlüssel im Abo → invalid, ohne Netzwerkzugriff (auch ohne DNS)", async () => {
+  const hosts = new FakeHostVerifier();
+  const { sender, http } = await senderWith(() => new Response(null, { status: 201 }), hosts);
   const result = await sender.send({ ...target, p256dh: "AAAA" }, utf8("x"), { ttlSeconds: 60 });
   assertEquals(result, { kind: "invalid", reason: "receiver_keys_invalid" });
   const result2 = await sender.send({ ...target, auth: "%%%" }, utf8("x"), { ttlSeconds: 60 });
   assertEquals(result2.kind, "invalid");
   assertEquals(http.requests.length, 0);
+  assertEquals(hosts.hosts, []);
 });
 
 Deno.test("Versand: interne oder unsichere Endpoints werden nicht angesprochen (SSRF-Schutz)", async () => {
-  const { sender, http } = await senderWith(() => new Response(null, { status: 201 }));
-  const result = await sender.send({ ...target, endpoint: "https://127.0.0.1/x" }, utf8("x"), { ttlSeconds: 60 });
+  const hosts = new FakeHostVerifier();
+  const { sender, http } = await senderWith(() => new Response(null, { status: 201 }), hosts);
+  for (const endpoint of ["https://127.0.0.1/x", "https://localhost./x", "https://ntfy.example.org:8443/up"]) {
+    const result = await sender.send({ ...target, endpoint }, utf8("x"), { ttlSeconds: 60 });
+    assertEquals(result, { kind: "invalid", reason: "endpoint_not_allowed" }, endpoint);
+  }
+  assertEquals(http.requests.length, 0);
+  assertEquals(hosts.hosts, [], "Unzulässige Namen werden gar nicht erst per DNS aufgelöst");
+});
+
+Deno.test("Versand: vor dem Senden wird der Hostname per DNS geprüft (ohne Punkt am Ende)", async () => {
+  const hosts = new FakeHostVerifier();
+  const { sender, http } = await senderWith(() => new Response(null, { status: 201 }), hosts);
+  const endpoint = "https://NTFY.example.org./upAbC123";
+  assertEquals((await sender.send({ ...target, endpoint }, utf8("x"), { ttlSeconds: 60 })).kind, "delivered");
+  assertEquals(hosts.hosts, ["ntfy.example.org"]);
+  assertEquals(http.requests.length, 1);
+});
+
+Deno.test("Versand: Name zeigt per DNS auf eine interne Adresse → invalid, keine Anfrage", async () => {
+  const { sender, http } = await senderWith(
+    () => new Response(null, { status: 201 }),
+    new FakeHostVerifier({ kind: "not_allowed" }),
+  );
+  const result = await sender.send({ ...target, endpoint: "https://127.0.0.1.nip.io/x" }, utf8("x"), {
+    ttlSeconds: 60,
+  });
   assertEquals(result, { kind: "invalid", reason: "endpoint_not_allowed" });
   assertEquals(http.requests.length, 0);
 });
 
-Deno.test("Endpoint-Prüfung: öffentliche https-Hosts erlaubt, alles andere nicht", () => {
-  for (
-    const ok of [
-      "https://ntfy.sh/upABC",
-      "https://fcm.googleapis.com/fcm/send/abc",
-      "https://updates.push.services.mozilla.com/wpush/v2/x",
-      "https://web.push.apple.com/abc",
-      "https://ntfy.example.org:8443/up",
-    ]
-  ) {
-    assert(isAllowedPushEndpoint(ok), ok);
-  }
-  for (
-    const bad of [
-      "http://ntfy.sh/upABC",
-      "https://localhost/x",
-      "https://127.0.0.1/x",
-      "https://[::1]/x",
-      "https://10.0.0.1/x",
-      "https://intranet/x",
-      "https://server.local/x",
-      "https://db.internal/x",
-      "https://user:pass@ntfy.sh/x",
-      "kein-url",
-    ]
-  ) {
-    assertEquals(isAllowedPushEndpoint(bad), false, bad);
-  }
+Deno.test("Versand: DNS-Störung → failed (Abo bleibt), keine Anfrage", async () => {
+  const { sender, http } = await senderWith(
+    () => new Response(null, { status: 201 }),
+    new FakeHostVerifier({ kind: "unresolved", reason: "dns_error" }),
+  );
+  const result = await sender.send(target, utf8("x"), { ttlSeconds: 60 });
+  assertEquals(result, { kind: "failed", reason: "dns_error" });
+  assertEquals(http.requests.length, 0);
 });

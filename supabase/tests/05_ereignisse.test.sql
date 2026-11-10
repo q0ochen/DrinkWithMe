@@ -1,7 +1,8 @@
 -- pgTAP: Geteilte Trink-Ereignisse (drink_events) – Anlegen nur als man selbst und nur „jetzt“
--- (letzte 24 h bis +5 min), Lesen für Autor und Freunde, Löschen nur durch den Autor, KEIN UPDATE.
+-- (letzte 24 h bis +5 min), höchstens 200 pro Person in 24 Stunden, Lesen für Autor und Freunde, Löschen nur
+-- durch den Autor, KEIN UPDATE.
 begin;
-select plan(35);
+select plan(43);
 
 -- ---------------------------------------------------------------------------------------------------
 -- Testumgebung (in jeder Testdatei gleich; alles liegt in pg_temp und verschwindet mit dem ROLLBACK)
@@ -235,6 +236,53 @@ select is_empty(
       where id = pg_temp.ereignis(2) and author_id = pg_temp.id('anna') and notified_at is null
      returning id $$,
   '… ein zweiter Versuch findet nichts mehr (notified_at-Sperre)'
+);
+
+-- ---------------------------------------------------------------------------------------------------
+-- Höchstens 200 geteilte Getränke pro Person in 24 Stunden (Schutz der 500-MB-Datenbank, Review 3, Befund 7)
+-- ---------------------------------------------------------------------------------------------------
+select pg_temp.als('clara');   -- Clara hat bisher 1 Ereignis
+select lives_ok(
+  $$ insert into public.drink_events (id, name, icon, category, volume_ml, consumed_at)
+     select gen_random_uuid(), 'Wasser', 'water', 'WATER', 250, now() from generate_series(1, 199) $$,
+  '200 geteilte Getränke in 24 Stunden sind erlaubt'
+);
+select throws_ok(
+  $$ insert into public.drink_events (id, name, icon, category, volume_ml, consumed_at)
+     values (gen_random_uuid(), 'Wasser', 'water', 'WATER', 250, now()) $$,
+  'P0001', 'too_many_events', 'Das 201. Getränk in 24 Stunden wird abgelehnt (too_many_events)'
+);
+select lives_ok(
+  $$ delete from public.drink_events where id = pg_temp.ereignis(100) $$,
+  'Löschen ist am Limit weiterhin möglich'
+);
+select pg_temp.als('ben');
+select lives_ok(
+  $$ insert into public.drink_events (id, name, icon, category, volume_ml, consumed_at)
+     values (pg_temp.ereignis(200), 'Tee', 'tea', 'TEA', 250, now()) $$,
+  'Das Limit gilt pro Person: Ben kann weiter teilen'
+);
+select throws_ok(
+  $$ insert into public.drink_events (id, name, icon, category, volume_ml, consumed_at)
+     select gen_random_uuid(), 'Wasser', 'water', 'WATER', 250, now() from generate_series(1, 200) $$,
+  'P0001', 'too_many_events', 'Ein Massen-Insert über das Limit hinaus wird abgelehnt …'
+);
+select is((select count(*)::int from public.drink_events where author_id = pg_temp.id('ben')), 1,
+  '… und zwar vollständig (keine Zeile davon gespeichert)');
+
+select pg_temp.als_postgres();
+update public.drink_events set created_at = now() - interval '24 hours 1 second'
+ where author_id = pg_temp.id('clara');
+select pg_temp.als('clara');
+select lives_ok(
+  $$ insert into public.drink_events (id, name, icon, category, volume_ml, consumed_at)
+     values (gen_random_uuid(), 'Wasser', 'water', 'WATER', 250, now()) $$,
+  'Was vor mehr als 24 Stunden geteilt wurde, zählt nicht mehr mit'
+);
+select pg_temp.als_server();
+select lives_ok(
+  $$ update public.drink_events set notified_at = now() where author_id = pg_temp.id('clara') $$,
+  'Der Trigger betrifft nur das Anlegen (notify-friends darf notified_at weiter setzen)'
 );
 
 select * from finish();

@@ -5,6 +5,7 @@ import { SharingTexts } from "../../core/sharing/sharingPolicy";
 import { needsHomeScreenForPush } from "../../platform/platform";
 import { germanMessage } from "../../social/errors";
 import type { PushStatus, SocialServices } from "../../social/types";
+import { ExportBackupButton, ImportBackupButton } from "../components/BackupControls";
 import { Dialog } from "../components/Dialog";
 import { SignInPanel } from "../components/SignInPanel";
 import { ErrorText, IosHomeScreenHint, Link, Notice, PageHeader, Section, ServerNotConfigured, Spinner, UiIcon } from "../components/common";
@@ -106,11 +107,31 @@ export function SettingsScreen() {
       </Section>
 
       <Section title="Bar und Verlauf" id="bar">
-        <p>Bar und vollständiger Verlauf liegen nur auf diesem Gerät (im Browser-Speicher). Wer die Websitedaten löscht, löscht auch sie.</p>
+        <p>
+          Bar und vollständiger Verlauf liegen nur auf diesem Gerät (im Browser-Speicher). Wer die Websitedaten löscht, löscht auch sie.
+          Manche Browser (z. B. Safari) löschen Websitedaten auch von selbst, wenn die Seite längere Zeit nicht geöffnet wurde.
+        </p>
         <Link to="/bar/bearbeiten" class="button button-secondary">
           <UiIcon name="edit" />
           Bar bearbeiten
         </Link>
+        <h3>Sicherung</h3>
+        <p>
+          Speichere ab und zu eine Sicherung als Datei. Damit kannst du Bar und Verlauf auch in einen anderen Browser, auf ein anderes Gerät
+          oder – auf dem iPhone – in die App auf dem Home-Bildschirm übernehmen. Beim Einlesen wird nichts gelöscht und nichts geteilt.
+        </p>
+        {needsHomeScreenForPush(services.platform) ? (
+          <Notice>
+            <p>
+              Wechselst du zur App auf dem Home-Bildschirm? Speichere die Sicherung hier, öffne dann die App über das neue Symbol und lies die
+              Datei dort unter „Einstellungen“ ein.
+            </p>
+          </Notice>
+        ) : null}
+        <div class="toolbar">
+          <ExportBackupButton />
+          <ImportBackupButton />
+        </div>
       </Section>
 
       <Section title="Info" id="info">
@@ -148,6 +169,8 @@ function AccountActions({ social, name }: { social: SocialServices; name: string
   const [confirmDelete, setConfirmDelete] = useState(false);
   const signOut = useAction(async () => {
     await social.push.disable().catch(() => {});
+    // Nach dem nächsten Anmelden nicht von selbst wieder einschalten.
+    await services.settings.update({ pushWanted: false });
     await social.auth.signOut();
     announcer.announce("Du bist abgemeldet.");
   });
@@ -155,7 +178,7 @@ function AccountActions({ social, name }: { social: SocialServices; name: string
     setConfirmDelete(false);
     await social.push.disable().catch(() => {});
     await social.account.deleteAccount();
-    await services.settings.update({ feedLastSeenAt: null });
+    await services.settings.update({ feedLastSeenAt: null, pushWanted: false });
     announcer.announce("Dein Konto wurde gelöscht. Bar und Verlauf auf diesem Gerät bleiben erhalten.");
     router.navigate("/einstellungen", { replace: true });
   });

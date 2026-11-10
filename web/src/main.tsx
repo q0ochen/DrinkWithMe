@@ -5,10 +5,12 @@ import { Router } from "./app/router";
 import { openDatabase } from "./data/database";
 import { IndexedDbAuthStorage, IndexedDbBarRepository, IndexedDbHistoryRepository } from "./data/repositories";
 import { IndexedDbSettingsStore } from "./data/settingsStore";
+import { IndexedDbStoredValue } from "./data/storedValue";
 import { currentPlatform } from "./platform/platform";
 import { createSpeechRecognizer } from "./platform/recognition";
 import { createImageSharer } from "./platform/share";
 import { createBrowserSpeaker } from "./platform/speech";
+import { createPersistentStorage } from "./platform/storage";
 import { writeRecipientId } from "./sw/recipientStore";
 import { App } from "./ui/App";
 import "./ui/styles.css";
@@ -51,8 +53,11 @@ async function start(): Promise<void> {
         pushEnvironment: browserPushEnvironment(platform),
       });
     },
-    // Der Service Worker zeigt Push-Nachrichten nur für diese Nutzer-ID an.
+    // Der Service Worker zeigt Push-Nachrichten nur für diese Nutzer-ID an; `null` = ausdrücklich abgemeldet
+    // (nur dann bestellt er ein Abo ab).
     onSignedInUserChanged: (user) => writeRecipientId(user?.id ?? null).catch(() => {}),
+    pendingShareStore: new IndexedDbStoredValue(db, "pendingShares"),
+    persistentStorage: createPersistentStorage(),
     onBackgroundError: (error) => {
       console.warn("Drink With Me: Hintergrundaufgabe fehlgeschlagen", error);
     },
@@ -60,11 +65,23 @@ async function start(): Promise<void> {
 
   render(<App services={services} router={router} />, root);
 
-  // Vernetzung im Hintergrund laden, wenn sie gebraucht wird (angemeldet oder auf einer Freunde-Seite).
+  // Vernetzung im Hintergrund laden, wenn sie gebraucht wird: angemeldet (gespeicherter Nutzer **oder** gespeicherte
+  // Sitzung – sonst würden neue Getränke nicht geteilt) oder auf einer Freunde-Seite.
   const route = router.current().name;
-  if (config.supabase && (settings.current().signedInUser || route === "friends" || route === "invite" || route === "event" || route === "settings")) {
-    void services.social();
+  if (config.supabase) {
+    const signedIn = settings.current().signedInUser !== null || (await authStorage.hasSession().catch(() => false));
+    if (signedIn || route === "friends" || route === "invite" || route === "event" || route === "settings") void services.social();
   }
+
+  // Ohne Verbindung vorgemerktes Teilen/Zurückziehen nachholen, sobald es wieder geht (Start: siehe container.ts).
+  const retry = () => void services.retryPendingShares();
+  window.addEventListener("online", retry);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") retry();
+  });
+
+  // Bar und Verlauf liegen nur hier: einmalig um dauerhaften Speicher bitten (auch für ältere Installationen).
+  if (settings.current().onboardingDone) void services.requestPersistentStorage();
 
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
     navigator.serviceWorker.register(`${config.basePath}sw.js`, { scope: config.basePath }).catch((error: unknown) => {

@@ -133,6 +133,9 @@ export class IndexedDbHistoryRepository implements HistoryRepository {
   }
 }
 
+/** Schlüssel der Supabase-Sitzung im Store `auth` (`storageKey` von supabase-js). */
+export const AUTH_STORAGE_KEY = "drink-with-me-auth";
+
 /**
  * Asynchroner Schlüssel/Wert-Speicher für die Supabase-Sitzung (Schnittstelle von `auth.storage`).
  * So liegt auch die Anmeldung in IndexedDB statt im localStorage.
@@ -154,5 +157,10 @@ export class IndexedDbAuthStorage {
 
   async clear(): Promise<void> {
     await this.db.clear("auth");
+  }
+
+  /** Liegt eine Anmeldesitzung vor? (Ohne supabase-js zu laden – z. B. für den Start.) */
+  async hasSession(): Promise<boolean> {
+    return (await this.getItem(AUTH_STORAGE_KEY)) !== null;
   }
 }

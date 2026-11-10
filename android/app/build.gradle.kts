@@ -29,7 +29,8 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 2
-        versionName = "2.0"
+        // Dreiteilig (F-Droid/Semver); versionCode bleibt, es gab noch kein Release.
+        versionName = "2.0.0"
 
         buildConfigField("String", "SUPABASE_URL", supabaseValue("supabaseUrl").asJavaStringLiteral())
         buildConfigField("String", "SUPABASE_ANON_KEY", supabaseValue("supabaseAnonKey").asJavaStringLiteral())
@@ -63,6 +64,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // F-Droid: keinen (nur für Google lesbaren, verschlüsselten) Abhängigkeits-Block in APK/Bundle einbetten.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     testOptions {
@@ -99,6 +106,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    // ProcessLifecycleOwner: Freunde/Abruf nur beim echten Wechsel der App in den Vordergrund (AndroidX, Apache 2.0).
+    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
     // Anmeldung im Browser (Custom Tab, PKCE) – nie in einer WebView.

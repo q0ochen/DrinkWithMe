@@ -10,6 +10,7 @@ import com.drinkwithme.app.supabase.SocialException
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -98,7 +99,8 @@ class PushSubscriptionSyncTest {
     private val store = PushEndpointStore(InMemoryKeyValueStore())
     private val remote = FakeRemote()
     private val user = FixedUser("me-id")
-    private val sync = PushSubscriptionSync(store, remote, user)
+    private var renewals = 0
+    private val sync = PushSubscriptionSync(store, remote, user) { renewals++ }
     private val first = PushSubscription("https://ntfy.sh/up1", "p".repeat(87), "a".repeat(22))
     private val second = PushSubscription("https://ntfy.sh/up2", "q".repeat(87), "b".repeat(22))
 
@@ -131,13 +133,94 @@ class PushSubscriptionSyncTest {
     }
 
     @Test
-    fun forgetsForeignAccountsSubscriptionWithoutCallingTheServer() = runTest {
+    fun foreignAccountsRowOnOurEndpointLeadsToAFreshEndpoint() = runTest {
+        // Konto A hat das Abo hochgeladen; dann ging die Sitzung verloren (Merker bleibt), Konto B meldet sich an.
         store.setCurrent(first)
         sync.sync()
         user.id = "other-id"
+        assertEquals(SyncOutcome.DONE, sync.sync())
+        assertEquals(listOf("register:https://ntfy.sh/up1"), remote.calls, "nie denselben Endpunkt unter B hochladen")
+        assertEquals(1, renewals, "neuen Endpunkt beim Distributor anfordern")
+        assertNull(store.current.value)
+        assertNull(store.uploaded)
+        assertFalse(store.isConfirmedFor("other-id"), "bis dahin weiter abrufen")
+
+        store.setCurrent(second)
         sync.sync()
-        assertEquals(listOf("register:https://ntfy.sh/up1", "register:https://ntfy.sh/up1"), remote.calls)
-        assertEquals("other-id", store.uploaded?.userId)
+        assertEquals("register:https://ntfy.sh/up2", remote.calls.last())
+        assertTrue(store.isConfirmedFor("other-id"))
+    }
+
+    @Test
+    fun foreignAccountsOldEndpointIsSimplyForgotten() = runTest {
+        store.setCurrent(first)
+        sync.sync()
+        store.setCurrent(second)
+        user.id = "other-id"
+        sync.sync()
+        assertEquals(listOf("register:https://ntfy.sh/up1", "register:https://ntfy.sh/up2"), remote.calls)
+        assertEquals(0, renewals)
+        assertTrue(store.isConfirmedFor("other-id"))
+    }
+
+    @Test
+    fun endpointTakenOnTheServerLeadsToAFreshEndpointOnlyOnce() = runTest {
+        // Ältere Version hat den Merker trotz fehlgeschlagener Löschung entfernt: Der Server meldet 23505.
+        store.setCurrent(first)
+        remote.failure = SocialException.Server("23505", 409)
+        assertEquals(SyncOutcome.DONE, sync.sync())
+        assertEquals(1, renewals)
+        assertNull(store.current.value)
+        assertNull(store.lastError.value, "kein Fehler, solange ein neuer Endpunkt kommen kann")
+
+        // Der Distributor liefert trotzdem denselben Endpunkt: nicht endlos neu anfordern, sondern erklären.
+        store.setCurrent(first)
+        assertEquals(SyncOutcome.DONE, sync.sync())
+        assertEquals(1, renewals)
+        assertEquals(PushTexts.ENDPOINT_TAKEN, store.lastError.value)
+        assertFalse(store.isConfirmedFor("me-id"))
+    }
+
+    @Test
+    fun pollingStaysOnUnlessTheUploadIsConfirmedForThisUser() = runTest {
+        assertFalse(store.isConfirmedFor("me-id"), "ohne Endpunkt")
+        store.setCurrent(first)
+        assertFalse(store.isConfirmedFor("me-id"), "Endpunkt da, aber noch nicht beim Server")
+        remote.failure = SocialException.Server("too_many_subscriptions", 400)
+        sync.sync()
+        assertFalse(store.isConfirmedFor("me-id"), "Hochladen abgelehnt: weiter abrufen")
+        remote.failure = null
+        sync.sync()
+        assertTrue(store.isConfirmedFor("me-id"))
+        assertFalse(store.isConfirmedFor("other-id"))
+        assertFalse(store.isConfirmedFor(null))
+        store.setCurrent(second)
+        assertFalse(store.isConfirmedFor("me-id"), "neuer Endpunkt noch nicht hochgeladen")
+    }
+
+    @Test
+    fun failedRemovalAtSignOutKeepsTheMarker() = runTest {
+        store.setCurrent(first)
+        sync.sync()
+        remote.failure = SocialException.Network(java.io.IOException("offline"))
+        sync.removeForSignOut()
+        assertEquals(UploadedSubscription("https://ntfy.sh/up1", "me-id"), store.uploaded, "liegt evtl. noch beim Server")
+
+        // Derselbe Nutzer meldet sich wieder an: nichts zu tun, das Abo gilt weiter.
+        remote.failure = null
+        sync.sync()
+        assertEquals(listOf("register:https://ntfy.sh/up1"), remote.calls)
+        assertTrue(store.isConfirmedFor("me-id"))
+    }
+
+    @Test
+    fun signedOutSyncKeepsTheMarker() = runTest {
+        store.setCurrent(first)
+        sync.sync()
+        user.id = null
+        assertEquals(SyncOutcome.DONE, sync.sync())
+        assertEquals("me-id", store.uploaded?.userId)
+        assertEquals(1, remote.calls.size)
     }
 
     @Test
