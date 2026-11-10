@@ -64,7 +64,9 @@ Browsers, „IndexedDB“):
 
 Diese Daten werden **nicht** an uns oder an Server übertragen. Sie verschwinden, wenn du sie in der App löschst,
 die App deinstallierst bzw. in der Web-App die Website-Daten löschst (auf dem iPhone: das Symbol vom
-Home-Bildschirm entfernst).
+Home-Bildschirm entfernst). Manche Browser (z. B. Safari) löschen Website-Daten auch von selbst, wenn die Seite
+längere Zeit nicht geöffnet wurde; die Web-App bittet den Browser deshalb einmal, ihren Speicher dauerhaft zu
+behalten. Eine Sicherung als Datei gibt es in der Web-App nur auf deinen Wunsch (Abschnitt 3.6).
 
 ### 3.2 Technische Daten auf deinem Gerät
 
@@ -74,8 +76,9 @@ Bist du angemeldet, speichert die App außerdem lokal:
   einem Schlüssel aus dem Android-Keystore; die Web-App speichert die Sitzung in IndexedDB,
 - deine Nutzer-ID, deinen Anzeigenamen und deine E-Mail-Adresse (zur Anzeige „Angemeldet als …“),
 - technische Merker: wann du zuletzt neue Getränke deiner Freunde gesehen hast, zu welchen Ereignissen schon eine
-  Benachrichtigung angezeigt wurde, noch nicht übertragene Teilen-/Löschaufträge (nur IDs) und – in der
-  Web-App – die Nutzer-ID für die Prüfung eingehender Benachrichtigungen.
+  Benachrichtigung angezeigt wurde, noch nicht übertragene Teilen-/Löschaufträge (nur Art des Auftrags und ID des
+  Eintrags; sie werden beim Abmelden verworfen) und – in der Web-App – die Nutzer-ID für die Prüfung eingehender
+  Benachrichtigungen (nach dem Abmelden nur noch der Merker „abgemeldet“).
 
 ### 3.3 Teilen über andere Apps
 
@@ -99,6 +102,18 @@ Hast du auf deinem Android-Gerät die automatische Datensicherung eingeschaltet,
 Geräteherstellers, die du in den Android-Einstellungen steuerst. Deine Anmeldung wird dabei bewusst **nicht**
 gesichert.
 
+### 3.6 Sicherungsdatei (Web-App)
+
+In der Web-App kannst du unter **Einstellungen → Bar und Verlauf → „Sicherung speichern“** eine Datei (JSON) mit
+deiner **Bar** und deinem **vollständigen Verlauf** erzeugen – nur, wenn du das selbst antippst. Die Datei wird
+**nicht** an uns übertragen: Sie landet als Download auf deinem Gerät bzw. auf dem iPhone dort, wohin du sie über
+„Teilen“ schickst (z. B. die Dateien-App oder einen Cloud-Speicher – dann gelten dessen Bedingungen). Weil der
+Verlauf Alkohol- und Zuckerwerte enthält, bewahre die Datei vertraulich auf; löschen musst du sie selbst.
+
+Mit **„Sicherung einlesen“** übernimmt die Web-App eine solche Datei: Sie prüft jeden Eintrag, löscht nichts,
+ergänzt nur fehlende Einträge und speichert alles **nur lokal**. Eingelesene Einträge werden **nie** mit Freunden
+geteilt.
+
 ## 4. Daten auf dem Server – nur wenn du dich anmeldest
 
 Für Freunde und Benachrichtigungen nutzen wir **Supabase** (siehe Abschnitt 7). Die Datenbank liegt im
@@ -115,7 +130,7 @@ Die Anmeldung läuft immer im Browser – dein Google-Passwort erhalten wir **ni
 |---|---|---|
 | zufällige **Nutzer-ID** | Zuordnung von Profil, Freundschaften und geteilten Getränken | technisch; Freunde sehen sie nicht direkt |
 | **E-Mail-Adresse** deines Google-Kontos und ob Google sie bestätigt hat | Kontoverwaltung; damit dich Freunde per E-Mail-Adresse finden können (Abschnitt 4.3) | nur wir als Betreiber – **nicht** deine Freunde |
-| Daten aus deinem Google-Profil: **Name**, **Adresse (URL) deines Profilbilds**, deine Google-Kennung | Anzeigename; Zuordnung zum Google-Konto | Name: Freunde und Personen mit offener Anfrage (4.2) |
+| Daten aus deinem Google-Profil: **Name**, **Adresse (URL) deines Profilbilds**, deine Google-Kennung | Anzeigename; Zuordnung zum Google-Konto | Name: Freunde und Personen, denen du eine Anfrage geschickt hast (4.2) |
 | Zeitpunkte der Registrierung und letzten Anmeldung, aktive Sitzungen | Kontoverwaltung, Sicherheit | nur wir |
 | Sicherheitsprotokolle der Anmeldung (Zeitpunkt, Art des Ereignisses, ggf. **IP-Adresse** und Browser-/Gerätekennung) | Sicherheit, Missbrauchsschutz, Fehlersuche | nur wir [Prüfen: siehe Abschnitt 4.8] |
 
@@ -128,34 +143,49 @@ verantwortlich. In deinem Google-Konto kannst du die Verbindung jederzeit trenne
 Bei der ersten Anmeldung legt der Server ein **Profil** an: **Anzeigename** (aus deinem Google-Namen) und die
 **Adresse deines Google-Profilbilds**. Das Profil enthält **keine** E-Mail-Adresse.
 
-Sichtbar ist dein Profil für dich, für deine **Freunde** und für Personen, mit denen eine **offene
-Freundschaftsanfrage** besteht (in beiden Richtungen). Die Apps zeigen derzeit **kein** Profilbild an (sie laden
-also auch nichts von Googles Bild-Servern), sondern nur den Namen bzw. Anfangsbuchstaben.
+Sichtbar ist dein Profil für dich, für deine **Freunde** und für Personen, denen du eine
+**Freundschaftsanfrage** geschickt hast (sie sehen deinen Namen, solange die Anfrage bei ihnen offen ist). Wem du
+eine Anfrage schickst, dessen Profil siehst du erst, wenn die Anfrage angenommen wurde. Die Apps zeigen derzeit
+**kein** Profilbild an (sie laden also auch nichts von Googles Bild-Servern), sondern nur den Namen bzw.
+Anfangsbuchstaben.
 
 ### 4.3 Freundschaften und Freundschaftsanfragen
 
 - **Freundschaften:** wer mit wem befreundet ist und seit wann. Sichtbar nur für die beiden Beteiligten.
 - **Anfragen per E-Mail-Adresse:** Gibst du die Google-E-Mail-Adresse einer Person ein, sucht der Server nach
-  einem Konto mit genau dieser, von Google bestätigten Adresse. Die Antwort ist **immer gleich** – man erfährt
-  also nicht, ob es die Adresse gibt. Gespeichert werden Absender, Empfänger und Zeitpunkt. Die angefragte Person
-  sieht deinen **Anzeigenamen**, **nicht** deine E-Mail-Adresse. Die E-Mail-Adresse, die du eingibst, wird nicht
-  gespeichert.
+  einem Konto mit genau dieser, von Google bestätigten Adresse. Danach siehst du immer dasselbe – eine offene
+  Anfrage mit gekürzter Adresse (z. B. „b***@gmail.com“) –, egal ob es dazu ein Konto gibt. Man erfährt also nicht,
+  ob es die Adresse gibt. Gespeichert werden Absender, ggf. Empfänger, Zeitpunkt, ggf. der Zeitpunkt einer Ablehnung,
+  die **gekürzte Adresse** und eine nicht umkehrbare, mit einem geheimen Schlüssel berechnete **Kennung** der
+  Adresse (gegen doppelte Anfragen) – **nie** die vollständige Adresse. Die angefragte Person sieht deinen
+  **Anzeigenamen**, **nicht** deine E-Mail-Adresse.
+- Ob die Person deine Anfrage abgelehnt hat, siehst du nicht; die Anfrage bleibt bei dir sichtbar, bis du sie
+  **zurückziehst** oder sie nach **30 Tagen** automatisch gelöscht wird.
 - Gibt es schon eine Anfrage in die Gegenrichtung, seid ihr sofort befreundet.
+- **Freundschaft beenden:** Entfernst du jemanden, merkt sich der Server **14 Tage** lang, wer wen wann entfernt
+  hat. So kann sich die entfernte Person nicht mit einem älteren Einladungs-Link von dir zurückholen (Abschnitt 4.4).
+
+[Prüfen: Gekürzte Adresse und Kennung beziehen sich auf die angefragte Person – auch wenn sie (noch) kein Konto
+hat und von der Anfrage nichts weiß. Rechtsgrundlage und Information dieser Personen prüfen (Art. 6 Abs. 1 lit. f,
+Art. 14 DSGVO).]
 
 ### 4.4 Einladungs-Links
 
 Erstellst du einen Einladungs-Link, speichert der Server ein zufälliges, nicht erratbares Kennwort (Token),
 dich als Ersteller sowie Erstellungs- und Ablaufzeitpunkt. Der Link ist **14 Tage** gültig; ein neuer Link ersetzt
 den alten. Wer den Link hat und ihn nach der Anmeldung **ausdrücklich annimmt**, ist sofort mit dir befreundet –
-teile ihn also nur mit Personen, die deine geteilten Getränke sehen dürfen.
+teile ihn also nur mit Personen, die deine geteilten Getränke sehen dürfen. Hast du jemanden als Freund entfernt,
+gilt für diese Person kein Link mehr, den du **vor** dem Entfernen erstellt hast; ein neu erstellter Link gilt
+wieder.
 
 ### 4.5 Geteilte Getränke
 
 Bist du angemeldet, teilt die App ein neu eingetragenes Getränk mit deinen Freunden, **außer**
 
 - es ist alkoholisch und du hast dem Teilen alkoholischer Getränke **nicht** zugestimmt (Abschnitt 4.6), oder
-- du hast es als **privat** eingetragen (Android: Getränk lange drücken → „Privat eintragen (nicht teilen)“).
-  [Prüfen: In der Web-App gibt es diese Möglichkeit pro Getränk derzeit nicht.]
+- du hast es als **privat** eingetragen (Android: Getränk lange drücken; Web-App: „⋮“ beim Getränk → jeweils
+  „Privat eintragen (nicht teilen)“), oder
+- du hast es aus einer Sicherungsdatei eingelesen (Abschnitt 3.6).
 
 Gespeichert werden **nur**:
 
@@ -170,8 +200,13 @@ eingetragen hast.
 Sichtbar sind geteilte Getränke für dich und **deine Freunde** – auch für Personen, mit denen du dich später
 befreundest, solange das Getränk noch gespeichert ist. Der Server löscht geteilte Getränke **30 Tage** nach dem
 Trinkzeitpunkt automatisch (tägliches Aufräumen). Löschst du einen Eintrag im Verlauf oder tippst du auf
-„Rückgängig“, entfernt die App ihn auch vom Server. [Prüfen: Die Android-App holt das ohne Internetverbindung
-später nach; die Web-App derzeit nicht – dann bleibt der Eintrag bis zur automatischen Löschung.]
+„Rückgängig“, entfernt die App ihn auch vom Server. Ohne Internetverbindung holt die App das Teilen bzw. Entfernen
+nach, sobald wieder eine Verbindung besteht (die Web-App beim nächsten Öffnen oder wenn das Gerät wieder online
+ist); nachträglich geteilt wird ein Eintrag nur innerhalb von 23 Stunden nach dem Trinkzeitpunkt. Meldest du dich
+vorher ab, entfällt das Nachholen – ein noch nicht entfernter Eintrag bleibt dann bis zur automatischen Löschung.
+
+Pro Konto nimmt der Server höchstens **200 geteilte Getränke in 24 Stunden** an (Schutz vor Missbrauch); was
+darüber hinausgeht, bleibt nur auf deinem Gerät.
 
 ### 4.6 Alkohol: Teilen nur mit ausdrücklicher Zustimmung
 
@@ -211,24 +246,33 @@ Zustelldienste:
 - **Web-App:** der Push-Dienst deines Browsers – z. B. **Apple** (Safari/iPhone), **Google** (Chrome),
   **Mozilla** (Firefox) oder **Microsoft** (Edge).
 
+Unser Server schickt Benachrichtigungen nur an Zustelladressen, die per https (Port 443) auf einen öffentlichen
+Server zeigen; das prüft er vor jedem Versand auch per DNS-Abfrage. Andere Zustelladressen (z. B. ins interne Netz
+oder an einen eigenen ntfy-Server auf einem anderen Port) löscht er beim ersten Versandversuch.
+
 Beim Abmelden, beim Ausschalten der Benachrichtigungen und wenn ein Zustelldienst meldet, dass ein Abo nicht mehr
 gilt, wird das Abo gelöscht. Hat dein Gerät beim Abmelden kein Internet, kann das Abo auf dem Server bleiben, bis
 der Zustelldienst es für ungültig erklärt oder du dein Konto löschst; die App zeigt dann trotzdem keine Nachrichten
-für das abgemeldete Konto an.
+für das abgemeldete Konto an. Meldet sich danach auf dem Gerät ein anderes Konto an, holt die App beim
+Zustelldienst eine neue Zustelladresse.
 
 ### 4.8 Schutz vor Missbrauch und Server-Protokolle
 
 - **Zähler gegen Missbrauch:** Pro Konto zählt der Server, wie oft bestimmte Aktionen in einem Zeitfenster
   genutzt wurden (z. B. 20 Anfragen per E-Mail pro Tag, 30 angenommene Einladungen pro Tag, 60 Benachrichtigungs-
   Aufträge pro Stunde). Gespeichert werden Nutzer-ID, Aktion, Beginn des Zeitfensters und Anzahl. Veraltete Zähler
-  löscht der Server nach spätestens etwa zwei Tagen.
+  löscht der Server nach spätestens etwa zwei Tagen. Die Grenze von 200 geteilten Getränken in 24 Stunden
+  (Abschnitt 4.5) zählt der Server direkt aus den geteilten Getränken; dafür wird nichts zusätzlich gespeichert.
 - **Protokolle:** Supabase protokolliert technisch jeden Aufruf (u. a. Zeitpunkt, aufgerufene Adresse,
   Ergebnis, **IP-Adresse** und Browser-/App-Kennung). Diese Protokolle dienen Betrieb, Sicherheit und Fehlersuche.
   [Prüfen: Aufbewahrungsdauer der Supabase-Protokolle im kostenlosen Tarif (nach unserem Kenntnisstand kurz,
-  etwa ein Tag). Die Anmelde-Protokolle („Auth Audit Logs“) schreibt Supabase standardmäßig zusätzlich in die
-  Projekt-Datenbank, wo sie ohne eigenes Aufräumen bestehen bleiben – auch nach einer Kontolöschung. Empfehlung:
-  in Supabase unter Authentication → Audit Logs das Schreiben in die Datenbank abschalten (siehe
-  `EINRICHTUNG.md`, Schritt 3.3).]
+  etwa ein Tag).]
+- **Anmelde-Protokolle** („Auth Audit Logs“): Supabase würde sie standardmäßig zusätzlich dauerhaft in die
+  Projekt-Datenbank schreiben – auch über eine Kontolöschung hinaus. Das haben wir abgeschaltet; die
+  Anmelde-Protokolle liegen deshalb nur kurz in den Supabase-Protokollen. [Prüfen: Ist im echten Projekt unter
+  Authentication → Audit Logs der Schalter „Write audit logs to the database“ wirklich aus (empfohlen, siehe
+  [`EINRICHTUNG.md`](EINRICHTUNG.md), Schritt 3.3)? Wenn nicht: diesen Absatz ändern, hier und in Abschnitt 8
+  eine Speicherdauer nennen und ein Aufräumen einrichten.]
 - Unsere Server-Funktionen protokollieren keine vollständigen Zustelladressen oder Schlüssel.
 
 ## 5. Web-App und Downloads (GitHub)
@@ -269,12 +313,14 @@ Darüber hinaus geben wir keine Daten weiter und verkaufen keine Daten.
 | Daten | Speicherdauer |
 |---|---|
 | Bar, Verlauf, Statistik, Einstellungen (Gerät) | bis du sie löschst, die App deinstallierst bzw. die Website-Daten löschst |
+| Sicherungsdatei (Web-App, nur auf deinen Wunsch) | liegt bei dir; du entscheidest, wo und wie lange – wir haben keinen Zugriff |
 | Konto im Anmeldesystem (E-Mail, Google-Daten), Profil | bis zur Löschung deines Kontos |
 | Freundschaften | bis einer von euch die Freundschaft beendet oder sein Konto löscht |
-| Freundschaftsanfragen | bis sie angenommen, abgelehnt oder zurückgezogen werden oder ein Konto gelöscht wird [Prüfen: automatische Frist für unbeantwortete Anfragen? Derzeit keine] |
+| Freundschaftsanfragen | bis sie angenommen oder zurückgezogen werden, höchstens 30 Tage (der Server löscht ältere täglich); abgelehnte Anfragen sieht nur noch der Absender bis zum Ablauf |
+| Vermerk über eine beendete Freundschaft (wer wen entfernt hat) | 14 Tage (der Server löscht ältere täglich); früher, wenn ihr wieder Freunde werdet oder ein Konto gelöscht wird |
 | Einladungs-Links | 14 Tage (abgelaufene löscht der Server täglich); ein neuer Link ersetzt den alten sofort |
 | Geteilte Getränke | höchstens **30 Tage** nach dem Trinkzeitpunkt; früher, wenn du sie löschst oder dein Konto löschst |
-| Benachrichtigungs-Abos | bis zum Abmelden, Ausschalten, bis der Zustelldienst sie für ungültig erklärt oder bis zur Kontolöschung |
+| Benachrichtigungs-Abos | bis zum Abmelden, Ausschalten, bis der Zustelldienst sie für ungültig erklärt, bis unser Server die Zustelladresse als unzulässig löscht (4.7) oder bis zur Kontolöschung |
 | Zähler gegen Missbrauch | höchstens etwa 2 Tage |
 | Server-Protokolle | [Prüfen: Dauer laut Supabase; Anmelde-Protokolle in der Datenbank siehe 4.8] |
 | Hosting-Protokolle (GitHub) | [Prüfen: laut GitHub] |
@@ -284,11 +330,12 @@ Darüber hinaus geben wir keine Daten weiter und verkaufen keine Daten.
 | Was du tun willst | So geht's |
 |---|---|
 | Ein geteiltes Getränk entfernen | Im **Verlauf** löschen oder direkt nach dem Eintragen **Rückgängig** – es wird auch vom Server entfernt (siehe 4.5). Eine schon zugestellte Benachrichtigung kann die App nicht zurückholen. |
-| Eine Freundschaft beenden | **Freunde → Entfernen**. Ihr seht danach gegenseitig keine geteilten Getränke mehr. |
+| Eine Freundschaftsanfrage zurückziehen | **Freunde** → bei deiner Anfrage **Zurückziehen**. Die Anfrage wird sofort gelöscht. |
+| Eine Freundschaft beenden | **Freunde → Entfernen**. Ihr seht danach gegenseitig keine geteilten Getränke mehr. Die entfernte Person kann sich nicht mit einem älteren Einladungs-Link von dir zurückholen; ein neu erzeugter Link gilt wieder. Den Vermerk über das Entfernen löscht der Server nach 14 Tagen. |
 | Keine Benachrichtigungen mehr | In den **Einstellungen** ausschalten, **abmelden** oder die Erlaubnis im Betriebssystem entziehen. |
 | Alkoholische Getränke nicht mehr teilen | **Einstellungen → Alkoholische Getränke mit Freunden teilen** ausschalten. |
-| Alle lokalen Daten löschen | Android: App deinstallieren oder App-Daten löschen. Web-App: Website-Daten im Browser löschen bzw. das Symbol vom Home-Bildschirm entfernen. |
-| **Dein Konto komplett löschen** | **Direkt in der App: Einstellungen → Konto → „Konto löschen“** → bestätigen. Gelöscht werden sofort: dein Konto im Anmeldesystem (mit E-Mail-Adresse), dein Profil, deine Freundschaften und Anfragen, deine Einladungs-Links, **alle** deine geteilten Getränke, deine Benachrichtigungs-Abos und Zähler. Danach wirst du abgemeldet. Bar und Verlauf **auf deinem Gerät bleiben** erhalten. |
+| Alle lokalen Daten löschen | Android: App deinstallieren oder App-Daten löschen. Web-App: Website-Daten im Browser löschen bzw. das Symbol vom Home-Bildschirm entfernen. Gespeicherte Sicherungsdateien (3.6) löschst du selbst. |
+| **Dein Konto komplett löschen** | **Direkt in der App: Einstellungen → Konto → „Konto löschen“** → bestätigen. Gelöscht werden sofort: dein Konto im Anmeldesystem (mit E-Mail-Adresse), dein Profil, deine Freundschaften und Anfragen (Anfragen anderer an dich bleiben beim jeweiligen Absender – nur mit gekürzter Adresse, ohne Verbindung zu deinem Konto –, bis sie nach 30 Tagen verfallen), deine Einladungs-Links, **alle** deine geteilten Getränke, deine Benachrichtigungs-Abos, Zähler und Vermerke über beendete Freundschaften. Danach wirst du abgemeldet. Bar und Verlauf **auf deinem Gerät bleiben** erhalten. |
 | Konto löschen ohne App | E-Mail an **[kontakt@beispiel.de]** mit der E-Mail-Adresse deines Google-Kontos. Wir löschen dieselben Daten wie die Funktion in der App, in der Regel innerhalb von [30] Tagen, und bestätigen dir die Löschung. |
 
 Nicht sofort mitgelöscht werden technische Protokolle (Abschnitt 4.8 und 5); sie verfallen nach den dort
@@ -327,6 +374,9 @@ Wohnorts oder der für uns zuständigen Behörde: [Name und Anschrift der zustä
 - Zugriffsregeln auf **jeder** Tabelle der Datenbank; Änderungen an Freundschaften, Anfragen und Einladungen nur
   über geprüfte Server-Funktionen.
 - Einladungs-Links sind zufällig und praktisch nicht zu erraten (192 Bit).
+- Freundschaftsanfragen per E-Mail verraten nicht, ob es zu einer Adresse ein Konto gibt; der Server speichert die
+  eingegebene Adresse nur gekürzt und als Kennung mit geheimem Schlüssel, nie im Klartext.
+- Benachrichtigungen verschickt der Server nur an öffentliche https-Adressen, nie ins interne Netz.
 - Ein geteiltes Getränk kann niemand ändern; löschen kann es nur, wer es geteilt hat (und der Server beim
   Aufräumen oder bei der Kontolöschung).
 - Die Anmeldung läuft im Browser mit dem PKCE-Verfahren; die App sieht dein Google-Passwort nie.
@@ -353,16 +403,17 @@ Fassung, die [in der App / unter: URL] abrufbar ist.
 - [ ] Mindestalter entschieden.
 - [ ] **Supabase:** Auftragsverarbeitungsvertrag (DPA) abgeschlossen; Unterauftragnehmer und Drittlandübermittlung
       geprüft; Region Frankfurt bestätigt (Project Settings → General).
-- [ ] **Supabase:** Schreiben der Anmelde-Protokolle in die Datenbank abgeschaltet oder eine Löschfrist festgelegt
-      (`EINRICHTUNG.md`, Schritt 3.3); Aufbewahrung der übrigen Protokolle geprüft.
+- [ ] **Supabase:** Schreiben der Anmelde-Protokolle in die Datenbank abgeschaltet (Authentication → Audit Logs →
+      „Write audit logs to the database“ aus, `EINRICHTUNG.md`, Schritt 3.3) – sonst Abschnitt 4.8 anpassen und
+      eine Löschfrist festlegen; Aufbewahrung der übrigen Protokolle geprüft.
 - [ ] Google-Zustimmungsbildschirm: nur `openid`, `email`, `profile`; Link zu dieser Datenschutzerklärung im
       Bereich „Branding“ eingetragen (sobald sie unter einer festen Adresse steht).
 - [ ] Rolle von GitHub (Pages, Releases) und Betreiber von ntfy.sh geprüft.
 - [ ] Erklärung in der App bzw. unter einer festen Adresse erreichbar gemacht (z. B. als Seite der Web-App).
 - [ ] Ablauf für Löschanfragen per E-Mail festgelegt (Anleitung: `EINRICHTUNG.md`, Anhang „Konto auf Wunsch
       löschen“).
-- [ ] Offene technische Punkte entschieden: „Privat eintragen“ auch in der Web-App; Nachholen von Löschungen in
-      der Web-App ohne Internet; Frist für unbeantwortete Freundschaftsanfragen.
+- [ ] Gekürzte Adresse und Kennung bei Freundschaftsanfragen an Personen ohne Konto geprüft (Abschnitt 4.3:
+      Rechtsgrundlage, Information nach Art. 14 DSGVO).
 - [ ] Für F-Droid: Hinweise zu den Anti-Features (Abhängigkeit von Google-Anmeldung und eigenem Server) in der
       Beschreibung (siehe [`F-DROID.md`](F-DROID.md)).
 - [ ] Wenn sich die App ändert (z. B. Anzeige von Profilbildern, iPhone-App, neue Dienste): Text anpassen.

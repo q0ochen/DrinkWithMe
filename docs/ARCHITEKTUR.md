@@ -148,10 +148,10 @@ data class FriendDrinkEvent(val id: String, val author: UserProfile, val name: S
 interface SessionProvider { val currentUser: Flow<UserProfile?> }
 interface FriendsService {
     suspend fun friends(): List<Friend>
-    suspend fun requests(): List<FriendRequest>
+    suspend fun requests(): List<FriendRequest>         // nur eingehende (INCOMING, mit Profil des Absenders)
     suspend fun sendRequestByEmail(email: String)      // Antwort immer neutral (kein Hinweis, ob die Adresse existiert)
     suspend fun respond(requestId: String, accept: Boolean)
-    suspend fun cancel(requestId: String)
+    suspend fun cancel(requestId: String)               // eigene Anfrage zurückziehen: RPC cancel_friend_request
     suspend fun createInviteLink(): String              // vollständige https-URL
     suspend fun acceptInvite(token: String): UserProfile
     suspend fun removeFriend(userId: String)
@@ -160,8 +160,17 @@ interface FeedService { suspend fun recentEvents(since: Instant?, limit: Int = 1
 interface EventPublisher { suspend fun publish(entry: DrinkEntry); suspend fun unpublish(entryId: String) }
 ```
 
+- `requests()` liefert nur **eingehende** Anfragen (mit Profil des Absenders); `Direction.OUTGOING` wird nicht mehr
+  erzeugt. Eigene Anfragen gibt es nur über den App-Port `OutgoingRequestsService.outgoingRequests():
+  List<OutgoingRequest(id, emailHint, createdAt)>` (RPC `list_outgoing_friend_requests`, neueste zuerst; Android
+  `com.drinkwithme.app.social`, Web `src/social/types.ts`) – ohne Empfänger und ohne Profil. Die Apps zeigen
+  „Anfrage an b***@example.org“; zurückziehen per `cancel` (RPC `cancel_friend_request`).
 - Ein Decorator um das `HistoryRepository` (wie bisher `PublishingDrinkRepository`, jetzt für Freunde) teilt nach
   `SharingPolicy` im Hintergrund; lokales Speichern wartet nie auf das Netz; Fehler blockieren nichts.
+- Ohne Verbindung gescheiterte Aufträge (`publish`/`unpublish`) werden vorgemerkt (höchstens 200, ohne Doppelte) und
+  nachgeholt (Android: WorkManager; Web: beim Start, bei `online` und wenn die App wieder sichtbar wird). Geteilt wird
+  dabei nur, was noch existiert, weiterhin geteilt werden soll und jünger als 23 h ist; beim Abmelden werden offene
+  Aufträge verworfen. Vom Server abgelehnte Aufträge (z. B. `too_many_events`) werden nicht wiederholt.
 
 ## 2. Supabase-Backend (`supabase/`)
 
@@ -174,12 +183,20 @@ Supabase Free (ohne Karte), Region **Frankfurt (eu-central-1)**. Verzeichnis nac
 profiles(id uuid PK → auth.users ON DELETE CASCADE, display_name text 1..50, avatar_url text null ≤2048,
          created_at timestamptz default now())
   -- per Trigger auf auth.users angelegt (Name/Bild aus raw_user_meta_data: full_name|name, avatar_url|picture).
-  -- SELECT: eigene Zeile, Freunde, und Personen mit offener Anfrage zwischen beiden. UPDATE: nur eigene
-  --   (display_name, avatar_url). KEIN E-Mail-Feld (E-Mails bleiben in auth.users).
+  -- SELECT: eigene Zeile, Freunde und Absender eingehender Anfragen (wer eine Anfrage schickt, sieht das Profil des
+  --   Empfängers erst nach der Annahme). UPDATE: nur eigene (display_name, avatar_url).
+  --   KEIN E-Mail-Feld (E-Mails bleiben in auth.users).
 friendships(user_a uuid, user_b uuid, created_at, PK(user_a,user_b), CHECK(user_a < user_b), beide FK → profiles CASCADE)
   -- SELECT: wenn auth.uid() in (user_a,user_b). Schreiben nur über RPCs.
-friend_requests(id uuid PK, from_user uuid, to_user uuid, created_at, UNIQUE(from_user,to_user), CHECK(from_user<>to_user), FK CASCADE)
-  -- SELECT: Absender oder Empfänger. DELETE: Absender (zurückziehen). Anlegen/Annehmen nur über RPCs.
+friend_requests(id uuid PK, from_user uuid FK → profiles CASCADE, to_user uuid null FK → profiles ON DELETE SET NULL,
+                email_hash bytea (32 Byte, HMAC-SHA-256 über Absender-ID und Adresse),
+                email_hint text („b***@example.org“), declined_at timestamptz null, created_at,
+                UNIQUE(from_user,to_user), UNIQUE(from_user,email_hash),
+                CHECK(from_user<>to_user), CHECK(declined_at null oder to_user null))
+  -- Eine Zeile pro Absender und eingegebener Adresse, auch ohne Konto (dann to_user NULL); die Adresse selbst wird
+  --   nie gespeichert. SELECT: nur Empfänger (to_user = auth.uid()), nur Spalten id, from_user, to_user, created_at.
+  --   Kein DELETE; Absender nur über RPCs (list_outgoing_friend_requests, cancel_friend_request).
+  --   Anlegen/Annehmen/Ablehnen nur über RPCs. Löschung nach 30 Tagen (pg_cron, täglich) – für alle Anfragen gleich.
 invite_links(token text PK (≥ 128 bit, base64url), owner uuid FK CASCADE, created_at, expires_at (14 Tage))
   -- Kein Client-Zugriff außer über RPCs. Pro Nutzer höchstens ein aktiver Link (neuer Link ersetzt den alten).
 drink_events(id uuid PK (= lokale DrinkEntry.id), author_id uuid default auth.uid() FK CASCADE,
@@ -187,28 +204,40 @@ drink_events(id uuid PK (= lokale DrinkEntry.id), author_id uuid default auth.ui
              volume_ml int 1..2000, consumed_at timestamptz, created_at timestamptz default now(), notified_at timestamptz null)
   -- INSERT: author_id = auth.uid() AND consumed_at zwischen now()-24h und now()+5min (in WITH CHECK).
   -- SELECT: Autor oder Freund des Autors. DELETE: Autor. Kein UPDATE. Löschung nach 30 Tagen (pg_cron, täglich).
+  -- Höchstens 200 Einfügungen pro Autor in 24 h (nach created_at; Trigger drink_events_limit, Fehler too_many_events).
 push_subscriptions(id uuid PK, user_id uuid default auth.uid() FK CASCADE, endpoint text UNIQUE (https, ≤2048),
                    p256dh text, auth text, platform text ('unifiedpush'|'web'), created_at, updated_at)
   -- Nur der Besitzer: SELECT/INSERT/DELETE (max. 5 pro Nutzer, per Trigger). Versand liest per Service-Rolle.
 rate_limits(user_id uuid, action text, window_start timestamptz, count int, PK(user_id, action))
   -- Kein Client-Zugriff.
+
+-- Schema private (kein Client-Zugriff):
+private.friend_request_key(key bytea, 32 zufällige Byte, genau eine Zeile)   -- geheimer Schlüssel für email_hash
+private.friend_removals(remover uuid, removed uuid, removed_at, PK(remover,removed), beide FK → profiles CASCADE)
+  -- Wer wen als Freund entfernt hat (für accept_invite). Löschung nach 14 Tagen (pg_cron, täglich).
 ```
 
 ### 2.2 RPCs (`SECURITY DEFINER`, `search_path = ''`, nur für `authenticated`)
 
 | Funktion | Verhalten |
 |---|---|
-| `send_friend_request(email text) → void` | Sucht `auth.users` nach `lower(email)` (nur bestätigte E-Mails). Ist es man selbst, schon befreundet oder unbekannt: still nichts tun. Gibt es eine Gegenanfrage: sofort Freundschaft. Sonst Anfrage anlegen. **Immer** gleiche, neutrale Antwort. Limit: 20 Aufrufe pro Nutzer und Tag → Fehler `rate_limited`. |
-| `respond_friend_request(request_id uuid, accept boolean) → void` | Nur Empfänger. Annehmen: Freundschaft anlegen, Anfrage löschen. Ablehnen: löschen. |
+| `send_friend_request(email text) → void` | Sucht `auth.users` nach `lower(email)` (nur bestätigte, nicht anonyme Konten mit Profil). Für jede gültig aussehende Adresse (höchstens 320 Zeichen) genau **eine** Anfrage pro Absender (Kennung `email_hash`, Hinweis `email_hint`) – `to_user` nur bei einem fremden, nicht befreundeten Konto ohne andere offene Anfrage desselben Absenders, sonst `NULL`. Eine früher ohne Konto angelegte, nicht abgelehnte Anfrage erreicht das Konto, wenn erneut an dieselbe Adresse gesendet wird. Gegenanfrage: sofort Freundschaft. **Immer** gleiche Antwort und für den Absender gleiche Sicht. Limit: 20 Aufrufe pro Nutzer und Tag → Fehler `rate_limited`. |
+| `respond_friend_request(request_id uuid, accept boolean) → void` | Nur Empfänger (sonst `request_not_found`). Annehmen: Freundschaft anlegen, Anfrage löschen. Ablehnen: `to_user = NULL`, `declined_at = now()` (für den Absender unverändert; dieselbe Adresse erreicht die Person erst nach Zurückziehen oder Ablauf wieder). |
+| `list_outgoing_friend_requests() → setof (id uuid, email_hint text, created_at timestamptz)` | Eigene ausgehende Anfragen, neueste zuerst; nie der Empfänger. Abgelehnte bleiben bis zum Ablauf (30 Tage) gelistet. |
+| `cancel_friend_request(request_id uuid) → void` | Eigene ausgehende Anfrage zurückziehen (löschen). Idempotent: unbekannte oder fremde IDs werden still ignoriert. |
 | `create_invite_link() → text` | Neues Token (alter Link verfällt), gültig 14 Tage; gibt nur das Token zurück. |
-| `accept_invite(token text) → profiles` | Gültig und nicht eigener Link → Freundschaft sofort (beide haben zugestimmt: Ersteller durch Teilen, Empfänger durch Antippen). Gibt Profil des Einladenden zurück. Limit: 30 pro Tag. |
-| `remove_friend(friend_id uuid) → void` | Löscht die Freundschaft (idempotent). |
+| `accept_invite(token text) → profiles` | Gültig und nicht eigener Link → Freundschaft sofort (beide haben zugestimmt: Ersteller durch Teilen, Empfänger durch Antippen). Gibt Profil des Einladenden zurück. Limit: 30 pro Tag. `invite_invalid` auch, wenn der Einladende den Annehmenden nach dem Erzeugen des Links entfernt hat (ein danach erzeugter Link gilt wieder). |
+| `remove_friend(friend_id uuid) → void` | Löscht die Freundschaft (idempotent) und vermerkt das Entfernen (`private.friend_removals`, 14 Tage); ohne bestehende Freundschaft kein Vermerk. |
+
+Fehler kommen als SQLSTATE `P0001` mit dem Code als Text: `not_authenticated`, `rate_limited`, `request_not_found`,
+`invite_invalid`, `invite_own`, `too_many_subscriptions` (Trigger auf `push_subscriptions`), `too_many_events`
+(Trigger auf `drink_events`).
 
 ### 2.3 Edge Functions (Deno/TypeScript, kostenlos im Free-Tarif)
 
 | Funktion | Verhalten |
 |---|---|
-| `notify-friends` (POST `{ eventId }`, Nutzer-JWT) | Prüft JWT; lädt das Ereignis (Autor = Aufrufer, `created_at` < 10 min, `notified_at` null); setzt `notified_at`; lädt Freunde und deren `push_subscriptions` (Service-Rolle); sendet **WebPush (RFC 8291, aes128gcm) mit VAPID** an jedes Abo; Payload JSON `{ type: "drink", eventId, authorId, recipientId, title, body }` (Titel „Anna trinkt gerade“, Text „Apfelschorle (500 ml)“), TTL 1 Tag; Antwort 404/410 → Abo löschen. Limit: 60 Aufrufe pro Nutzer und Stunde. |
+| `notify-friends` (POST `{ eventId }`, Nutzer-JWT) | Prüft JWT; lädt das Ereignis (Autor = Aufrufer, `created_at` < 10 min, `notified_at` null); setzt `notified_at`; lädt Freunde und deren `push_subscriptions` (Service-Rolle); sendet **WebPush (RFC 8291, aes128gcm) mit VAPID** an jedes Abo; Payload JSON `{ type: "drink", eventId, authorId, recipientId, title, body }` (Titel „Anna trinkt gerade“, Text „Apfelschorle (500 ml)“), TTL 1 Tag; Antwort 404/410 → Abo löschen. Limit: 60 Aufrufe pro Nutzer und Stunde. Sendet nur an https-Endpoints auf Port 443 mit öffentlichem Hostnamen (keine IP-Literale, keine internen Namen wie `localhost`/`.internal`, auch nicht mit Punkt am Ende); vor jedem Versand DNS-Prüfung (A/AAAA), **alle** Adressen müssen öffentlich sein. Unzulässig → Abo löschen; DNS-Störung → Abo behalten, nichts senden. |
 | `delete-account` (POST, Nutzer-JWT) | Löscht den Auth-Nutzer per Admin-API; alles andere folgt über `ON DELETE CASCADE`. Idempotent. |
 
 Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto:…).
@@ -223,12 +252,17 @@ Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_
 - Android: **PKCE im Browser** (Custom Tab, Fallback `ACTION_VIEW`, niemals WebView) über `GET /auth/v1/authorize?
   provider=google&redirect_to=drinkwithme://auth-callback&code_challenge=…&code_challenge_method=s256` → Rückkehr mit
   `code` → `POST /auth/v1/token?grant_type=pkce` → Sitzung; Erneuern mit `grant_type=refresh_token`; Refresh-Token
-  verschlüsselt mit Android-Keystore gespeichert.
+  verschlüsselt mit Android-Keystore gespeichert; gelesen erst bei Bedarf bzw. im Hintergrund (nie auf dem
+  Hauptthread beim Start), Keystore-Störungen bedeuten nur „diesmal nicht angemeldet“ (der gespeicherte Eintrag
+  bleibt), nie Absturz. Bei Netzfehlern bleibt man angemeldet; lehnt der Server das Refresh-Token ab, räumt die App
+  wie beim Abmelden auf.
+- Web: Ein vorübergehender Fehler beim Erneuern der Sitzung (offline, 5xx) ist **keine** Abmeldung; abgemeldet ist
+  nur, wer sich abmeldet oder wessen Sitzung der Server ablehnt (`SIGNED_OUT`).
 
 ## 3. Android-App (`android/app`)
 
-- Abhängigkeiten nur frei: AndroidX (Compose, Lifecycle, Activity, Browser, WorkManager), OkHttp, UnifiedPush-Connector.
-  Supabase-REST/Auth direkt per HTTPS (kein `compose-auth`). Kotlin-/AGP-Versionen dürfen angehoben werden, wenn eine
+- Abhängigkeiten nur frei: AndroidX (Compose, Lifecycle inkl. `lifecycle-process`, Activity, Browser, WorkManager),
+  OkHttp, UnifiedPush-Connector. Supabase-REST/Auth direkt per HTTPS (kein `compose-auth`). Kotlin-/AGP-Versionen dürfen angehoben werden, wenn eine
   Bibliothek es verlangt (CI ist maßgeblich).
 - Konfiguration über `android/app/supabase.properties` (nicht geheim, kann eingecheckt werden):
   `supabaseUrl`, `supabaseAnonKey`, `vapidPublicKey`, `webAppUrl`. Fehlt die Datei → Vernetzung zeigt „Server noch nicht
@@ -242,18 +276,30 @@ Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_
 - **Verlauf**: Diagramme (Compose Canvas, selbst gezeichnet): Zucker pro Tag mit 50-g/25-g-Linien, Alkohol pro Woche
   mit DGE-Bändern (ausblendbar), Kennzahlen (heute, alkoholfreie Tage, Vergleich Vormonat), Liste der Einträge.
   Alles zusätzlich als Text (Screenreader/TV). **„Als Bild teilen“** (PNG über FileProvider, Vorschau vor dem Teilen).
-- **Freunde**: Feed der Freunde, Freundesliste, Anfragen (annehmen/ablehnen), „Freund einladen“ (Link teilen) und
-  „Per E-Mail hinzufügen“; Einladungs-Links öffnen die App über `drinkwithme://einladung/<token>` (die Web-Seite
-  `<WEB_APP_URL>/einladung/<token>` bietet „In der App öffnen“ an).
+- **Freunde**: Feed der Freunde, Freundesliste, eingehende Anfragen mit Namen (annehmen/ablehnen), eigene Anfragen nur
+  als „Anfrage an b***@example.org“ (`list_outgoing_friend_requests`, zurückziehen per `cancel_friend_request`),
+  „Freund einladen“ (Link teilen) und „Per E-Mail hinzufügen“; Einladungs-Links öffnen die App über
+  `drinkwithme://einladung/<token>` (die Web-Seite `<WEB_APP_URL>/einladung/<token>` bietet „In der App öffnen“ an).
 - **Ereignis-Bildschirm**: Tipp auf eine Benachrichtigung öffnet ihn (pro Ereignis eigener PendingIntent-RequestCode);
   großer Satz (≥ 28 sp) + bildschirmbreiter Knopf **„Vorlesen“** (≥ 96 dp). Optionale Benachrichtigungs-Aktion
-  „Vorlesen“ öffnet denselben Bildschirm mit automatischem Vorlesen.
+  „Vorlesen“ öffnet denselben Bildschirm mit automatischem Vorlesen. Benachrichtigungen öffnen ihn über den nicht
+  exportierten Einstieg `.NotificationEntry` (`activity-alias` auf `MainActivity`); nur von dort übernimmt die App
+  Titel, Text und „Vorlesen“ – andere Apps können höchstens eine Ereignis-ID übergeben. Jedes Öffnen ist ein neuer
+  Bildschirm (auch dieselbe Benachrichtigung erneut). Aus „Zuletzt verwendet“ wird ein alter Intent nicht noch
+  einmal ausgewertet.
 - **Vorlesen**: Android `TextToSpeech` (`Locale.GERMANY`, Rückfall `Locale.GERMAN`); fehlt eine deutsche Stimme →
-  Hilfe „Vorlesen einrichten“ (z. B. SherpaTTS aus F-Droid). Nicht automatisch sprechen, wenn ein Screenreader aktiv ist.
+  Hilfe „Vorlesen einrichten“ **in den Einstellungen und auf dem Ereignis-Bildschirm** (z. B. SherpaTTS aus F-Droid);
+  nach der Rückkehr in die App startet die Sprachausgabe neu, wenn sie nicht bereit war. Sprachbefehle
+  „wie viel heute“/„vorlesen“ zeigen die Antwort zusätzlich als Text. Nicht automatisch sprechen, wenn ein
+  Screenreader aktiv ist.
 - **Push**: UnifiedPush-Connector; Einrichtungs-Assistent empfiehlt **ntfy** (F-Droid); Registrierung mit
   `VAPID_PUBLIC_KEY`, Abo in `push_subscriptions`; Nachrichten mit `decrypted == false` verwerfen; anzeigen nur, wenn
-  `recipientId` dem angemeldeten Nutzer entspricht. **Ohne** Distributor: WorkManager-Abruf alle 15 min + beim Öffnen
-  (neue `drink_events` seit zuletzt gesehen, keine Doppelten).
+  `recipientId` dem angemeldeten Nutzer entspricht. **Ohne bestätigtes Abo** (kein Distributor, Hochladen abgelehnt,
+  z. B. `too_many_subscriptions`, oder noch nicht hochgeladen): WorkManager-Abruf alle 15 min + beim Öffnen – echter
+  Wechsel in den Vordergrund über `ProcessLifecycleOwner`, höchstens alle 5 min – (neue `drink_events` seit zuletzt
+  gesehen, keine Doppelten). Liegt der Endpunkt beim Server noch unter einem anderen Konto (`23505`, z. B. nach
+  Abmelden ohne Netz), fordert die App beim Distributor einen neuen Endpunkt an. Push-Server müssen per https auf
+  Port 443 erreichbar sein (siehe 2.3).
 - **Konto löschen** (Einstellungen): Edge Function `delete-account`, dann lokal abmelden; lokale Historie bleibt.
 - **Barrierefreiheit**: Semantik/contentDescription überall, Ziele ≥ 48 dp, Schriftgröße bis 200 %, Kontrast ≥ 4,5:1,
   keine Information nur über Farbe, D-Pad-Fokus mit sichtbarem Rahmen.
@@ -266,12 +312,24 @@ Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_
 
 - Statische PWA (Vite + TypeScript, `@supabase/supabase-js`, kleine UI-Bibliothek erlaubt, z. B. Preact), gehostet
   kostenlos auf **GitHub Pages**: `WEB_APP_URL = https://q0ochen.github.io/DrinkWithMe` (Vite-`base` = `/DrinkWithMe/`;
-  Basis-URL bleibt konfigurierbar). Deploy per Workflow `web.yml` (`actions/deploy-pages`) aus `main`.
+  Basis-URL bleibt konfigurierbar). Deploy per Workflow `web.yml` (`actions/deploy-pages`) aus `main` (bei Push oder
+  manuellem „Run workflow“ auf `main`).
 - Gleiche Bereiche wie Android (Bar, Verlauf, Freunde, Einstellungen), gleiche Texte und Regeln; Bar und Historie
   **lokal** in IndexedDB; Icons aus `design/icons/*.svg`.
+- Je Bar-Getränk „⋮“ (bzw. Kontextmenü: Rechtsklick, langes Drücken) mit „Privat eintragen (nicht teilen)“ und
+  „Bar bearbeiten“ (wie Android); privat eingetragen = `shareOverride = false`, ohne Alkohol-Frage.
+- Sicherung von Bar und Verlauf als JSON-Datei (Einstellungen → „Bar und Verlauf“: „Sicherung speichern“/„Sicherung
+  einlesen“, auch beim ersten Start). Format
+  `{ format: "drink-with-me-backup", version: 1, exportedAt, bar, history }`. Einlesen prüft jede Zeile wie beim
+  Eintragen und führt zusammen, ohne etwas zu löschen (Verlauf: neue IDs dazu, vorhandene unverändert; Bar: Werte
+  und Reihenfolge aus der Datei, nur lokal vorhandene Getränke hinten an). Eingelesenes wird **nie** geteilt. Auf dem iPhone Hinweis, dass die Home-Bildschirm-App einen eigenen Speicher
+  hat; nach dem Einrichten einmal `navigator.storage.persist()`.
 - Google-Anmeldung über Supabase (`signInWithOAuth`, PKCE, Redirect `<WEB_APP_URL>/auth/callback`).
 - Web Push (VAPID) über Service Worker; auf dem iPhone ab iOS 16.4 nach „Zum Home-Bildschirm“; Service Worker zeigt
-  nur Nachrichten mit passender `recipientId` an. Abo mit `platform = 'web'`.
+  nur Nachrichten mit passender `recipientId` an und bestellt ein Abo nur nach **ausdrücklicher** Abmeldung ab
+  (Markierung `{ signedOut: true }` statt fehlender ID); ein vorübergehender Fehler beim Erneuern der Sitzung
+  (offline/5xx) ist keine Abmeldung. Abo mit `platform = 'web'`. Lehnt der Server ein neu angelegtes Browser-Abo ab,
+  wird es wieder abbestellt; „eingeschaltet“ heißt Browser-Abo **und** Zeile in `push_subscriptions`.
 - Vorlesen über `speechSynthesis` (de-DE), Spracheingabe optional über `SpeechRecognition`, falls vorhanden.
 - Seite `/einladung/<token>`: „In der App öffnen“ (Android) oder direkt im Browser annehmen.
 
@@ -288,7 +346,8 @@ Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_
 - `supabase.yml`: `supabase start` (Docker auf GitHub-Runnern), Migrationen, pgTAP-Tests (`supabase test db`),
   Deno-Tests der Edge Functions.
 - `web.yml`: Build + Tests der Web-App bei jedem Push; auf `main` zusätzlich Veröffentlichung auf GitHub Pages
-  (einmalig in den Repo-Einstellungen: Pages → Quelle „GitHub Actions“).
+  (bei Push **oder** manuellem „Run workflow“ auf `main`; einmalig in den Repo-Einstellungen: Pages → Quelle
+  „GitHub Actions“).
 - `supabase-deploy.yml` (manuell): `supabase link` + `db push` + `functions deploy` mit Secrets
   `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und Variable `SUPABASE_PROJECT_REF`.
 - Die Firebase-Workflows und `firebase/` entfallen.

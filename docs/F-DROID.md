@@ -23,7 +23,8 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 | Anti-Features | voraussichtlich **NonFreeNet**, möglicherweise zusätzlich **TetheredNet** |
 | Store-Texte und Bilder (Fastlane) | **fehlt noch** |
 | Eigener Release-Schlüssel und Release-Workflow | **fehlt noch** |
-| Versionsnummern und Tags | **fehlt noch** (Schema unten) |
+| Abhängigkeits-Block von Google (`dependenciesInfo`) | **abgeschaltet** |
+| Versionsnummern und Tags | **teilweise:** `versionName` ist `2.0.0`; `versionCode` erhöhen und Tag setzen fehlen noch (Schema unten) |
 | Einreichen bei F-Droid (Merge Request) | nach den Punkten oben |
 | Realistische Aufnahme | **etwa Februar bis Mai 2027** [unsicher – hängt von freiwilligen Prüfern ab] |
 
@@ -143,8 +144,8 @@ Reproduzierbare Builds sind bei F-Droid **keine Pflicht**, gelten aber als gute 
 2. **Release-Workflow** (noch zu bauen, z. B. von Claude): bei einem Tag `v…` die Release-APK bauen, mit dem
    geheimen Schlüssel signieren und als `DrinkWithMe-<version>.apk` an ein GitHub-Release hängen.
 3. **Deterministischer Build** [unsicher – muss ausprobiert werden]: feste Versionen von JDK, Gradle, Android
-   Gradle Plugin und Build-Tools (sind im Repository festgelegt); in `android/app/build.gradle.kts` den
-   Abhängigkeits-Block von Google abschalten:
+   Gradle Plugin und Build-Tools (sind im Repository festgelegt). Der Abhängigkeits-Block von Google ist in
+   `android/app/build.gradle.kts` **bereits abgeschaltet**:
 
    ```kotlin
    android {
@@ -155,15 +156,20 @@ Reproduzierbare Builds sind bei F-Droid **keine Pflicht**, gelten aber als gute 
    }
    ```
 
-   Danach zweimal aus demselben Commit bauen und vergleichen (z. B. mit `diffoscope` oder F-Droids
-   `apksigcopier`/`fdroid build` in der CI).
+   Offen ist, zweimal aus demselben Commit zu bauen und zu vergleichen (z. B. mit `diffoscope` oder F-Droids
+   `apksigcopier`/`fdroid build` in der CI). Dabei besonders prüfen [unsicher]: die Datei
+   `META-INF/version-control-info.textproto`, die neuere Android-Gradle-Plugin-Versionen in Release-Builds
+   einbetten (Commit-Angabe, `vcsInfo`), und das Baseline-Profil aus `profileinstaller` – beides sind bekannte
+   Stolpersteine für reproduzierbare Builds.
 4. **Öffentliche Server-Werte im Repository:** F-Droid baut ohne unsere GitHub-Secrets. Damit die F-Droid-Version
    Freunde und Benachrichtigungen kann, muss `android/app/supabase.properties` mit den echten (öffentlichen)
    Werten **eingecheckt** sein. Das ist unbedenklich – geheim ist darin nichts.
 
 > **Achtung, Wechsel für Testerinnen und Tester:** Wer die Test-APK (öffentlicher Debug-Schlüssel) installiert hat,
-> muss für die erste Release-Version **einmal deinstallieren** – dabei gehen Bar und Verlauf verloren, weil es noch
-> keine Export-Funktion gibt. Vor dem Umstieg ankündigen oder vorher eine Export-/Import-Funktion einbauen.
+> muss für die erste Release-Version **einmal deinstallieren** – dabei gehen Bar und Verlauf verloren, weil die
+> Android-App noch keine Export-Funktion hat (die Web-App hat schon „Sicherung speichern/einlesen“ als JSON-Datei).
+> Vor dem Umstieg ankündigen oder vorher eine Export-/Import-Funktion in der Android-App einbauen – am besten im
+> selben Dateiformat wie die Web-App.
 
 ---
 
@@ -172,7 +178,7 @@ Reproduzierbare Builds sind bei F-Droid **keine Pflicht**, gelten aber als gute 
 | Was | Regel | Beispiel |
 |---|---|---|
 | `versionCode` (in `android/app/build.gradle.kts`) | ganze Zahl, bei **jeder** Veröffentlichung um mindestens 1 höher, nie wiederverwenden | jetzt `2` → erste F-Droid-Version z. B. `3` |
-| `versionName` | dreiteilig, passend zum Tag | `2.0.0` (jetzt steht dort noch `2.0`) |
+| `versionName` | dreiteilig, passend zum Tag | `2.0.0` (gesetzt) |
 | Git-Tag | `v` + `versionName`, auf dem Commit, aus dem gebaut wird | `v2.0.0` |
 | Änderungshinweis | `fastlane/metadata/android/de-DE/changelogs/<versionCode>.txt` (und `en-US`) | `changelogs/3.txt` |
 
@@ -284,7 +290,7 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 | Wann | Was |
 |---|---|
 | bis Dezember 2026 | Testphase mit Test-APKs; Fehler beheben |
-| Dezember 2026 – Januar 2027 | Release-Schlüssel erzeugen, Release-Workflow, `dependenciesInfo` abschalten, Reproduzierbarkeit prüfen; Fastlane-Texte und Bildschirmfotos; Versionsschema; ggf. Export/Import des Verlaufs |
+| Dezember 2026 – Januar 2027 | Release-Schlüssel erzeugen, Release-Workflow, Reproduzierbarkeit prüfen (`dependenciesInfo` ist schon abgeschaltet); Fastlane-Texte und Bildschirmfotos; `versionCode` erhöhen und Tag setzen; ggf. Export/Import des Verlaufs in der Android-App |
 | ab Mitte Februar 2027 | 3 Monate aktive Entwicklung erreicht → Merge Request bei `fdroiddata` |
 | Februar – Mai 2027 | Prüfung durch Freiwillige, Rückfragen beantworten [unsicher: Dauer] |
 | 2027 | Android-Entwicklerprüfung: Entscheidung (Abschnitt 8) |
@@ -297,12 +303,13 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 - [ ] `android/app/supabase.properties` mit den echten öffentlichen Werten eingecheckt
 - [ ] Eigener Release-Schlüssel erzeugt, doppelt gesichert, als GitHub-Secrets hinterlegt
 - [ ] Release-Workflow: Tag `v…` → signierte APK `DrinkWithMe-<version>.apk` im GitHub-Release
-- [ ] `dependenciesInfo { includeInApk = false; includeInBundle = false }`
+- [x] `dependenciesInfo { includeInApk = false; includeInBundle = false }`
 - [ ] Reproduzierbarkeit geprüft (zwei Builds aus demselben Commit sind identisch)
-- [ ] `versionName` dreiteilig, `versionCode` erhöht, Tag gesetzt
+- [x] `versionName` dreiteilig (`2.0.0`)
+- [ ] `versionCode` erhöht, Tag `v2.0.0` gesetzt
 - [ ] Fastlane-Texte (`de-DE`, `en-US`), Icon, Bildschirmfotos, Änderungshinweise
 - [ ] Datenschutzerklärung unter fester Adresse (siehe [`DATENSCHUTZ_ENTWURF.md`](DATENSCHUTZ_ENTWURF.md))
-- [ ] Umstieg der Testerinnen und Tester angekündigt (Deinstallation, Datenverlust) oder Export gebaut
+- [ ] Umstieg der Testerinnen und Tester angekündigt (Deinstallation, Datenverlust) oder Export in der Android-App gebaut
 - [ ] 3 Monate aktive Entwicklung erreicht (ab etwa 9. Februar 2027)
 - [ ] Merge Request „New app: Drink With Me“ bei `fdroiddata`
 

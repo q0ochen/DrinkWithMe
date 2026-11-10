@@ -214,11 +214,15 @@ Im Supabase-Dashboard → **Authentication → Sign In / Providers**:
 > `supabase/config.toml` enthält nur Platzhalter für die lokale Entwicklung und würde diese Einstellungen
 > überschreiben.
 
-### 3.3 Optional, für mehr Datenschutz
+### 3.3 Empfohlen: Anmelde-Protokolle nicht in der Datenbank speichern
 
-**Authentication → Audit Logs** (unter „Configuration“): Schreiben der Anmelde-Protokolle in die
-Projekt-Datenbank abschalten. Die Protokolle stehen dann nur noch kurz in den Supabase-Logs, statt dauerhaft
-in der Datenbank zu liegen (siehe [`DATENSCHUTZ_ENTWURF.md`](DATENSCHUTZ_ENTWURF.md)).
+**Authentication → Audit Logs** (Bereich „Configuration“) → Schalter **„Write audit logs to the database“**
+**ausschalten** → speichern. Sonst schreibt Supabase jede Anmeldung, Token-Erneuerung und Abmeldung dauerhaft in
+die Projekt-Datenbank – auch über das Löschen eines Kontos hinaus. Ausgeschaltet stehen die Protokolle nur noch
+kurz in den Supabase-Logs (siehe [`DATENSCHUTZ_ENTWURF.md`](DATENSCHUTZ_ENTWURF.md), Abschnitt 4.8).
+
+Das geht **nur im Dashboard**: Die Datei `supabase/config.toml` und der Workflow „Supabase Deploy“ können diesen
+Schalter nicht setzen.
 
 ---
 
@@ -297,6 +301,8 @@ Alles unter [github.com/q0ochen/DrinkWithMe](https://github.com/q0ochen/DrinkWit
 
 > **Reihenfolge ist wichtig:** Mach Schritt 5 und 6 **vor** dem Zusammenführen in Schritt 7. Beim Zusammenführen
 > wird die Web-App gebaut und veröffentlicht – mit den Werten, die **in diesem Moment** eingetragen sind.
+> (Vergessen? Kein Problem: Werte nachtragen, dann **Actions → Web-App → Run workflow** mit Branch `main` – das
+> veröffentlicht die Web-App neu.)
 
 ### 5.1 Name des Repositorys prüfen
 
@@ -463,9 +469,10 @@ Drink With Me nutzt **UnifiedPush** statt der Google-Dienste. Damit Benachrichti
 braucht das Handy eine kleine Zusatz-App, die die Nachrichten zustellt – empfohlen ist **ntfy** (kostenlos,
 freie Software, ohne Konto).
 
-**Ohne ntfy** funktioniert trotzdem alles: Die App fragt dann **etwa alle 15 Minuten** und **beim Öffnen** nach
-neuen Getränken deiner Freunde und zeigt sie als Benachrichtigung. Android kann diese Abfrage im Stromsparmodus
-auch mal weiter hinauszögern.
+**Ohne ntfy** funktioniert trotzdem alles: Die App fragt dann **etwa alle 15 Minuten** und **beim Öffnen**
+(höchstens alle 5 Minuten) nach neuen Getränken deiner Freunde und zeigt sie als Benachrichtigung. Android kann
+diese Abfrage im Stromsparmodus auch mal weiter hinauszögern. Das gilt auch, solange ntfy zwar eingerichtet, aber
+beim Server noch nicht bestätigt ist – die App fragt dann vorsichtshalber weiter selbst nach.
 
 **Einrichten:**
 
@@ -491,6 +498,11 @@ Die kannst du in den Android-Einstellungen von ntfy ausblenden, falls sie stört
 Die Nachrichten sind **Ende-zu-Ende verschlüsselt** (Web-Push-Verschlüsselung): ntfy sieht nur, dass eine
 Nachricht kommt, nicht ihren Inhalt.
 
+> **Eigener ntfy-Server?** Das brauchst du normalerweise nicht – der Standard-Server `ntfy.sh` reicht. Wer trotzdem
+> einen eigenen ntfy- oder UnifiedPush-Server betreibt: Er muss über **https auf Port 443** und unter einem
+> öffentlichen Namen erreichbar sein. Adressen mit anderem Port (z. B. `:8443`) lehnt der Server ab und löscht das
+> Abo beim ersten Versand; dann am besten einen Reverse-Proxy auf Port 443 davorschalten.
+
 ---
 
 ## 10. iPhone: Web-App einrichten
@@ -506,7 +518,10 @@ Benachrichtigungen. Voraussetzung: **iOS 16.4 oder neuer** (Einstellungen → Al
    **Ab jetzt nur noch so benutzen:** Die Home-Bildschirm-App hat einen **eigenen Speicher**. Was du vorher im
    Safari-Tab eingetragen hast, ist dort nicht zu sehen. Außerdem gibt es Benachrichtigungen auf dem iPhone nur
    in der Home-Bildschirm-App.
-4. Bar einrichten.
+   Hast du schon im Safari-Tab Getränke eingetragen? Dann **vor** dem Schließen dort **Einstellungen → Bar und
+   Verlauf → Sicherung speichern** (über „Teilen“ → **In Dateien sichern**).
+4. Bar einrichten – oder, falls du eine Sicherung hast, beim ersten Start unter **„Schon eine Sicherung?“** auf
+   **Sicherung einlesen** tippen und die Datei wählen.
 5. **Freunde** → **Mit Google anmelden** → Google-Konto wählen → zurück in der App.
 6. **Einstellungen** → **Benachrichtigungen** → **Benachrichtigungen einschalten** → iOS fragt → **Erlauben**.
    Danach steht dort „Eingeschaltet: Du bekommst eine Nachricht, wenn deine Freunde etwas trinken.“
@@ -514,7 +529,12 @@ Benachrichtigungen. Voraussetzung: **iOS 16.4 oder neuer** (Einstellungen → Al
 Hinweise:
 
 - Bar und Verlauf liegen **nur auf diesem iPhone** (im Speicher der Web-App). Löschst du das Symbol vom
-  Home-Bildschirm, sind sie weg.
+  Home-Bildschirm, sind sie weg. Manche Browser (z. B. Safari) löschen Website-Daten auch von selbst, wenn die
+  Seite längere Zeit nicht geöffnet wurde; die Web-App bittet den Browser deshalb einmal, ihren Speicher zu
+  behalten. Sicherer ist trotzdem: ab und zu **Einstellungen → Bar und Verlauf → Sicherung speichern**. Beim
+  Einlesen wird nichts gelöscht und nichts mit Freunden geteilt.
+- Ein einzelnes Getränk ohne Teilen eintragen: in der Bar auf **„⋮“** beim Getränk tippen →
+  **Privat eintragen (nicht teilen)**.
 - Spracheingabe gibt es nur, wenn der Browser sie anbietet; Vorlesen nutzt die deutsche Stimme des iPhones.
 - **Noch nicht auf einem echten iPhone getestet** ist die Google-Anmeldung *innerhalb* der Home-Bildschirm-App.
   Falls dort etwas hakt (z. B. die Anmeldung endet in einem Safari-Fenster statt in der App oder Google meldet
@@ -589,9 +609,9 @@ genaue Meldung notieren (Bildschirmfoto).
 | B1 | B | Web-App vom Home-Bildschirm öffnen, Bar auswählen, Kaffee antippen | Eintrag im Verlauf, „Rückgängig“ | [ ] |
 | B2 | B | **Freunde → Mit Google anmelden** | Zurück in der Web-App, angemeldet (bitte genau beobachten, siehe Hinweis in Schritt 10) | [ ] |
 | B3 | B | **Einstellungen → Benachrichtigungen einschalten** | iOS fragt, danach „Eingeschaltet …“ | [ ] |
-| F1 | B | **Freunde → Per E-Mail hinzufügen** → Google-Adresse von A | Neutrale Bestätigung (absichtlich ohne Hinweis, ob es die Adresse gibt) | [ ] |
+| F1 | B | **Freunde → Per E-Mail hinzufügen** → Google-Adresse von A | Neutrale Bestätigung; unter **Gesendete Anfragen** steht nur die gekürzte Adresse, z. B. „Anfrage an a***@gmail.com (wartet)“ – absichtlich ohne Namen und ohne Hinweis, ob es die Adresse gibt | [ ] |
 | F2 | A | **Freunde → Aktualisieren** | Unter **Anfragen an dich** steht B → **Annehmen** → B steht bei **Deine Freunde** | [ ] |
-| F3 | A | Unter **Deine Freunde** bei B auf **Entfernen**; dann **Freund einladen** → Link per Messenger an B schicken | Link der Form `https://q0ochen.github.io/DrinkWithMe/einladung/…` | [ ] |
+| F3 | A | Unter **Deine Freunde** bei B auf **Entfernen**; **erst danach** **Freund einladen** → Link per Messenger an B schicken | Link der Form `https://q0ochen.github.io/DrinkWithMe/einladung/…` (ein Link, den A **vor** dem Entfernen erstellt hat, gilt für B nicht mehr) | [ ] |
 | F4 | B | Link antippen (öffnet sich in **Safari**, nicht in der Home-Bildschirm-App) → dort anmelden → **Einladung annehmen** | „Du bist jetzt mit A befreundet.“ – auch in der Home-Bildschirm-App sichtbar (Freundschaften liegen auf dem Server) | [ ] |
 | N1 | A | **Apfelschorle** antippen | B bekommt nach wenigen Sekunden „A trinkt gerade“ – „Apfelschorle (500 ml)“ | [ ] |
 | N2 | B | Auf die Benachrichtigung tippen → **Vorlesen** | Ereignis-Seite mit großem Satz; „Vorlesen“ spricht z. B. „A trinkt eine Apfelschorle.“ | [ ] |
@@ -601,6 +621,7 @@ genaue Meldung notieren (Bildschirmfoto).
 | S2 | A | **Einstellungen → Alkoholische Getränke mit Freunden teilen** an → nochmal Pils | B sieht „Pils“ (nur Name, Menge, Zeitpunkt – keine Gramm) | [ ] |
 | S3 | A | Getränk lange drücken → **Privat eintragen (nicht teilen)** | B sieht nichts | [ ] |
 | S4 | A | Getränk antippen, dann sofort **Rückgängig** | Eintrag verschwindet bei B aus dem Feed (eine schon zugestellte Benachrichtigung bleibt) | [ ] |
+| S5 | B | In der Bar beim Kaffee auf **„⋮“** → **Privat eintragen (nicht teilen)** | „Nicht geteilt.“ – A sieht nichts | [ ] |
 | V1 | A | **Verlauf → Als Bild teilen** | Vorschau, dann Teilen-Menü mit PNG | [ ] |
 | V2 | beide | Supabase-Dashboard → **Table Editor → drink_events** ansehen | Nur Name, Icon, Kategorie, Menge in ml und Zeitpunkte – keine Gramm, kein Zucker | [ ] |
 | T1 | – | Fire TV (falls vorhanden): installieren, Wasser mit OK eintragen, Verlauf öffnen, Vorlesen testen | Siehe Tabelle in 11.3 | [ ] |
@@ -613,7 +634,7 @@ genaue Meldung notieren (Bildschirmfoto).
 | Was du siehst | Wahrscheinliche Ursache | Lösung |
 |---|---|---|
 | Android: „Server noch nicht eingerichtet“ | Die APK wurde ohne `android/app/supabase.properties` gebaut, oder `supabaseUrl`/`supabaseAnonKey` fehlen bzw. die URL beginnt nicht mit `https://` | Schritt 6 prüfen, dann die **neueste** APK (nach dem Commit gebaut) installieren |
-| Web-App: „Server noch nicht eingerichtet“ | Die Variablen `SUPABASE_URL`/`SUPABASE_ANON_KEY` fehlten beim Bauen | Variablen setzen (5.3), dann **Actions → Web-App** → letzten Lauf auf `main` → **Re-run all jobs**. (Der Knopf „Run workflow“ baut zwar, **veröffentlicht aber nicht** – veröffentlicht wird nur nach einem Push auf `main`.) Hilft das nicht: Claude bitten, eine kleine Änderung an der Web-App auf `main` zu bringen |
+| Web-App: „Server noch nicht eingerichtet“ | Die Variablen `SUPABASE_URL`/`SUPABASE_ANON_KEY` fehlten beim Bauen | Variablen setzen (5.3), dann **Actions → Web-App** → rechts **Run workflow** → Branch `main` → **Run workflow** – das baut und veröffentlicht neu |
 | `https://q0ochen.github.io/DrinkWithMe/` zeigt „404 – There isn't a GitHub Pages site here“ | Pages-Quelle nicht „GitHub Actions“, Veröffentlichung fehlgeschlagen oder Repository heißt nicht `DrinkWithMe` | 5.1 und 5.4 prüfen; **Actions → Web-App** → Job „Auf GitHub Pages veröffentlichen“ ansehen |
 | Google: **„Fehler 400: redirect_uri_mismatch“** | Weiterleitungs-URI im Google-Client stimmt nicht | In 2.3 genau `https://<projekt-referenz>.supabase.co/auth/v1/callback` eintragen (https, kein Schrägstrich am Ende) |
 | Google: **„Fehler 401: invalid_client“** | Client-ID oder Secret in Supabase falsch kopiert | 3.1: beide Werte neu einfügen; Secret verloren → neues Secret im Google-Client anlegen |
@@ -625,12 +646,13 @@ genaue Meldung notieren (Bildschirmfoto).
 | Android: „Die Anmeldung hat nicht geklappt“ / „Die Anmeldung ist abgelaufen“ | Anmeldung abgebrochen, zu lange gewartet oder Fehler bei Supabase | Erneut versuchen; Details im Supabase-Dashboard unter **Logs → Auth** |
 | Android: „Für die Anmeldung wird ein Browser benötigt …“ | Kein Browser installiert (typisch auf Fernsehern) | Auf dem Handy: Browser installieren. Auf dem Fernseher: ohne Anmeldung nutzen (11.3) |
 | iPhone: Anmeldung endet in einem Safari-Fenster oder Google meldet „disallowed_useragent“ | Eigenheit von Home-Bildschirm-Web-Apps (noch nicht getestet) | Fenster mit **Fertig** schließen, App neu öffnen; Ablauf genau notieren und melden |
-| „Per E-Mail hinzufügen“: Die andere Person sieht keine Anfrage | Absichtlich neutrale Antwort: Adresse falsch, Person hat sich noch **nie** angemeldet, oder ihr seid schon befreundet | Genaue **Google**-Adresse verwenden (die, mit der sich die Person angemeldet hat); die Person muss sich vorher einmal angemeldet haben; bei ihr auf **Aktualisieren** tippen. Alternativ Einladungs-Link nutzen |
-| „Diese Einladung ist ungültig oder abgelaufen“ | Link älter als 14 Tage, oder es wurde inzwischen ein neuer Link erstellt (der alte verfällt dann) | Neuen Link schicken lassen |
+| „Per E-Mail hinzufügen“: Die andere Person sieht keine Anfrage | Absichtlich neutral – du siehst bei dir immer „Anfrage an …“, egal was dahinter steckt: Adresse falsch, Person hat sich noch **nie** angemeldet, ihr seid schon befreundet, die Person hat schon eine Anfrage von dir (unter einer anderen Adresse) oder hat sie abgelehnt, oder die Anfrage ist nach 30 Tagen verfallen | Genaue **Google**-Adresse verwenden (die, mit der sich die Person angemeldet hat). Hat sich die Person erst danach zum ersten Mal angemeldet: die Adresse einfach **noch einmal** senden. Sonst die Anfrage **zurückziehen** und neu senden; bei ihr auf **Aktualisieren** tippen. Am einfachsten: Einladungs-Link nutzen |
+| „Diese Einladung ist ungültig oder abgelaufen“ | Link älter als 14 Tage, es wurde inzwischen ein neuer Link erstellt (der alte verfällt dann), oder die Person hat dich als Freund entfernt, **nachdem** sie den Link erstellt hatte | Neuen Link schicken lassen |
 | „Das ist dein eigener Einladungs-Link“ | Eigenen Link angetippt | Link an die andere Person schicken |
 | „Zu viele Versuche in kurzer Zeit“ / „Für heute sind keine weiteren Versuche möglich“ | Schutz-Grenzen: 20 E-Mail-Anfragen pro Tag, 30 angenommene Einladungen pro Tag, 60 Benachrichtigungs-Aufträge pro Stunde; dazu eigene Grenzen von Supabase für Anmeldungen | Warten (bis zu einem Tag). Getränke werden trotzdem geteilt und erscheinen im Feed – nur die Benachrichtigung fällt weg |
+| „Heute wurden schon sehr viele Getränke geteilt. Weitere Einträge bleiben vorerst nur auf diesem Gerät.“ | Schutz-Grenze: höchstens 200 geteilte Getränke pro Person in 24 Stunden | Nichts tun – die Einträge sind im eigenen Verlauf gespeichert, nur nicht geteilt. Nach 24 Stunden wird Neues wieder geteilt |
 | „Benachrichtigungen sind schon auf fünf Geräten eingerichtet“ | Höchstens 5 Benachrichtigungs-Abos pro Konto | Auf einem alten Gerät abmelden |
-| Android: keine Benachrichtigungen | ntfy nicht in Drink With Me ausgewählt, Benachrichtigungen für Drink With Me oder ntfy verboten, Akku-Optimierung, oder VAPID-Secrets fehlen | Schritt 9 komplett; Android-Einstellungen → Apps → Drink With Me / ntfy → Benachrichtigungen an; Deploy-Lauf auf Warnung „VAPID-Secrets fehlen“ prüfen (4.2) |
+| Android: keine Benachrichtigungen | ntfy nicht in Drink With Me ausgewählt, Benachrichtigungen für Drink With Me oder ntfy verboten, Akku-Optimierung, VAPID-Secrets fehlen, oder ein eigener ntfy-Server läuft nicht auf Port 443 | Schritt 9 komplett; Android-Einstellungen → Apps → Drink With Me / ntfy → Benachrichtigungen an; Deploy-Lauf auf Warnung „VAPID-Secrets fehlen“ prüfen (4.2); eigenen ntfy-Server über https auf Port 443 erreichbar machen oder `ntfy.sh` nehmen |
 | Web-App: „Benachrichtigungen sind auf dem Server noch nicht eingerichtet.“ | Die GitHub-Variable `VAPID_PUBLIC_KEY` fehlte beim Bauen oder ist kein gültiger Schlüssel | 5.3 prüfen, dann die Web-App neu veröffentlichen (wie bei „Server noch nicht eingerichtet“ oben) |
 | iPhone: keine Benachrichtigungen | Nicht über den Home-Bildschirm geöffnet, iOS älter als 16.4, Mitteilungen verboten oder Fokus aktiv | Schritt 10; iPhone-Einstellungen → Mitteilungen → Drink With Me → Mitteilungen erlauben |
 | Benachrichtigungen fehlen bei allen | `VAPID_PUBLIC_KEY` ist nicht überall gleich (Supabase-Secret, GitHub-Variable, `supabase.properties`) oder `VAPID_SUBJECT` beginnt nicht mit `mailto:` | Werte vergleichen; nach einer Korrektur Web-App neu veröffentlichen, neue APK bauen und Benachrichtigungen in den Apps aus- und wieder einschalten |
@@ -642,7 +664,7 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Supabase Deploy“ bricht bei „Mit dem Projekt verbinden“ ab | Datenbank-Passwort falsch | Supabase → **Project Settings → Database → Reset database password**, neues Passwort ins Secret `SUPABASE_DB_PASSWORD`. Sonst die Fehlermeldung kopieren und Claude schicken (ohne Passwörter!) |
 | Android: „App nicht installiert“ beim Update | Die alte App ist mit einem anderen Schlüssel signiert (z. B. selbst in Android Studio gebaut) | Alte App deinstallieren (lokaler Verlauf geht dabei verloren), dann neu installieren |
 | Fire TV: Downloader fehlt unter „Apps unbekannter Herkunft“ | Fehler im Fire-TV-Update (Herbst 2026) oder Vega-OS-Gerät | System aktualisieren (11.2); bei Vega OS geht es nicht |
-| Vorlesen bleibt stumm | Keine deutsche Stimme installiert | **Einstellungen → Vorlesen → Deutsche Stimme installieren**; sonst z. B. **SherpaTTS** aus F-Droid |
+| Vorlesen bleibt stumm | Keine deutsche Stimme installiert | Die Hilfe **„Vorlesen einrichten“** erscheint in den Einstellungen und auf dem Ereignis-Bildschirm – je nach Fall mit **Deutsche Stimme installieren** oder **SherpaTTS bei F-Droid**. Danach einfach zurück in die App – die Sprachausgabe startet dann neu |
 | Mikrofon-Knopf „Sprechen“ fehlt | Keine Spracherkennungs-App auf dem Gerät | Normal auf manchen Geräten; Eintragen per Tipp geht immer |
 | Anmeldung klappt plötzlich bei niemandem mehr (nach langer Pause) | Google löscht OAuth-Clients, die lange nicht benutzt wurden | In Google Cloud nachsehen (gelöschte Clients lassen sich eine Zeit lang wiederherstellen), sonst neuen Client anlegen (2.3) und in Supabase eintragen (3.1) |
 
@@ -672,9 +694,10 @@ genaue Meldung notieren (Bildschirmfoto).
 ### Konto auf Wunsch löschen (für den Betreiber)
 
 Wer die App nicht mehr hat und per E-Mail um Löschung bittet: Supabase-Dashboard → **Authentication → Users** →
-nach der E-Mail-Adresse suchen → **…** → **Delete user**. Profil, Freundschaften, Anfragen, Einladungs-Links,
-geteilte Getränke, Benachrichtigungs-Abos und Zähler werden automatisch mitgelöscht – genau wie bei „Konto
-löschen“ in der App.
+nach der E-Mail-Adresse suchen → **…** → **Delete user**. Profil, Freundschaften, eigene Anfragen,
+Einladungs-Links, geteilte Getränke, Benachrichtigungs-Abos und Zähler werden automatisch mitgelöscht – genau wie
+bei „Konto löschen“ in der App. (Anfragen **anderer** an diese Person bleiben beim jeweiligen Absender, nur ohne
+Verbindung zum gelöschten Konto, und verfallen nach 30 Tagen.)
 
 ### Weiterführend
 

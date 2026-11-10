@@ -13,7 +13,7 @@ Belohnungen für Alkohol, und deine Statistik verlässt nie dein Gerät.
 |---|---|
 | **Android-Handy und -Tablet** (ab Android 8) | Android-App (APK aus GitHub, später F-Droid) |
 | **Android TV / Fire TV** (Fire OS 7/8) | dieselbe APK – Bar, Verlauf und Vorlesen; Anmeldung auf dem Fernseher ist nicht eigens gebaut |
-| **iPhone** (ab iOS 16.4) und jeder Browser | Web-App: [q0ochen.github.io/DrinkWithMe](https://q0ochen.github.io/DrinkWithMe/) – „Zum Home-Bildschirm“ für Benachrichtigungen |
+| **iPhone** (ab iOS 16.4) und jeder Browser | Web-App: [q0ochen.github.io/DrinkWithMe](https://q0ochen.github.io/DrinkWithMe/) – „Zum Home-Bildschirm“ für Benachrichtigungen (die Home-Bildschirm-App hat einen eigenen Speicher; Bar und Verlauf nimmst du per Sicherungsdatei mit) |
 
 Eine echte iPhone-App ist erst nach der Testphase geplant.
 
@@ -26,7 +26,11 @@ Eine echte iPhone-App ist erst nach der Testphase geplant.
   2024, ausblendbar), alkoholfreie Tage in Folge, Vergleich mit dem Vormonat, Liste aller Einträge. Alle Werte
   gibt es zusätzlich als Text. **„Als Bild teilen“** erzeugt ein PNG deiner Statistik.
 - **Freunde:** Anmeldung mit Google (nur dafür nötig), Freunde per **Einladungs-Link** oder **Google-E-Mail-Adresse**
-  hinzufügen, Feed mit den Getränken deiner Freunde, **Benachrichtigung**, wenn ein Freund etwas trinkt.
+  hinzufügen (ohne dass jemand erfährt, ob es zu einer Adresse ein Konto gibt), Feed mit den Getränken deiner
+  Freunde, **Benachrichtigung**, wenn ein Freund etwas trinkt. Einzelne Getränke kannst du **privat eintragen**;
+  ohne Internet holt die App das Teilen später nach.
+- **Sicherung (Web-App):** Bar und Verlauf als Datei speichern und wieder einlesen – z. B. vom Safari-Tab in die
+  App auf dem Home-Bildschirm oder auf ein anderes Gerät. Beim Einlesen wird nichts gelöscht und nichts geteilt.
 - **Sprache und Vorlesen:** Getränke per Sprache eintragen („Apfelschorle“, „rückgängig“, „wie viel heute“),
   Ereignisse laut vorlesen lassen („Anna trinkt eine Apfelschorle.“) – mit großem Knopf, gedacht auch für
   Menschen, die schlecht sehen.
@@ -39,11 +43,13 @@ Eine echte iPhone-App ist erst nach der Testphase geplant.
 
 Bar, vollständiger Verlauf und Statistik liegen **nur auf deinem Gerät**. Ohne Anmeldung verlässt nichts das
 Gerät. Meldest du dich mit Google an, speichert der Server (Supabase, Rechenzentrum in Frankfurt) nur dein Profil
-(Name und Bild-Adresse aus Google), deine Freundschaften und Anfragen, Einladungs-Links, Benachrichtigungs-Abos
+(Name und Bild-Adresse aus Google), deine Freundschaften und Anfragen (von einer eingegebenen E-Mail-Adresse nur
+eine gekürzte Form und eine nicht umkehrbare Kennung, höchstens 30 Tage), Einladungs-Links, Benachrichtigungs-Abos
 und die Getränke, die du teilst – und die nur mit **Name, Icon, Art, Menge in ml und Zeitpunkt**, nach **30 Tagen**
 automatisch gelöscht. Gramm Alkohol, Zucker und Statistiken werden nie geteilt; alkoholische Getränke erst nach
-deiner ausdrücklichen Zustimmung. Benachrichtigungen sind Ende-zu-Ende verschlüsselt. Keine Werbung, kein
-Tracking, keine Analyse-Dienste. Dein Konto löschst du direkt in der App. Details:
+deiner ausdrücklichen Zustimmung. Benachrichtigungen sind Ende-zu-Ende verschlüsselt. Eine Sicherungsdatei
+entsteht nur, wenn du sie selbst speicherst, und bleibt bei dir. Keine Werbung, kein Tracking, keine
+Analyse-Dienste. Dein Konto löschst du direkt in der App. Details:
 [`docs/DATENSCHUTZ_ENTWURF.md`](docs/DATENSCHUTZ_ENTWURF.md).
 
 ## Dokumentation
@@ -56,7 +62,7 @@ Tracking, keine Analyse-Dienste. Dein Konto löschst du direkt in der App. Detai
 | [`docs/DATENSCHUTZ_ENTWURF.md`](docs/DATENSCHUTZ_ENTWURF.md) | Betreiber | **Entwurf** einer Datenschutzerklärung (Platzhalter, keine Rechtsberatung) |
 | [`docs/F-DROID.md`](docs/F-DROID.md) | Betreiber | Was für die Aufnahme in F-Droid nötig ist, Zeitplan, Android-Entwicklerprüfung 2027 |
 | [`supabase/README.md`](supabase/README.md) | Entwickler | Backend: Tabellen, RPCs, Edge Functions, lokal testen |
-| [`web/README.md`](web/README.md) | Entwickler | Web-App: Aufbau, Befehle, Konfiguration, Routing, Web Push |
+| [`web/README.md`](web/README.md) | Entwickler | Web-App: Aufbau, Befehle, Konfiguration, Routing, Web Push, Sicherung, Teilen ohne Netz |
 | [`design/README.md`](design/README.md) | alle | Selbst gezeichnete Icons und Werkzeuge |
 
 ## Projektstruktur
@@ -96,7 +102,7 @@ Jeder Push und jeder Pull Request startet automatisch die passenden Prüfungen (
 |---|---|---|
 | **Android** (`android.yml`) | Änderungen an `android/` oder `design/` | Icons prüfen (SVG ↔ Android), Tests der Grafik-Werkzeuge, Tests des Kerns und der App, Debug-APK bauen, Signatur prüfen → Artifact **`DrinkWithMe-android-apk`** |
 | **Supabase** (`supabase.yml`) | Änderungen an `supabase/` | Lokales Supabase in Docker starten, alle Migrationen auf leerer Datenbank, pgTAP-Tests; Edge Functions: Formatierung, Lint, Typprüfung, Deno-Tests (u. a. gegen die Beispielwerte aus RFC 8291) |
-| **Web-App** (`web.yml`) | Änderungen an `web/` oder `design/icons/` | Typprüfung, Lint, Unit-Tests (inkl. Golden-Tests gegen den Kotlin-Kern), Build, Playwright-Tests → Artifact **`DrinkWithMe-web`**; bei einem Push auf `main` zusätzlich **Veröffentlichung auf GitHub Pages** |
+| **Web-App** (`web.yml`) | Änderungen an `web/` oder `design/icons/`; auch manuell (Run workflow) | Typprüfung, Lint, Unit-Tests (inkl. Golden-Tests gegen den Kotlin-Kern), Build, Playwright-Tests → Artifact **`DrinkWithMe-web`**; bei einem Push auf `main` oder einem manuellen Start auf `main` (Actions → „Web-App“ → Run workflow) zusätzlich **Veröffentlichung auf GitHub Pages** |
 | **Supabase Deploy** (`supabase-deploy.yml`) | **nur manuell** (Actions → „Supabase Deploy“ → Run workflow) | Migrationen und Edge Functions im echten Supabase-Projekt bereitstellen; braucht die Secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und die Variable `SUPABASE_PROJECT_REF` |
 | **iOS** (`ios.yml`) | Änderungen an `ios/` | Alte iOS-App: Tests und unsignierte IPA (nicht weiterentwickelt) |
 
