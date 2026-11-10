@@ -1,5 +1,7 @@
 # Baut die Android-App bei jedem Push und stellt die APK zum Herunterladen bereit.
-# Download: GitHub → Actions → „Android“ → letzter Lauf → Artifacts → DrinkWithMe-android-apk
+# Download mit GitHub-Anmeldung: GitHub → Actions → „Android“ → letzter Lauf → Artifacts → DrinkWithMe-android-apk
+# Download OHNE Anmeldung (öffentliche Testversion, wird nach jedem erfolgreichen Build aktualisiert):
+#   https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk
 name: Android
 
 on:
@@ -70,3 +72,69 @@ jobs:
           name: DrinkWithMe-android-apk
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  # Öffentliche Testversion: Nach einem erfolgreichen Build (alle Tests grün, Signatur geprüft) wird die APK
+  # als Release „testversion“ veröffentlicht – ohne GitHub-Anmeldung und ohne ZIP herunterladbar, mit festem Link.
+  # Es gibt immer nur EINE Testversion; sie wird bei jedem Build ersetzt.
+  testversion:
+    name: Öffentliche Testversion aktualisieren
+    needs: build
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: android-testversion
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: testversion
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DrinkWithMe-android-apk
+          path: apk
+
+      - name: APK benennen und Prüfsumme bilden
+        run: |
+          cp apk/app-debug.apk DrinkWithMe.apk
+          sha256sum DrinkWithMe.apk | tee DrinkWithMe.apk.sha256
+
+      - name: Beschreibung der Testversion
+        run: |
+          STAND="$(date -u '+%d.%m.%Y, %H:%M UTC')"
+          KURZ="${GITHUB_SHA::7}"
+          cat > notes.md <<EOF
+          **Testversion von Drink With Me für Android** – Stand ${STAND}, Code-Stand \`${KURZ}\`.
+
+          **Herunterladen (ohne Anmeldung):** https://github.com/${GH_REPO}/releases/download/${TAG}/DrinkWithMe.apk
+
+          ### Installieren
+          1. Den Link oben auf dem Android-Handy öffnen (oder per WhatsApp/Telegram als Datei schicken).
+          2. Die heruntergeladene Datei \`DrinkWithMe.apk\` antippen und „Aus dieser Quelle zulassen“ erlauben.
+          3. **Installieren** tippen. Warnt Play Protect: **Weitere Details → Trotzdem installieren**.
+
+          Fire TV Stick (Fire OS 7/8): in der App „Downloader“ den Link oben eingeben.
+
+          ### Hinweise
+          - Testversion, mit dem öffentlichen Test-Schlüssel signiert. Neue Testversionen lassen sich einfach drüber installieren.
+          - **Bar, Verlauf, Sprache und Vorlesen** funktionieren sofort. **Freunde** zeigt „Server noch nicht eingerichtet“,
+            bis der Supabase-Server eingerichtet ist (siehe docs/EINRICHTUNG.md).
+          - Prüfsumme (SHA-256) der APK: siehe \`DrinkWithMe.apk.sha256\`.
+          EOF
+
+      - name: Testversion veröffentlichen oder ersetzen
+        run: |
+          TITEL="Testversion (Android)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Tag auf den aktuellen Stand verschieben, Text erneuern.
+            gh api -X PATCH "repos/$GH_REPO/git/refs/tags/$TAG" -f sha="$GITHUB_SHA" -F force=true
+            gh release edit "$TAG" --title "$TITEL" --notes-file notes.md --prerelease
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TITEL" --notes-file notes.md --prerelease
+          fi
+          gh release upload "$TAG" DrinkWithMe.apk DrinkWithMe.apk.sha256 --clobber
+          echo "Öffentlicher Link: https://github.com/$GH_REPO/releases/download/$TAG/DrinkWithMe.apk"
