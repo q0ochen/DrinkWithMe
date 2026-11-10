@@ -1,0 +1,15 @@
+# Erzeugt beim Build (scripts/generate-icons.mjs) – Quelle ist design/icons/
+public/icons/
+public/apple-touch-icon.png
+public/favicon.png
+# Build- und Testausgaben
+dist/
+dist-e2e/
+dist-e2e-ohne-server/
+test-results/
+playwright-report/
+.vite/
+node_modules/
+# Lokale Konfiguration (die öffentlichen Werte kommen in der CI aus Repository-Variablen)
+.env.local
+.env.*.local

@@ -6,10 +6,12 @@ on:
   push:
     paths:
       - "android/**"
+      - "design/**"
       - ".github/workflows/android.yml"
   pull_request:
     paths:
       - "android/**"
+      - "design/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
@@ -31,6 +33,15 @@ jobs:
           java-version: "17"
 
       - uses: gradle/actions/setup-gradle@v4
+
+      # Selbst gezeichnete Icons: Android-Drawables müssen zu design/icons/*.svg passen (nur Python-Standardbibliothek).
+      - name: Grafiken prüfen (SVG → VectorDrawable aktuell und gültig)
+        working-directory: .
+        run: python3 design/tools/svg2vector.py check
+
+      - name: Tests der Grafik-Werkzeuge
+        working-directory: .
+        run: python3 -m unittest discover -s design/tools -p 'test_*.py'
 
       - name: Tests der Geschäftslogik
         run: ./gradlew :core:test --no-daemon

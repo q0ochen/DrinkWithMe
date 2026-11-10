@@ -7,6 +7,7 @@ import com.drinkwithme.core.log.HistoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -37,7 +38,7 @@ open class JsonFileList<T>(
     protected fun snapshot(): List<T> = synchronized(lock) { loaded() }
 
     /** Ändert die Liste und speichert sie. Schlägt das Speichern fehl, bleibt die Änderung im Speicher. */
-    protected fun update(transform: (List<T>) -> List<T>) {
+    protected fun modify(transform: (List<T>) -> List<T>) {
         synchronized(lock) {
             val next = transform(loaded())
             cache = next
@@ -47,7 +48,7 @@ open class JsonFileList<T>(
                 onError(error)
             }
         }
-        revisionFlow.value = revisionFlow.value + 1
+        revisionFlow.update { it + 1 }
     }
 
     private fun loaded(): List<T> {
@@ -76,11 +77,11 @@ class JsonFileBarRepository(
 
     override fun item(id: String): BarItem? = snapshot().firstOrNull { it.id == id }
 
-    override fun save(item: BarItem) = update { items -> items.filterNot { it.id == item.id } + item }
+    override fun save(item: BarItem) = modify { items -> items.filterNot { it.id == item.id } + item }
 
-    override fun delete(id: String) = update { items -> items.filterNot { it.id == id } }
+    override fun delete(id: String) = modify { items -> items.filterNot { it.id == id } }
 
-    override fun reorder(ids: List<String>) = update { items ->
+    override fun reorder(ids: List<String>) = modify { items ->
         val current = items.sortedBy { it.sortOrder }
         val byId = current.associateBy { it.id }
         val requested = ids.distinct().mapNotNull { byId[it] }
@@ -101,7 +102,7 @@ class JsonFileHistoryRepository(
 
     override fun entry(id: String): DrinkEntry? = snapshot().firstOrNull { it.id == id }
 
-    override fun save(entry: DrinkEntry) = update { entries -> entries.filterNot { it.id == entry.id } + entry }
+    override fun save(entry: DrinkEntry) = modify { entries -> entries.filterNot { it.id == entry.id } + entry }
 
-    override fun delete(id: String) = update { entries -> entries.filterNot { it.id == id } }
+    override fun delete(id: String) = modify { entries -> entries.filterNot { it.id == id } }
 }

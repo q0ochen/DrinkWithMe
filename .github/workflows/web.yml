@@ -1,0 +1,118 @@
+# Prüft und baut die Web-App (PWA für iPhone und Browser) bei jedem Push; auf main wird sie zusätzlich auf
+# GitHub Pages veröffentlicht: https://q0ochen.github.io/DrinkWithMe/
+# Einmalig in den Repository-Einstellungen: Pages → Build and deployment → Source „GitHub Actions“.
+# Öffentliche (unkritische) Werte als Repository-Variablen (Settings → Secrets and variables → Actions → Variables):
+#   SUPABASE_URL, SUPABASE_ANON_KEY, VAPID_PUBLIC_KEY  (optional WEB_APP_URL, Standard siehe unten).
+# Fehlen sie, funktioniert die App lokal vollständig; „Freunde“ zeigt dann „Server noch nicht eingerichtet“.
+name: Web-App
+
+on:
+  push:
+    paths:
+      - "web/**"
+      - "design/icons/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "design/icons/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Prüfen, testen und bauen
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Abhängigkeiten (exakt nach package-lock.json)
+        run: npm ci
+
+      # Chromium wird für die PNG-Symbole (aus design/icons/app_icon.svg) und die Smoke-Tests gebraucht.
+      - name: Chromium für Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Typprüfung
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit-Tests (Kern-Port inkl. Golden-Tests gegen den Kotlin-Kern, IndexedDB, Supabase-Adapter)
+        run: npm test
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VITE_WEB_APP_URL: ${{ vars.WEB_APP_URL || 'https://q0ochen.github.io/DrinkWithMe' }}
+        run: npm run build
+
+      # Eigene Test-Builds (.env.e2e, .env.e2e-ohne-server) mit abgefangenen Supabase-Aufrufen.
+      - name: Smoke-Tests (Playwright gegen vite preview)
+        run: npm run test:e2e
+
+      - name: Playwright-Bericht (nur bei Fehlern)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report
+            web/test-results
+          retention-days: 7
+
+      - name: Gebaute Web-App
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrinkWithMe-web
+          path: web/dist
+          retention-days: 14
+
+  deploy:
+    name: Auf GitHub Pages veröffentlichen
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DrinkWithMe-web
+          path: dist
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

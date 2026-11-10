@@ -26,8 +26,8 @@ const A_DRINK = "Getränk";
 const MONTHS = [
   "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember",
 ];
-/** Wie Javas `\s` (nur ASCII-Leerraum). */
-const WHITESPACE = /[ \t\n\x0B\f\r]+/g;
+/** Wie Javas `\s` (nur ASCII-Leerraum: Leerzeichen, Tab, Zeilenumbruch, vertikaler Tab, Seitenvorschub). */
+const WHITESPACE = new RegExp("[ \\t\\n\\v\\f\\r]+", "g");
 /** Zeichenklassen, die nicht vorgelesen werden (wie im Kotlin-Kern: So, Sk, Cf, Co, Cs, Cn, Cc, Mn, Me). */
 const UNSPEAKABLE = /[\p{So}\p{Sk}\p{Cf}\p{Co}\p{Cs}\p{Cn}\p{Cc}\p{Mn}\p{Me}]/gu;
 

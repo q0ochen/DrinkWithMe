@@ -13,11 +13,16 @@ import type { SharingPolicy } from "./sharingPolicy";
 export class SharingHistoryRepository implements HistoryRepository {
   private tail: Promise<void> = Promise.resolve();
 
+  /**
+   * @param yieldToBackground wartet vor jedem Netzwerkauftrag auf die nächste Runde der Ereignisschleife,
+   *   damit Speichern und Anzeigen nie hinter dem Netz anstehen.
+   */
   constructor(
     private readonly local: HistoryRepository,
     private readonly publisher: EventPublisher,
     private readonly policy: SharingPolicy,
     private readonly onError: (error: unknown) => void = () => {},
+    private readonly yieldToBackground: () => Promise<void> = nextTask,
   ) {}
 
   entries(from: number, to: number): Promise<DrinkEntry[]> {
@@ -48,7 +53,10 @@ export class SharingHistoryRepository implements HistoryRepository {
   }
 
   private enqueue(operation: () => Promise<void>): void {
-    this.tail = this.tail.then(operation).catch((error: unknown) => this.report(error));
+    this.tail = this.tail
+      .then(this.yieldToBackground)
+      .then(operation)
+      .catch((error: unknown) => this.report(error));
   }
 
   private report(error: unknown): void {
@@ -58,4 +66,9 @@ export class SharingHistoryRepository implements HistoryRepository {
       // Ein fehlerhafter Fehler-Callback darf das Teilen nachfolgender Einträge nicht stoppen.
     }
   }
+}
+
+/** Nächste Runde der Ereignisschleife (Makrotask). */
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }

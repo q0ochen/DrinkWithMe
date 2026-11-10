@@ -2,7 +2,7 @@ import { entryAlcoholGrams, entrySugarGrams, isAlcoholic, isSugary } from "../he
 import { weeklyAlcoholBand, type AlcoholRiskBand } from "../health/healthReferences";
 import type { DrinkEntry } from "../log/drinkEntry";
 import type { Clock } from "../time/clock";
-import { LocalDate, type TimeZone } from "../time/localDate";
+import type { LocalDate, TimeZone } from "../time/localDate";
 
 /** Zucker aus Getränken an einem Kalendertag. */
 export interface DailySugar {

@@ -25,6 +25,14 @@ fun JSONObject.intOrNull(key: String): Int? {
     return value.toInt()
 }
 
+/** Ganze Zahl (64 Bit) oder `null`, z. B. Unix-Zeitstempel. */
+fun JSONObject.longOrNull(key: String): Long? {
+    val number = opt(key) as? Number ?: return null
+    val value = number.toDouble()
+    if (!value.isFinite() || value % 1.0 != 0.0) return null
+    return number.toLong()
+}
+
 fun JSONObject.booleanOrNull(key: String): Boolean? = opt(key) as? Boolean
 
 /** ISO-8601-Zeitpunkt (auch mit Offset wie „+00:00“ von PostgREST) oder `null`. */
