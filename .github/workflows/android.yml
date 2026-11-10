@@ -73,6 +73,88 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
+  # Installationstest: Die gebaute APK wird im Emulator mit dem neuesten verfügbaren Android installiert und
+  # gestartet – einmal normal, einmal mit 16-KB-Speicherseiten (wie auf neuen Pixel-Handys). So ist belegt, dass die
+  # APK selbst auf aktuellen Geräten installierbar ist; Sperren durch Geräte-Einstellungen prüft das nicht.
+  # Läuft parallel zur Testversion und hält sie nicht auf.
+  installtest:
+    name: Installationstest (${{ matrix.name }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: neuestes Android
+            variant: google_apis
+          - name: neuestes Android, 16-KB-Speicherseiten
+            variant: google_apis_ps16k
+    env:
+      VARIANT: ${{ matrix.variant }}
+    steps:
+      - name: KVM freischalten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: DrinkWithMe-android-apk
+          path: apk
+
+      - name: Neuestes System-Image installieren
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          IMG="$("$SDKM" --list 2>/dev/null \
+            | grep -oE "system-images;android-[0-9]+(\.[0-9]+)?;${VARIANT};x86_64" \
+            | sort -u -t';' -k2,2V | tail -1)"
+          if [ -z "$IMG" ]; then echo "::error::Kein System-Image für ${VARIANT} (x86_64) gefunden"; exit 1; fi
+          echo "System-Image: $IMG"
+          echo "IMG=$IMG" >> "$GITHUB_ENV"
+          yes | "$SDKM" --licenses >/dev/null || true
+          "$SDKM" --install "$IMG" emulator platform-tools >/dev/null
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n test -k "$IMG" --force
+
+      - name: Emulator starten
+        run: |
+          nohup "$ANDROID_HOME/emulator/emulator" -avd test -no-window -no-audio -no-boot-anim -no-snapshot \
+            -gpu swiftshader_indirect -camera-back none -camera-front none > emulator.log 2>&1 &
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          timeout 900 "$ADB" wait-for-device
+          timeout 900 bash -c "until [ \"\$('$ADB' shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')\" = 1 ]; do sleep 5; done"
+          echo "Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r')" \
+            "(API $("$ADB" shell getprop ro.build.version.sdk | tr -d '\r')," \
+            "Speicherseite $("$ADB" shell getconf PAGESIZE | tr -d '\r') Byte)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: APK installieren und starten
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" install apk/app-debug.apk
+          "$ADB" logcat -c
+          "$ADB" shell am start -W -n com.drinkwithme.app/.MainActivity
+          sleep 20
+          "$ADB" exec-out screencap -p > screenshot.png
+          "$ADB" logcat -d > logcat.txt
+          if grep -A3 "FATAL EXCEPTION" logcat.txt | grep -q "com.drinkwithme.app"; then
+            grep -A30 "FATAL EXCEPTION" logcat.txt; echo "::error::Die App ist beim Start abgestürzt"; exit 1
+          fi
+          PID="$("$ADB" shell pidof com.drinkwithme.app | tr -d '\r')"
+          if [ -z "$PID" ]; then echo "::error::Die App läuft nach dem Start nicht"; exit 1; fi
+          echo "Installiert und gestartet: $IMG" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installtest-${{ matrix.variant }}
+          path: |
+            screenshot.png
+            logcat.txt
+            emulator.log
+          if-no-files-found: ignore
+
   # Öffentliche Testversion: Nach einem erfolgreichen Build (alle Tests grün, Signatur geprüft) wird die APK
   # als Release „testversion“ veröffentlicht – ohne GitHub-Anmeldung und ohne ZIP herunterladbar, mit festem Link.
   # Es gibt immer nur EINE Testversion; sie wird bei jedem Build ersetzt.
