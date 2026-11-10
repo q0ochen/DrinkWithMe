@@ -1,152 +1,145 @@
-# Drink With Me 🥂
+# Drink With Me
 
-Teile mit Freund:innen, was du gerade trinkst – als native App für **iOS (Swift/SwiftUI)**
-und **Android (Kotlin/Jetpack Compose)**. Auf Android gibt es zusätzlich **Trinkrunden**: Freundesgruppen,
-in denen ihr live seht, was die anderen trinken – mit Push-Nachricht.
+**Dein Getränketagebuch – für dich und mit deinen Freunden.** Drink With Me zeigt dir anschaulich, wie viel
+Alkohol und Zucker du über Getränke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du möchtest,
+sehen deine Freunde, was du gerade trinkst – und du bekommst eine Nachricht, wenn sie etwas trinken.
+
+Gesundheit ist mindestens so wichtig wie der soziale Teil: Der Verlauf ist ein Hauptbereich, es gibt keine
+Belohnungen für Alkohol, und deine Statistik verlässt nie dein Gerät.
+
+## Plattformen
+
+| Gerät | So bekommst du Drink With Me |
+|---|---|
+| **Android-Handy und -Tablet** (ab Android 8) | Android-App (APK aus GitHub, später F-Droid) |
+| **Android TV / Fire TV** (Fire OS 7/8) | dieselbe APK – Bar, Verlauf und Vorlesen; Anmeldung auf dem Fernseher ist nicht eigens gebaut |
+| **iPhone** (ab iOS 16.4) und jeder Browser | Web-App: [q0ochen.github.io/DrinkWithMe](https://q0ochen.github.io/DrinkWithMe/) – „Zum Home-Bildschirm“ für Benachrichtigungen |
+
+Eine echte iPhone-App ist erst nach der Testphase geplant.
 
 ## Funktionen
 
-- Getränk erfassen: Name, Kategorie (Wasser, Kaffee, Tee, Saft, Softdrink, Bier, Wein, Cocktail, Sonstiges),
-  Menge in ml und optionale Notiz. Der Zeitpunkt ist nicht wählbar – es wird immer der aktuelle
-  Zeitpunkt („jetzt“) gespeichert. Das stellt bereits die Fachlogik sicher (`DrinkDraft` hat kein Zeitfeld).
-- Verlauf aller Getränke, neueste zuerst, mit Löschen
-- **Teilen** eines einzelnen Getränks über das System-Share-Sheet (WhatsApp, Instagram, Signal, Mail …):
-  > 🍷 Ich trinke gerade Rotwein (150 ml) um 14:30 Uhr. „Mit Freunden“ Trink mit mir! #DrinkWithMe
-- **Tag teilen**: Zusammenfassung aller heutigen Getränke inklusive Gesamtmenge
-- Lokale Speicherung als JSON-Datei auf dem Gerät
+- **Bar:** Du stellst dir deine eigene Bar aus über 20 Getränken zusammen (Wasser, Kaffee, Apfelschorle, Cola,
+  Pils, Rotwein …) oder legst eigene an. **Ein Tipp = jetzt getrunken** – der Zeitpunkt ist immer „jetzt“.
+  Danach 10 Sekunden lang ein großer „Rückgängig“-Knopf. Alle Getränke-Icons sind selbst gezeichnet.
+- **Verlauf:** Zucker pro Tag (mit Linien bei 50 g und 25 g), Alkohol pro Woche (mit den Bezugswerten der DGE
+  2024, ausblendbar), alkoholfreie Tage in Folge, Vergleich mit dem Vormonat, Liste aller Einträge. Alle Werte
+  gibt es zusätzlich als Text. **„Als Bild teilen“** erzeugt ein PNG deiner Statistik.
+- **Freunde:** Anmeldung mit Google (nur dafür nötig), Freunde per **Einladungs-Link** oder **Google-E-Mail-Adresse**
+  hinzufügen, Feed mit den Getränken deiner Freunde, **Benachrichtigung**, wenn ein Freund etwas trinkt.
+- **Sprache und Vorlesen:** Getränke per Sprache eintragen („Apfelschorle“, „rückgängig“, „wie viel heute“),
+  Ereignisse laut vorlesen lassen („Anna trinkt eine Apfelschorle.“) – mit großem Knopf, gedacht auch für
+  Menschen, die schlecht sehen.
+- **Barrierefreiheit:** große Bedienflächen, Screenreader-Beschriftungen, Schrift bis 200 %, guter Kontrast,
+  Bedienung mit Fernbedienung oder Tastatur.
+- **Benachrichtigungen ohne Google-Dienste:** auf Android über UnifiedPush (empfohlen: die freie App **ntfy**),
+  sonst prüft die App etwa alle 15 Minuten; in der Web-App über Web Push.
 
-### Trinkrunden (Android)
+## Datenschutz in einem Absatz
 
-- **Anmelden mit Google** (Firebase Authentication über den Android Credential Manager)
-- **Runde erstellen** (Name 1–30 Zeichen) → 8-stelliger **Einladungscode** (z. B. `K7MX-2QAB`) zum Teilen oder
-  Kopieren; **beitreten** per Code (mit oder ohne Bindestrich; nach 10 falschen Codes pro Stunde gesperrt); man
-  kann in mehreren Runden sein (bis zu 50 Mitglieder pro Runde); **verlassen** jederzeit – verlässt das letzte
-  Mitglied die Runde, wird sie gelöscht; ihre Getränke räumt der Server kurz danach automatisch auf
-- Neue Getränke werden **automatisch in allen eigenen Runden geteilt** – außer mit dem Schalter
-  **„Privat (nicht mit Freunden teilen)“**. Löschen entfernt ein Getränk auch wieder aus den aktuellen Runden;
-  wird es abgemeldet gelöscht, holt die App das beim nächsten Anmelden mit demselben Konto nach.
-- Reiter **„Freunde“**: Live-Feed einer gewählten Runde (neueste 100 Getränke)
-- **Push-Nachricht** an alle anderen Mitglieder, z. B. „Anna trinkt gerade – ☕️ Cappuccino (200 ml) · Stammtisch“ –
-  angezeigt nur, wenn genau der Empfänger angemeldet ist (nach Abmelden oder Kontowechsel erscheinen keine
-  Nachrichten des vorherigen Kontos)
-- **Konto löschen** direkt in der App (Karte „Konto“ im Reiter „Runden“): entfernt Anmeldung, Profil,
-  Mitgliedschaften und alle geteilten Getränke vom Server; „Meine Getränke“ bleibt auf dem Gerät
-- Navigation unten: **Meine Getränke** · **Freunde** · **Runden** (inkl. Konto, Abmelden und Konto löschen)
-- Ohne eingerichteten Server (keine `android/app/google-services.json`) läuft die App wie bisher **nur lokal**
-  und zeigt bei den Trinkrunden „Server noch nicht eingerichtet“.
-- **iOS bleibt vorerst lokal** – ohne Anmeldung und ohne Trinkrunden.
+Bar, vollständiger Verlauf und Statistik liegen **nur auf deinem Gerät**. Ohne Anmeldung verlässt nichts das
+Gerät. Meldest du dich mit Google an, speichert der Server (Supabase, Rechenzentrum in Frankfurt) nur dein Profil
+(Name und Bild-Adresse aus Google), deine Freundschaften und Anfragen, Einladungs-Links, Benachrichtigungs-Abos
+und die Getränke, die du teilst – und die nur mit **Name, Icon, Art, Menge in ml und Zeitpunkt**, nach **30 Tagen**
+automatisch gelöscht. Gramm Alkohol, Zucker und Statistiken werden nie geteilt; alkoholische Getränke erst nach
+deiner ausdrücklichen Zustimmung. Benachrichtigungen sind Ende-zu-Ende verschlüsselt. Keine Werbung, kein
+Tracking, keine Analyse-Dienste. Dein Konto löschst du direkt in der App. Details:
+[`docs/DATENSCHUTZ_ENTWURF.md`](docs/DATENSCHUTZ_ENTWURF.md).
 
 ## Dokumentation
 
-| Dokument | Inhalt |
-|---|---|
-| [`docs/FIREBASE_EINRICHTUNG.md`](docs/FIREBASE_EINRICHTUNG.md) | **Schritt-für-Schritt-Anleitung** (für Nicht-Programmierer): Firebase-Projekt, Blaze-Tarif und Budget, Google-Anmeldung, Datenbank in Frankfurt, `google-services.json`, Dienstkonto, GitHub-Secret, Deploy, Test, Fehlerbehebung |
-| [`docs/TRINKRUNDEN_ARCHITEKTUR.md`](docs/TRINKRUNDEN_ARCHITEKTUR.md) | Verbindlicher Vertrag: Datenmodell, Sicherheitsregeln, Cloud Functions, Region, App-Verhalten |
-| [`docs/DATENSCHUTZ_ENTWURF.md`](docs/DATENSCHUTZ_ENTWURF.md) | **Entwurf** einer Datenschutzerklärung (mit Platzhaltern, keine Rechtsberatung) |
-| [`firebase/README.md`](firebase/README.md) | Backend für Entwickler: Aufbau, lokale Tests mit Emulatoren, Versionen |
+| Dokument | Für wen | Inhalt |
+|---|---|---|
+| [`docs/EINRICHTUNG.md`](docs/EINRICHTUNG.md) | **alle** (ohne Programmierkenntnisse) | Schritt für Schritt: Supabase, Google-Anmeldung, Schlüssel, GitHub, App installieren, ntfy, iPhone, Fire TV, Testplan, Fehlerbehebung |
+| [`docs/ANFORDERUNGEN.md`](docs/ANFORDERUNGEN.md) | alle | Was die App können soll und was entschieden ist |
+| [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | Entwickler | Verbindlicher Vertrag: Kern, Datenbank, Edge Functions, Apps, CI |
+| [`docs/DATENSCHUTZ_ENTWURF.md`](docs/DATENSCHUTZ_ENTWURF.md) | Betreiber | **Entwurf** einer Datenschutzerklärung (Platzhalter, keine Rechtsberatung) |
+| [`docs/F-DROID.md`](docs/F-DROID.md) | Betreiber | Was für die Aufnahme in F-Droid nötig ist, Zeitplan, Android-Entwicklerprüfung 2027 |
+| [`supabase/README.md`](supabase/README.md) | Entwickler | Backend: Tabellen, RPCs, Edge Functions, lokal testen |
+| [`web/README.md`](web/README.md) | Entwickler | Web-App: Aufbau, Befehle, Konfiguration, Routing, Web Push |
+| [`design/README.md`](design/README.md) | alle | Selbst gezeichnete Icons und Werkzeuge |
 
 ## Projektstruktur
 
 ```
-ios/
-├── project.yml                  XcodeGen-Spezifikation der App
-├── DrinkWithMe/                 SwiftUI-App (Präsentation + Composition Root)
-│   ├── App/                     DrinkWithMeApp, AppContainer
-│   └── Presentation/            List- und AddDrink-Views + ViewModels
-└── DrinkWithMeCore/             Swift Package: Domain, Use Cases, Sharing, Daten + Tests
 android/
-├── core/                        Reines Kotlin/JVM-Modul: Domain, Use Cases, Sharing + Tests
-│   └── …/core/social/           Trinkrunden-Kern: Modelle, Einladungscode, Ports, Use Cases,
-│                                PublishingDrinkRepository (ohne Android/Firebase)
-└── app/                         Android-App: Compose-UI, ViewModels, JSON-Repository, Share-Intent
-    ├── …/app/social/firebase/   Firebase-Adapter der Ports (Auth, Firestore, Functions, Credential Manager)
-    ├── …/app/push/              Push: Kanal „drinks“, Token-Registrierung, Anzeige der Daten-Nachrichten
-    ├── …/app/ui/                Meine Getränke · Freunde · Runden
-    └── google-services.json     (nicht im Repo, bis Firebase eingerichtet ist – siehe Anleitung)
-firebase/                        Backend der Trinkrunden
-├── firebase.json, .firebaserc   Konfiguration (Regeln, Indizes, Functions, Emulatoren)
-├── firestore.rules              Sicherheitsregeln
-├── firestore.indexes.json
-└── functions/                   Cloud Functions: TypeScript, Node 22, 2nd gen, Region europe-west3 + Tests
-docs/                            Anleitung, Architektur, Datenschutz-Entwurf
-.github/workflows/
-├── android.yml                  Android: Tests + Debug-APK (Artifact „DrinkWithMe-android-apk“)
-├── ios.yml                      iOS: Tests + unsignierte IPA (Artifact „DrinkWithMe-ios-unsigned“)
-├── firebase.yml                 Backend: Build, Lint, Unit- und Emulator-Tests bei jedem Push
-└── firebase-deploy.yml          Backend bereitstellen – nur manuell (Actions → „Firebase Deploy“ → Run workflow)
+├── core/        Reines Kotlin/JVM (Paket com.drinkwithme.core): Bar, Trinkhistorie, Gesundheit, Statistik,
+│                Teilen-Regel, Spracherkennung (Abgleich), Vorlese-Texte, Ports der Vernetzung + Tests
+└── app/         Android-App (Jetpack Compose): Bar · Verlauf · Freunde · Einstellungen, Supabase per OkHttp,
+                 Anmeldung per PKCE im Browser, UnifiedPush, WorkManager-Abruf, Vorlesen (TextToSpeech),
+                 Spracheingabe (RecognizerIntent), Tablet/TV-Layout + Tests
+                 supabase.properties = öffentliche Server-Werte (Vorlage: supabase.properties.example)
+supabase/
+├── migrations/  Datenbank: Tabellen, Row Level Security, Trigger, RPCs, tägliches Aufräumen (pg_cron)
+├── tests/       pgTAP-Tests (Zugriffsrechte-Matrix, RPCs, Limits, Konto löschen)
+├── functions/   Edge Functions (Deno): notify-friends (eigenes Web Push nach RFC 8291/8292),
+│                delete-account, gemeinsamer Code und Tests
+└── scripts/     VAPID-Schlüsselpaar erzeugen
+web/             Web-App/PWA (Vite, TypeScript, Preact, supabase-js, IndexedDB, Service Worker):
+                 Port des Kotlin-Kerns mit Golden-Tests, Supabase-Adapter, Oberfläche, Playwright-Tests
+design/          Selbst gezeichnete SVG-Icons (CC0) und Werkzeuge (SVG → Android-VectorDrawable, Prüfungen)
+ios/             Alte, rein lokale iPhone-App (Swift/SwiftUI) – wird in dieser Phase NICHT weiterentwickelt;
+                 iPhone-Nutzer nehmen die Web-App
+docs/            Einrichtung, Anforderungen, Architektur, Datenschutz-Entwurf, F-Droid
+.github/workflows/  CI (siehe unten)
 ```
 
-Beide Plattformen haben **dieselbe Architektur und dieselben Namen**:
-`Drink`, `DrinkDraft`, `DrinkCategory`, `DrinkReader`/`DrinkWriter` bzw. `DrinkReading`/`DrinkWriting`,
-`LogDrink`-, `FetchDrinks`-, `DeleteDrink`- und `ShareDrinks`-Use-Cases und den `GermanShareFormatter`.
-Die Trinkrunden (`com.drinkwithme.core.social`) gibt es bisher nur im Kotlin-Kern.
+Android-App und Web-App haben **dieselben Bereiche, Texte und Regeln**: Die Web-App enthält einen Port des
+Kotlin-Kerns nach TypeScript, und Golden-Tests prüfen, dass beide dieselben Ergebnisse liefern.
+
+## So funktioniert die CI
+
+Jeder Push und jeder Pull Request startet automatisch die passenden Prüfungen (GitHub Actions, kostenlos für
+öffentliche Repositorys):
+
+| Workflow | Wann | Was |
+|---|---|---|
+| **Android** (`android.yml`) | Änderungen an `android/` oder `design/` | Icons prüfen (SVG ↔ Android), Tests der Grafik-Werkzeuge, Tests des Kerns und der App, Debug-APK bauen, Signatur prüfen → Artifact **`DrinkWithMe-android-apk`** |
+| **Supabase** (`supabase.yml`) | Änderungen an `supabase/` | Lokales Supabase in Docker starten, alle Migrationen auf leerer Datenbank, pgTAP-Tests; Edge Functions: Formatierung, Lint, Typprüfung, Deno-Tests (u. a. gegen die Beispielwerte aus RFC 8291) |
+| **Web-App** (`web.yml`) | Änderungen an `web/` oder `design/icons/` | Typprüfung, Lint, Unit-Tests (inkl. Golden-Tests gegen den Kotlin-Kern), Build, Playwright-Tests → Artifact **`DrinkWithMe-web`**; bei einem Push auf `main` zusätzlich **Veröffentlichung auf GitHub Pages** |
+| **Supabase Deploy** (`supabase-deploy.yml`) | **nur manuell** (Actions → „Supabase Deploy“ → Run workflow) | Migrationen und Edge Functions im echten Supabase-Projekt bereitstellen; braucht die Secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und die Variable `SUPABASE_PROJECT_REF` |
+| **iOS** (`ios.yml`) | Änderungen an `ios/` | Alte iOS-App: Tests und unsignierte IPA (nicht weiterentwickelt) |
+
+Alle Debug-APKs sind mit dem festen, öffentlichen Test-Schlüssel `android/app/debug.keystore` signiert und lassen
+sich deshalb als Update übereinander installieren. Für Veröffentlichungen (F-Droid) braucht es einen eigenen,
+geheimen Schlüssel – siehe [`docs/F-DROID.md`](docs/F-DROID.md).
+
+## Selbst bauen (für Entwickler)
+
+Wer nicht programmiert, braucht das nicht: Die CI baut alles, siehe [`docs/EINRICHTUNG.md`](docs/EINRICHTUNG.md).
+
+```bash
+# Android (JDK 17, Android SDK 35)
+cd android
+./gradlew :core:test :app:testDebugUnitTest   # Tests
+./gradlew :app:assembleDebug                  # APK unter app/build/outputs/apk/debug/
+
+# Web-App (Node.js 22)
+cd web
+npm ci && npx playwright install chromium     # einmalig
+npm run check                                 # Typprüfung, Lint, Tests, Build, Playwright
+
+# Supabase (Supabase CLI, Docker, Deno 2)
+supabase start && supabase test db
+cd supabase/functions && deno test
+```
+
+Einzelheiten: [`supabase/README.md`](supabase/README.md), [`web/README.md`](web/README.md),
+[`design/README.md`](design/README.md).
 
 ## SOLID-Prinzipien im Code
 
-| Prinzip | Umsetzung |
+| Prinzip | Umsetzung (Beispiele aus dem Code) |
 |---|---|
-| **S** – Single Responsibility | Jede Klasse hat genau eine Aufgabe: `DefaultDrinkValidator` prüft, `DefaultLogDrinkUseCase` erfasst, `GermanShareFormatter` formatiert, `JSONFileDrinkRepository`/`JsonFileDrinkRepository` speichert, Views zeigen nur an. Bei den Trinkrunden ebenso: `GroupDrinkMapper` übersetzt zwischen Getränken/Feed-Einträgen und Firestore-Dokumenten, `FunctionsErrorTranslator` übersetzt Server-Fehler in deutsche Meldungen, `FirestoreDrinkPublisher` teilt nur. |
-| **O** – Open/Closed | Neue Share-Stile (z. B. englisch oder nur Emojis) entstehen als neue `DrinkMessageFormatting`/`DrinkMessageFormatter`-Implementierung, neue Speicherorte als neues Repository – ohne bestehenden Code zu ändern. So kamen auch die Trinkrunden dazu: `PublishingDrinkRepository` ist ein **Decorator** um das lokale `DrinkRepository` (speichert lokal und teilt `FRIENDS`-Getränke im Hintergrund) – `LogDrink`- und `DeleteDrink`-Use-Case blieben unverändert. |
-| **L** – Liskov Substitution | `InMemoryDrinkRepository`, das JSON-Repository und `PublishingDrinkRepository` sind überall austauschbar; Tests und Previews nutzen die In-Memory-Variante, die App die Datei-Variante – mit Server zusätzlich eingepackt in den Decorator. |
-| **I** – Interface Segregation | Lesen (`DrinkReading`/`DrinkReader`) und Schreiben (`DrinkWriting`/`DrinkWriter`) sind getrennt; Einzel- und Tages-Formatter sind getrennte Protokolle. `FetchDrinks` kennt nur das Lese-Interface, `DeleteDrink` nur das Schreib-Interface. Die Trinkrunden-Ports sind ebenso klein: `CurrentUserProvider`, `GroupReader`, `GroupMembershipService`, `FeedReader`, `DrinkPublisher`. |
-| **D** – Dependency Inversion | ViewModels und Use Cases hängen nur von Protokollen/Interfaces ab. Konkrete Klassen werden ausschließlich im Composition Root (`AppContainer`) verdrahtet. Uhrzeit (`DateProviding` / `java.time.Clock`) und ID-Erzeugung sind ebenfalls injiziert und damit testbar. Der Kotlin-Kern definiert die **Ports** der Trinkrunden und kennt Firebase nicht; die **Firebase-Adapter** (`FirestoreGroupReader`, `FirestoreFeedReader`, `FirestoreDrinkPublisher`, `FirebaseGroupMembershipService` …) liegen im App-Modul und werden in `FirebaseSocialModuleFactory`/`AppContainer` verdrahtet. Im Backend übernimmt `firebase/functions/src/container.ts` diese Rolle. |
+| **S** – Single Responsibility | `StatisticsCalculator` rechnet nur, `SpeechTexts` baut nur Vorlese-Sätze (getrennt von Anzeige-Texten), `JsonFileHistoryRepository` speichert nur, `ServerConfig.parse` prüft nur die Server-Werte, `PushMessageHandler` entscheidet nur, ob eine Push-Nachricht angezeigt wird. Die Edge Function `notify-friends` ist aufgeteilt in HTTP (`handler.ts`), Ablauf (`service.ts`), Datenbank (`supabase_adapters.ts`) und Verschlüsselung (`_shared/webpush/`). |
+| **O** – Open/Closed | Das Teilen mit Freunden kam als **Decorator** dazu: `SharingHistoryRepository` legt sich um jedes `HistoryRepository`, speichert sofort lokal und teilt im Hintergrund – `LogDrinkFromBarUseCase` und `DeleteEntryUseCase` blieben unverändert (in Kotlin und im TypeScript-Port gleich). Ein anderer Push-Weg wäre eine neue `PushSender`-Umsetzung, ohne `NotifyFriendsService` zu ändern. |
+| **L** – Liskov Substitution | `InMemoryHistoryRepository`, `JsonFileHistoryRepository` (Android), `IndexedDbHistoryRepository` (Web) und `SharingHistoryRepository` sind überall austauschbar, wo ein `HistoryRepository` erwartet wird; Tests nutzen die In-Memory-Variante. Ebenso `UnconfiguredAccountController` (ohne Server) und `SupabaseAccountController`. |
+| **I** – Interface Segregation | Lesen und Schreiben sind getrennt: `HistoryReader`/`HistoryWriter`, `BarReader`/`BarWriter`. Die Vernetzung besteht aus kleinen Ports: `SessionProvider`, `FriendsService`, `FeedService`, `EventPublisher`; die Teilen-Entscheidung ist die Ein-Methoden-Schnittstelle `ShareDecider`. In `notify-friends`: `DrinkEventClaimer`, `FriendshipReader`, `ProfileReader`, `SubscriptionStore`, `RateLimiter`. |
+| **D** – Dependency Inversion | Der Kotlin-Kern definiert nur Ports und kennt weder Android noch Supabase. Die Adapter (`SupabaseSession`, `SupabaseEventPublisher`, `SupabaseFriendsService`, `SupabaseFeedService`, `JsonFileHistoryRepository` …) liegen im App-Modul. Verdrahtet wird ausschließlich in den Kompositionswurzeln: `AppContainer` (Android), `createAppServices` in `web/src/app/container.ts` (Web) und `notify-friends/index.ts` (Edge Function). Uhrzeit (`java.time.Clock`, `systemClock`) und ID-Erzeugung (`IdGenerator`) sind injiziert und damit testbar. |
 
-## iOS bauen (Swift)
+## Lizenz
 
-Voraussetzungen: macOS mit Xcode 15 oder neuer, iOS 16+.
-
-```bash
-brew install xcodegen
-cd ios
-xcodegen generate          # erzeugt DrinkWithMe.xcodeproj
-open DrinkWithMe.xcodeproj # Schema „DrinkWithMe“ auf Simulator/iPhone starten
-```
-
-Tests der Geschäftslogik:
-
-```bash
-cd ios/DrinkWithMeCore
-swift test
-```
-
-Ohne Mac: GitHub Actions baut bei jedem Push eine unsignierte IPA (Actions → „iOS“ → Artifact
-`DrinkWithMe-ios-unsigned`), die vor der Installation noch mit einer Apple-ID signiert werden muss.
-
-## Android bauen (Kotlin)
-
-Voraussetzungen: Android Studio (Ladybug oder neuer) bzw. Android SDK 35 und JDK 17+.
-
-```bash
-cd android
-./gradlew :core:test               # Tests der Geschäftslogik (inkl. Trinkrunden-Kern)
-./gradlew :app:testDebugUnitTest   # Tests der App-Logik (Mapper, Formatierer, ViewModels)
-./gradlew :app:assembleDebug       # APK unter app/build/outputs/apk/debug/
-./gradlew :app:installDebug        # auf verbundenes Gerät/Emulator installieren
-```
-
-Alternativ den Ordner `android/` in Android Studio öffnen und „Run“ drücken.
-
-Ohne eigenen Rechner: GitHub Actions baut bei jedem Push eine signierte Debug-APK
-(Actions → „Android“ → Artifact `DrinkWithMe-android-apk`). Alle APKs sind mit dem festen Schlüssel
-`android/app/debug.keystore` signiert und lassen sich deshalb als Update installieren.
-
-**Trinkrunden aktivieren:** `android/app/google-services.json` aus der Firebase-Konsole ablegen – ist sie
-vorhanden, wird das google-services-Plugin automatisch angewendet. Die vollständige Einrichtung (inklusive
-Server) beschreibt [`docs/FIREBASE_EINRICHTUNG.md`](docs/FIREBASE_EINRICHTUNG.md).
-
-## Firebase-Backend (Trinkrunden)
-
-- **Tests:** laufen bei jedem Push automatisch (`.github/workflows/firebase.yml`); lokal siehe
-  [`firebase/README.md`](firebase/README.md).
-- **Bereitstellen:** manuell über GitHub Actions → „Firebase Deploy“ → „Run workflow“
-  (`.github/workflows/firebase-deploy.yml`). Benötigt das Repository-Secret `FIREBASE_SERVICE_ACCOUNT`
-  (JSON-Schlüssel eines Dienstkontos) und die Repository-Variable `FIREBASE_PROJECT_ID`.
-- **Region:** Firestore-Datenbank und alle Functions in `europe-west3` (Frankfurt).
-- **App Check** ist bewusst nicht aktiv: Es würde die direkt installierte APK aus GitHub (nicht aus dem
-  Play Store) aussperren. Geschützt wird über Anmeldung, Sicherheitsregeln und die Sperre gegen Code-Raten.
-
-## Ideen für später
-
-- Trinkrunden auch für iOS (Firebase-Adapter für die gleichen Ports)
-- Foto zum Getränk, Standort („Wo trinkst du?“)
-- Statistiken (Wasser-Ziel pro Tag, Koffein-Tracker)
+**CC0 1.0 Universal** (gemeinfrei) – siehe [`LICENSE`](LICENSE). Das gilt für den Code und für alle Grafiken:
+Die Icons, das App-Symbol und das TV-Banner sind **selbst gezeichnet** (keine Vorlagen, keine Icon-Sammlungen),
+siehe [`design/icons/LICENSE`](design/icons/LICENSE). Die verwendeten Bibliotheken (u. a. AndroidX, OkHttp,
+UnifiedPush Connector, Preact, supabase-js, idb) stehen unter ihren eigenen freien Lizenzen (Apache 2.0, MIT, ISC).
