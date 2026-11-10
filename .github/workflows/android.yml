@@ -92,6 +92,8 @@ jobs:
             variant: google_apis_ps16k
     env:
       VARIANT: ${{ matrix.variant }}
+      # avdmanager und emulator sollen sicher denselben AVD-Ordner verwenden.
+      ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
       - name: KVM freischalten
         run: |
@@ -116,15 +118,28 @@ jobs:
           echo "IMG=$IMG" >> "$GITHUB_ENV"
           yes | "$SDKM" --licenses >/dev/null || true
           "$SDKM" --install "$IMG" emulator platform-tools >/dev/null
+          mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n test -k "$IMG" --force
+          "$ANDROID_HOME/emulator/emulator" -list-avds
 
       - name: Emulator starten
         run: |
-          nohup "$ANDROID_HOME/emulator/emulator" -avd test -no-window -no-audio -no-boot-anim -no-snapshot \
+          ls -l /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -accel-check || true
+          "$ANDROID_HOME/emulator/emulator" -avd test -no-window -no-audio -no-boot-anim -no-snapshot \
             -gpu swiftshader_indirect -camera-back none -camera-front none > emulator.log 2>&1 &
+          EMU_PID=$!
           ADB="$ANDROID_HOME/platform-tools/adb"
-          timeout 900 "$ADB" wait-for-device
-          timeout 900 bash -c "until [ \"\$('$ADB' shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')\" = 1 ]; do sleep 5; done"
+          "$ADB" start-server
+          BOOTED=""
+          for _ in $(seq 1 180); do   # höchstens 15 Minuten
+            if ! kill -0 "$EMU_PID" 2>/dev/null; then
+              echo "::error::Der Emulator hat sich beendet"; tail -60 emulator.log; exit 1
+            fi
+            if [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then BOOTED=1; break; fi
+            sleep 5
+          done
+          if [ -z "$BOOTED" ]; then echo "::error::Der Emulator ist nicht hochgefahren"; tail -60 emulator.log; exit 1; fi
           echo "Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r')" \
             "(API $("$ADB" shell getprop ro.build.version.sdk | tr -d '\r')," \
             "Speicherseite $("$ADB" shell getconf PAGESIZE | tr -d '\r') Byte)" | tee -a "$GITHUB_STEP_SUMMARY"
