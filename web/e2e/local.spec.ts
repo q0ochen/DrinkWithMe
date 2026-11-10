@@ -50,6 +50,8 @@ test("Erster Start → Getränk eintragen → Rückgängig → Diagramm-Texte im
 test("Daten bleiben nach dem Neuladen erhalten (IndexedDB)", async ({ page }) => {
   await setUpBar(page);
   await page.getByRole("button", { name: /^Wasser/ }).click();
+  // Erst nach der Bestätigung ist der Eintrag sicher gespeichert (IndexedDB-Transaktion abgeschlossen).
+  await expect(page.getByRole("region", { name: "Zuletzt eingetragen" })).toContainText("Wasser eingetragen.");
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
   await expect(page.getByText(/Heute:\s*1 Getränk\b/)).toBeVisible();
@@ -166,6 +168,7 @@ test("Service Worker: Offline-Start und 404.html für App-Pfade (GitHub Pages)",
   expect(scope).toBe("http://127.0.0.1:4173/DrinkWithMe/");
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
   await page.getByRole("button", { name: /^Wasser/ }).click();
+  await expect(page.getByRole("region", { name: "Zuletzt eingetragen" })).toContainText("Wasser eingetragen.");
   await context.setOffline(true);
   await page.goto("verlauf");
   await expect(page.getByRole("heading", { level: 1, name: "Verlauf" })).toBeVisible();
