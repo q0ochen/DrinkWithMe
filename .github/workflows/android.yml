@@ -199,9 +199,12 @@ jobs:
           **Herunterladen (ohne Anmeldung):** https://github.com/${GH_REPO}/releases/download/${TAG}/DrinkWithMe.apk
 
           ### Installieren
-          1. Den Link oben auf dem Android-Handy öffnen (oder per WhatsApp/Telegram als Datei schicken).
-          2. Die heruntergeladene Datei \`DrinkWithMe.apk\` antippen und „Aus dieser Quelle zulassen“ erlauben.
-          3. **Installieren** tippen. Warnt Play Protect: **Weitere Details → Trotzdem installieren**.
+          0. Schon einmal „Drink With Me“ installiert (z. B. selbst gebaut)? Erst **deinstallieren**, sonst meldet Android einen Paket-Konflikt.
+          1. Den Link oben **in Chrome** auf dem Android-Handy öffnen. Fragt Chrome nach: **Trotzdem herunterladen**, dann **Öffnen**.
+          2. Die Erlaubnis für diese Quelle **zulassen** (Pixel: „Dieser Quelle vertrauen“ bzw. „Nur dieses Mal“ / „Immer zulassen“), dann **Installieren**.
+          3. Meldet sich Play Protect: **nicht** auf „OK“, sondern **Weitere Details → Trotzdem installieren** (oder **App scannen**).
+
+          Klappt es nicht: bitte den genauen Fehlertext oder einen Screenshot schicken.
 
           Fire TV Stick (Fire OS 7/8): in der App „Downloader“ den Link oben eingeben.
 

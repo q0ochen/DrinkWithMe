@@ -435,12 +435,24 @@ ZIP-Datei) → in der Dateien-App **entpacken** → darin liegt `app-debug.apk` 
 
 ### 8.2 Installieren
 
-1. `DrinkWithMe.apk` (bzw. `app-debug.apk` aus der ZIP-Datei) antippen.
-2. Android fragt, ob die Dateien-App bzw. der Browser **unbekannte Apps installieren** darf → erlauben → zurück →
-   **Installieren**.
-3. Warnt **Google Play Protect** („App nicht geprüft“ o. Ä.): **Weitere Details → Trotzdem installieren**.
-   Die Test-APK ist nicht im Play Store und mit einem öffentlichen Test-Schlüssel signiert – deshalb die Warnung.
+0. **War schon einmal eine „Drink With Me“ auf dem Gerät** – selbst in Android Studio gebaut, aus einem anderen
+   Projekt mit demselben Paketnamen oder eine Testversion vom 9. November? Dann zuerst **deinstallieren**
+   (Einstellungen → Apps → Drink With Me → Deinstallieren; auch im Privaten Bereich und im Arbeitsprofil
+   nachsehen). Sie hat eine andere Signatur, und Android verweigert sonst die Installation.
+1. `DrinkWithMe.apk` (bzw. `app-debug.apk` aus der ZIP-Datei) antippen – am besten direkt in Chrome über
+   **Öffnen**. Fragt Chrome vorher „Datei könnte schädlich sein“: **Trotzdem herunterladen**.
+2. Android fragt, ob die App, mit der du die Datei öffnest (Chrome bzw. Dateien), **unbekannte Apps installieren**
+   darf → erlauben. Auf Pixel-Handys heißt der Schalter **„Dieser Quelle vertrauen“**; ab Android 17 QPR2
+   (November 2026) kommt stattdessen direkt ein Dialog: **„Nur dieses Mal“** oder **„Immer zulassen“** wählen.
+   Dann **Installieren**.
+3. Warnt **Google Play Protect** („Von Play Protect blockiert“, „Play Protect kennt diese App noch nicht“ o. Ä.):
+   **nicht** auf „OK“ oder „Verstanden“ tippen – das bricht ab –, sondern **Weitere Details → Trotzdem
+   installieren** (oder **App scannen**), ggf. mit Fingerabdruck/PIN bestätigen. Die Test-APK ist neu, nicht im
+   Play Store und mit einem öffentlichen Test-Schlüssel signiert – deshalb die Warnung.
 4. App öffnen → **Willkommen bei Drink With Me** → Getränke für die eigene Bar auswählen.
+
+> **Neues Pixel (Android 17)?** Das Gerät selbst ist kein Hindernis: Die APK ist auf 16-KB-Speicherseiten
+> vorbereitet, und die Entwickler-Prüfung von Google gilt in Deutschland noch nicht (siehe Ausblick unten).
 
 **Updates:** Einfach die neuere APK darüber installieren. Alle Test-APKs aus GitHub haben dieselbe Signatur, Bar
 und Verlauf bleiben erhalten. Getränke aus der **alten** App-Version (vor dem Umbau) werden **nicht**
@@ -659,9 +671,13 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Supabase Deploy“ bricht bei „Einstellungen prüfen“ ab | Secret oder Variable fehlt, oder `SUPABASE_PROJECT_REF` ist der Projektname statt der 20-stelligen Referenz | Meldung lesen, Schritt 5.2/5.3 korrigieren |
 | „Supabase Deploy“ bricht bei „Mit dem Projekt verbinden“ ab | Datenbank-Passwort falsch | Supabase → **Project Settings → Database → Reset database password**, neues Passwort ins Secret `SUPABASE_DB_PASSWORD`. Sonst die Fehlermeldung kopieren und Claude schicken (ohne Passwörter!) |
 | Android: „App nicht installiert“ beim Update | Die alte App ist mit einem anderen Schlüssel signiert (z. B. selbst in Android Studio gebaut) | Alte App deinstallieren (lokaler Verlauf geht dabei verloren), dann neu installieren |
-| Android: „App nicht installiert“ bzw. „… steht in Konflikt mit einem vorhandenen Paket“ beim **ersten** Installieren | Eine frühe Testversion (vor dem festen Test-Schlüssel) ist noch installiert | Alte „Drink With Me“ deinstallieren, dann neu installieren |
-| Android: „Beim Parsen des Pakets ist ein Fehler aufgetreten“ | Download unvollständig, oder Android älter als 8.0 | Neu herunterladen (Prüfsumme in den Release-Hinweisen); Android-Version prüfen |
-| Android: Installation wird blockiert, „Installieren“ fehlt oder ist ausgegraut | Play Protect, fehlende Erlaubnis „Unbekannte Apps installieren“ für Browser/Dateien-App, oder ein Schutzmodus („Erweiterter Schutz“, Arbeitsprofil, Kinderschutz) | Play Protect: **Weitere Details → Trotzdem installieren**; Einstellungen → Apps → Spezieller App-Zugriff → **Unbekannte Apps installieren** → Browser erlauben; Schutzmodus vorübergehend ausschalten |
+| Android: „App wurde nicht installiert, da das Paket in Konflikt mit einem bestehenden Paket steht“ beim **ersten** Installieren | Auf dem Gerät ist schon eine „Drink With Me“ mit anderer Signatur: selbst in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine frühe Testversion (vor dem festen Test-Schlüssel) – evtl. im Privaten Bereich oder Arbeitsprofil | Alte „Drink With Me“ deinstallieren (überall nachsehen), dann neu installieren |
+| Android: „Die App wurde nicht installiert, da das Paket offenbar ungültig ist“ | Kaputter Download – **oder** eine installierte „Drink With Me“ mit höherer Versionsnummer (z. B. selbst gebaut) | Neu herunterladen (Größe etwa 13 MB, Prüfsumme in den Release-Hinweisen); hilft das nicht: alte App deinstallieren |
+| Android: „Beim Parsen des Pakets ist ein Problem aufgetreten“ | Download unvollständig, oder Android älter als 8.0 | Alle alten `DrinkWithMe*.apk` in „Downloads“ löschen, über WLAN neu herunterladen; Android-Version prüfen |
+| Android: Play Protect meldet „blockiert“ oder „kennt diese App noch nicht“, danach passiert nichts | Der Hinweis wurde mit „OK“ bzw. „Verstanden“ geschlossen – das bricht die Installation ab | Erneut öffnen, dann **Weitere Details → Trotzdem installieren** (oder **App scannen**) |
+| Android: Erlaubnis für unbekannte Apps fehlt, „Installieren“ erscheint nicht | Die Erlaubnis wurde einer anderen App gegeben (Chrome vs. Dateien vs. WhatsApp) oder abgelehnt | Einstellungen → Apps → Spezieller App-Zugriff → **Unbekannte Apps installieren** → die App, mit der du die Datei öffnest → **Dieser Quelle vertrauen** |
+| Android: Schalter „Dieser Quelle vertrauen“ lässt sich nicht einschalten | **Erweiterter Schutz** (Android 16+) ist an, verwaltetes Gerät/Arbeitsprofil, Kinderschutz (Family Link) oder ein laufender Anruf mit einer unbekannten Nummer | In den Einstellungen nach „Erweiterter Schutz“ suchen, vorübergehend ausschalten und danach die Erlaubnis **neu** erteilen (sie wird beim Einschalten entzogen); Anruf beenden. Für Entwickler: `adb install DrinkWithMe.apk` funktioniert auch mit Erweitertem Schutz |
+| Android: nur „App wurde nicht installiert“ ohne Grund | Verschiedenes (Play Protect, Konflikt, …) | Für Entwickler: am Computer `adb install -r DrinkWithMe.apk` zeigt den genauen Fehlercode |
 | Download-Link zeigt „404“ | Alter Link `…/releases/latest/download/app-debug.apk` | Den Link aus 8.1 nehmen (`…/releases/download/testversion/DrinkWithMe.apk`) |
 | Fire TV: Downloader fehlt unter „Apps unbekannter Herkunft“ | Fehler im Fire-TV-Update (Herbst 2026) oder Vega-OS-Gerät | System aktualisieren (11.2); bei Vega OS geht es nicht |
 | Vorlesen bleibt stumm | Keine deutsche Stimme installiert | Die Hilfe **„Vorlesen einrichten“** erscheint in den Einstellungen und auf dem Ereignis-Bildschirm – je nach Fall mit **Deutsche Stimme installieren** oder **SherpaTTS bei F-Droid**. Danach einfach zurück in die App – die Sprachausgabe startet dann neu |

@@ -23,11 +23,20 @@ Die aktuelle Testversion lässt sich **ohne Anmeldung** herunterladen. Sie wird 
 `main` (bzw. dem Entwicklungszweig) automatisch ersetzt:
 **https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk**
 
-1. Den Link auf dem Android-Gerät öffnen, die Datei herunterladen und antippen.
-2. „Aus dieser Quelle zulassen“ erlauben und **Installieren** tippen. Warnt Play Protect: **Weitere Details →
-   Trotzdem installieren**.
-3. **Fire TV** (Fire OS 7/8): in der App „Downloader“ den Link eingeben. Vorher in den Entwickleroptionen
+0. **Schon einmal „Drink With Me“ installiert**, z. B. selbst in Android Studio gebaut oder eine Version vom
+   9. November? Dann erst **deinstallieren**: Einstellungen → Apps → Drink With Me → Deinstallieren. Sonst meldet
+   Android „… da das Paket in Konflikt mit einem bestehenden Paket steht“.
+1. Den Link **in Chrome** öffnen (nicht im Browser von WhatsApp, Telegram oder Gmail). Fragt Chrome, ob die Datei
+   schädlich sein könnte: **Trotzdem herunterladen**. Dann **Öffnen** tippen.
+2. Android fragt nach der Erlaubnis, Apps aus dieser Quelle zu installieren: **zulassen** (auf Pixel-Handys
+   „Dieser Quelle vertrauen“ bzw. „Nur dieses Mal“ / „Immer zulassen“). Dann **Installieren** tippen.
+3. Meldet sich **Play Protect** („App blockiert“, „unbekannte App“): **nicht** auf „OK“ tippen, sondern
+   **Weitere Details → Trotzdem installieren** (oder **App scannen**).
+4. **Fire TV** (Fire OS 7/8): in der App „Downloader“ den Link eingeben. Vorher in den Entwickleroptionen
    „Apps unbekannter Herkunft“ für Downloader erlauben.
+
+Klappt es nicht, bitte den **genauen Fehlertext** (am besten einen Screenshot) schicken – die häufigsten Meldungen
+und was hilft, stehen in [`docs/EINRICHTUNG.md`](docs/EINRICHTUNG.md#13-wenn-etwas-nicht-klappt).
 
 **Automatisch aktuell bleiben (optional):** Die freie App [Obtainium](https://github.com/ImranR98/Obtainium)
 installiert die Testversion direkt aus GitHub und meldet jede neue Testversion.
