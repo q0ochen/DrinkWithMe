@@ -13,6 +13,7 @@ Dieses Dokument ist die Grundlage für den Umbau; offene Entscheidungen stehen a
 
 ## 2. „Bar“ – eigene Getränke verwalten
 
+- Der App-Name bleibt **„Drink With Me“**. **„Bar“** heißt nur der Bereich, in dem man seine Getränke verwaltet.
 - Jeder erstellt sich seine **eigene Bar** und fügt Getränke hinzu (z. B. Wasser, Apfelschorle, …).
 - Getränke werden mit einem **Icon bzw. einer Grafik** dargestellt, die das Getränk zeigt.
 - Die Grafiken werden **selbst erstellt** – keine Grafiken aus dem Internet –, damit sie frei verwendet werden dürfen.
@@ -50,9 +51,12 @@ Dieses Dokument ist die Grundlage für den Umbau; offene Entscheidungen stehen a
 - „Beer With Me“ dient als **technisches Vorbild** (Vernetzung über Getränke). Name, Grafiken und Gestaltung
   werden **nicht** übernommen; der Gesundheitsaspekt ist bei uns mindestens gleichwertig.
 
+## Entschieden
+
+- App-Name bleibt „Drink With Me“; „Bar“ ist nur der Bereich zur Getränkeverwaltung (10.11.2026).
+
 ## Offene Entscheidungen
 
-- Heißt die **App** künftig „Bar“, oder heißt nur der **Bereich** mit den eigenen Getränken „Bar“?
 - Wie fügt man Freunde hinzu (z. B. über die E-Mail-Adresse des Google-Kontos mit Bestätigung)?
 - Technische Umsetzung von Anmeldung, Server und Push unter den Bedingungen „F-Droid“ und „kostenlos“
   (Recherche läuft).
