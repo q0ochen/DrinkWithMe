@@ -55,8 +55,17 @@ Dieses Dokument ist die Grundlage für den Umbau; offene Entscheidungen stehen a
 
 - App-Name bleibt „Drink With Me“; „Bar“ ist nur der Bereich zur Getränkeverwaltung (10.11.2026).
 
+- **Server: Supabase** (kostenloser Tarif ohne Kreditkarte); Firebase entfällt (10.11.2026).
+- **Benachrichtigungen:** UnifiedPush mit der kostenlosen App **ntfy** (optional, für sofortige Nachrichten);
+  ohne ntfy prüft die App etwa alle 15 Minuten und beim Öffnen (10.11.2026).
+- **Freunde hinzufügen:** per **Einladungs-Link** oder per **Google-E-Mail-Adresse** mit Bestätigung (10.11.2026).
+- **iPhone in der Testphase:** kostenlose **Web-App** (PWA) mit Anmeldung, Freunden und Push (10.11.2026).
+- Alkoholische Getränke werden erst nach einmaliger Zustimmung mit Freunden geteilt; Mengen, Zucker und
+  Statistiken werden nie geteilt (Datenschutz, Gesundheitsdaten).
+
+Technische Umsetzung: siehe [`ARCHITEKTUR.md`](ARCHITEKTUR.md).
+
 ## Offene Entscheidungen
 
-- Wie fügt man Freunde hinzu (z. B. über die E-Mail-Adresse des Google-Kontos mit Bestätigung)?
-- Technische Umsetzung von Anmeldung, Server und Push unter den Bedingungen „F-Droid“ und „kostenlos“
-  (Recherche läuft).
+- Hosting der Web-App (z. B. GitHub Pages – setzt ein öffentliches Repository voraus, das für F-Droid ohnehin
+  nötig ist – oder Netlify/Cloudflare Pages).
