@@ -414,32 +414,28 @@ Mehrfaches Starten schadet nicht.
 
 ### 8.1 APK herunterladen
 
-**Für alle mit GitHub-Konto** (am Handy im Browser angemeldet):
+**Für alle (ohne Anmeldung):** diesen Link auf dem Android-Gerät öffnen:
 
-1. Reiter **Actions** → links **Android** → den neuesten **grünen** Lauf auf `main` öffnen.
-2. Unten bei **Artifacts** → **DrinkWithMe-android-apk** herunterladen (eine ZIP-Datei).
-3. Die ZIP-Datei in der Dateien-App öffnen und **entpacken** → darin liegt `app-debug.apk`.
+`https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk`
 
-> Die APK muss **nach** Schritt 6 gebaut sein, sonst fehlen die Server-Werte. Im Zweifel den neuesten Lauf nehmen.
+Die Testversion wird nach jedem erfolgreichen Build auf `main` (bzw. dem Entwicklungszweig) automatisch ersetzt
+(`.github/workflows/android.yml`, Release „testversion“). Die Release-Hinweise nennen Datum und Code-Stand. Wer
+automatisch auf neue Testversionen hingewiesen werden möchte: [Obtainium](../README.md#android-testversion).
 
-**Für Testerinnen und Tester ohne GitHub-Konto** (und für den Fernseher) ist ein öffentlicher Link einfacher:
+> Die APK muss **nach** Schritt 6 gebaut sein, sonst fehlen die Server-Werte. Das passiert von selbst: Das Einchecken
+> von `supabase.properties` startet einen neuen Build, der die Testversion ersetzt. Im Zweifel in den
+> Release-Hinweisen nachsehen, ob der Stand neuer ist.
 
-> **Öffentlichen Download-Link anlegen (einmal am Computer, pro Testversion):**
-> 1. Das Artifact wie oben herunterladen und entpacken → `app-debug.apk`.
-> 2. Im Repository rechts **Releases** → **Draft a new release** (bzw. „Create a new release“).
-> 3. **Choose a tag** → einen neuen Namen eintippen, z. B. `test-1` → „Create new tag“. Target: `main`.
->    (Bitte `test-…` statt `v…` – die `v`-Tags sind für spätere F-Droid-Versionen reserviert.)
-> 4. Titel z. B. „Testversion 1“, die Datei `app-debug.apk` in das Feld ziehen.
-> 5. „Set as a pre-release“ **nicht** anhaken, „Set as the latest release“ **anhaken** → **Publish release**.
->
-> Dann lädt dieser Link immer die neueste Testversion:
-> `https://github.com/q0ochen/DrinkWithMe/releases/latest/download/app-debug.apk`
->
-> (Das lässt sich später automatisieren – Claude kann dafür einen Workflow anlegen.)
+**Alternative mit GitHub-Konto** (am Handy im Browser angemeldet): Reiter **Actions** → links **Android** → den
+neuesten **grünen** Lauf öffnen → unten bei **Artifacts** → **DrinkWithMe-android-apk** herunterladen (eine
+ZIP-Datei) → in der Dateien-App **entpacken** → darin liegt `app-debug.apk` (dieselbe App).
+
+> Bitte **keine** Releases von Hand anlegen: Obtainium würde sie ebenfalls finden, und Tags mit `v…` sind für die
+> spätere F-Droid-Version reserviert.
 
 ### 8.2 Installieren
 
-1. `app-debug.apk` antippen.
+1. `DrinkWithMe.apk` (bzw. `app-debug.apk` aus der ZIP-Datei) antippen.
 2. Android fragt, ob die Dateien-App bzw. der Browser **unbekannte Apps installieren** darf → erlauben → zurück →
    **Installieren**.
 3. Warnt **Google Play Protect** („App nicht geprüft“ o. Ä.): **Weitere Details → Trotzdem installieren**.
@@ -571,7 +567,7 @@ Fire TV Stick 4K Select haben Vega OS – deshalb bitte einmal nachsehen.
    - Taucht Downloader in der Liste nicht auf: erst **Einstellungen → Mein Fire TV → Info → Nach Updates suchen**.
      Ein Fehler in einem Fire-TV-Update vom Herbst 2026 hat genau das verursacht; Amazon verteilt eine Korrektur.
 3. Downloader öffnen → in das Adressfeld den **öffentlichen Link** aus Schritt 8.1 eintippen:
-   `https://github.com/q0ochen/DrinkWithMe/releases/latest/download/app-debug.apk` → **Go**.
+   `https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk` → **Go**.
    (Der Link aus „Actions → Artifacts“ geht hier **nicht** – er verlangt eine GitHub-Anmeldung und liefert eine
    ZIP-Datei.)
 4. **Installieren** → **Fertig**. Downloader bietet an, die APK-Datei zu löschen → **Löschen** (spart Platz).
@@ -663,6 +659,10 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Supabase Deploy“ bricht bei „Einstellungen prüfen“ ab | Secret oder Variable fehlt, oder `SUPABASE_PROJECT_REF` ist der Projektname statt der 20-stelligen Referenz | Meldung lesen, Schritt 5.2/5.3 korrigieren |
 | „Supabase Deploy“ bricht bei „Mit dem Projekt verbinden“ ab | Datenbank-Passwort falsch | Supabase → **Project Settings → Database → Reset database password**, neues Passwort ins Secret `SUPABASE_DB_PASSWORD`. Sonst die Fehlermeldung kopieren und Claude schicken (ohne Passwörter!) |
 | Android: „App nicht installiert“ beim Update | Die alte App ist mit einem anderen Schlüssel signiert (z. B. selbst in Android Studio gebaut) | Alte App deinstallieren (lokaler Verlauf geht dabei verloren), dann neu installieren |
+| Android: „App nicht installiert“ bzw. „… steht in Konflikt mit einem vorhandenen Paket“ beim **ersten** Installieren | Eine frühe Testversion (vor dem festen Test-Schlüssel) ist noch installiert | Alte „Drink With Me“ deinstallieren, dann neu installieren |
+| Android: „Beim Parsen des Pakets ist ein Fehler aufgetreten“ | Download unvollständig, oder Android älter als 8.0 | Neu herunterladen (Prüfsumme in den Release-Hinweisen); Android-Version prüfen |
+| Android: Installation wird blockiert, „Installieren“ fehlt oder ist ausgegraut | Play Protect, fehlende Erlaubnis „Unbekannte Apps installieren“ für Browser/Dateien-App, oder ein Schutzmodus („Erweiterter Schutz“, Arbeitsprofil, Kinderschutz) | Play Protect: **Weitere Details → Trotzdem installieren**; Einstellungen → Apps → Spezieller App-Zugriff → **Unbekannte Apps installieren** → Browser erlauben; Schutzmodus vorübergehend ausschalten |
+| Download-Link zeigt „404“ | Alter Link `…/releases/latest/download/app-debug.apk` | Den Link aus 8.1 nehmen (`…/releases/download/testversion/DrinkWithMe.apk`) |
 | Fire TV: Downloader fehlt unter „Apps unbekannter Herkunft“ | Fehler im Fire-TV-Update (Herbst 2026) oder Vega-OS-Gerät | System aktualisieren (11.2); bei Vega OS geht es nicht |
 | Vorlesen bleibt stumm | Keine deutsche Stimme installiert | Die Hilfe **„Vorlesen einrichten“** erscheint in den Einstellungen und auf dem Ereignis-Bildschirm – je nach Fall mit **Deutsche Stimme installieren** oder **SherpaTTS bei F-Droid**. Danach einfach zurück in die App – die Sprachausgabe startet dann neu |
 | Mikrofon-Knopf „Sprechen“ fehlt | Keine Spracherkennungs-App auf dem Gerät | Normal auf manchen Geräten; Eintragen per Tipp geht immer |

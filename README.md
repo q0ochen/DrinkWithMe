@@ -19,8 +19,8 @@ Eine echte iPhone-App ist erst nach der Testphase geplant.
 
 ## Android-Testversion
 
-Die aktuelle Testversion lässt sich **ohne Anmeldung** herunterladen. Sie wird nach jedem erfolgreichen Build
-automatisch ersetzt:
+Die aktuelle Testversion lässt sich **ohne Anmeldung** herunterladen. Sie wird nach jedem erfolgreichen Build auf
+`main` (bzw. dem Entwicklungszweig) automatisch ersetzt:
 **https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk**
 
 1. Den Link auf dem Android-Gerät öffnen, die Datei herunterladen und antippen.
@@ -35,7 +35,8 @@ installiert die Testversion direkt aus GitHub und meldet jede neue Testversion.
 1. Obtainium installieren, z. B. die APK von [github.com/ImranR98/Obtainium/releases](https://github.com/ImranR98/Obtainium/releases).
 2. Auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
    **[Drink With Me in Obtainium hinzufügen](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D)**.
-3. In Obtainium „Drink With Me“ antippen und **Installieren** wählen.
+3. In Obtainium „Drink With Me“ antippen und **Installieren** wählen. Ist die App schon installiert, steht dort
+   **Aktualisieren** – das antippen.
 
 Der Link setzt die drei Einstellungen, die für die Testversion nötig sind: „Vorabversionen einbeziehen“,
 „Veröffentlichungsdatum als Version verwenden“ und „Letzten Upload eines Release-Anhangs als

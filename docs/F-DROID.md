@@ -25,7 +25,7 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 | Keine proprietären Abhängigkeiten (kein Firebase, keine Google Play Services) | **erfüllt** |
 | Öffentlicher Quellcode, Fehler-Tracker | erfüllt, sofern „Issues“ im GitHub-Repository eingeschaltet sind |
 | Mindestens 3 Monate aktive Entwicklung | steht seit 16. Oktober 2026 ausdrücklich in der Inclusion Policy; Repository seit 9. November 2026 → frühestens **Februar 2027** |
-| Regel zu KI-erstelltem Code | F-Droid: **keine** (Stand 10.11.2026), eine Übergangsregel wird diskutiert [unsicher]; vor dem Einreichen neu prüfen (Abschnitt 11.4) |
+| Regel zu KI-erstelltem Code | F-Droid: **keine** (Stand 10.11.2026); ob eine kommt, ist offen [unsicher]; vor dem Einreichen neu prüfen (Abschnitt 11.4) |
 | Anti-Features | voraussichtlich **NonFreeNet**, möglicherweise zusätzlich **TetheredNet** |
 | Store-Texte und Bilder (Fastlane) | **fehlt noch** |
 | Eigener Release-Schlüssel und Release-Workflow | **fehlt noch** |
@@ -188,8 +188,9 @@ Reproduzierbare Builds sind bei F-Droid **keine Pflicht**, gelten aber als gute 
 | Git-Tag | `v` + `versionName`, auf dem Commit, aus dem gebaut wird | `v2.0.0` |
 | Änderungshinweis | `fastlane/metadata/android/de-DE/changelogs/<versionCode>.txt` (und `en-US`) | `changelogs/3.txt` |
 
-- Tags für Testversionen bitte **anders** benennen (z. B. `test-1`, siehe [`EINRICHTUNG.md`](EINRICHTUNG.md),
-  Schritt 8.1), damit F-Droid sie nicht für Veröffentlichungen hält.
+- Die automatische Testversion nutzt den festen Tag `testversion` (`.github/workflows/android.yml`). Er passt nicht
+  zum Muster `^v[0-9.]+$`, deshalb hält F-Droid ihn nicht für eine Veröffentlichung. Eigene Test-Tags bitte nie
+  `v…` nennen.
 - F-Droid prüft regelmäßig die Tags (`UpdateCheckMode: Tags`) und übernimmt neue Versionen automatisch
   (`AutoUpdateMode: Version`).
 - Die Web-App führt ihre Version in `web/package.json` (jetzt `2.0.0`); sinnvoll ist, beide gleich zu halten.
@@ -357,11 +358,12 @@ IzzyOnDroid) installiert Apps direkt aus GitHub-Releases und meldet neue Version
 ### 11.2 IzzyOnDroid (nicht empfohlen)
 
 IzzyOnDroid ist ein unabhängiges, F-Droid-kompatibles Verzeichnis. Es kennt **keine** 3-Monats-Regel und ist in
-den Clients **Droid-ify** und **Neo Store** voreingestellt, im offiziellen F-Droid-App 2.0 aber **nicht**.
+den Clients **Droid-ify** und **Neo Store** voreingestellt, in der offiziellen F-Droid-App 2.0 aber **nicht**.
 
 - **KI-Richtlinie (Hauptgrund):** „We are strongly opposed to apps which are fully or in part created by generative
   AI tools.“ und „Vibe-coded apps will be rejected.“ Fehlende Offenheit kann nachträglich zur Ablehnung führen.
-  Das Antragsformular hat einen **Pflichtabschnitt zur KI-Nutzung**. Drink With Me ist zum größten Teil mit
+  Das Antragsformular (`.forgejo/issue_template/app-inclusion-request.yaml`) hat einen **Abschnitt zur KI-Nutzung**
+  (Umfang, Werkzeuge, Verantwortung) [unsicher, ob Pflichtfeld]. Drink With Me ist zum größten Teil mit
   Claude Code geschrieben (fast alle Commits). Bei ehrlicher Angabe ist eine Ablehnung sehr wahrscheinlich;
   andere Projekte mit Claude-Code-Anteil reichen aus diesem Grund gar nicht erst ein. Der Wortlaut stammt aus
   Suchauszügen und Drittkopien der Seite [AppInclusionPolicy](https://izzyondroid.org/docs/general/AppInclusionPolicy/)
@@ -379,7 +381,8 @@ Mit `fdroidserver` (`fdroid update`) lässt sich aus fertigen APKs ein signierte
 kostenlos auf GitHub bereitstellen. Nutzer tragen es im F-Droid-Client unter Einstellungen → Paketquellen mit
 Adresse und Fingerabdruck ein (QR-Code, `fdroidrepos://…` oder `https://fdroid.link/#…`).
 
-- Ein **eigener, geheimer Index-Schlüssel** als GitHub-Secret ist nötig – **niemals** `debug.keystore`, sonst
+- Ein **eigener, geheimer Index-Schlüssel** als GitHub-Secret ist nötig – **niemals** das öffentliche
+  `android/app/debug.keystore` aus dem Repository (auch nicht als `DEBUG_KEYSTORE` für `fdroid nightly`), sonst
   könnte jeder ein gültiges Verzeichnis fälschen.
 - F-Droid-Clients bieten ein Update nur bei **höherem `versionCode`** an. Er müsste pro Build automatisch steigen.
 - GitHub Pages ist durch die Web-App belegt (ein Repository hat nur eine Pages-Seite, jedes Deploy ersetzt sie).
@@ -392,9 +395,19 @@ Adresse und Fingerabdruck ein (QR-Code, `fdroidrepos://…` oder `https://fdroid
 ### 11.4 Offizielles F-Droid und KI
 
 Die [Inclusion Policy](https://f-droid.org/docs/Inclusion_Policy/) enthält (Stand 10.11.2026) **keine** Regel zu
-KI-erstelltem Code. Im F-Droid-Forum und in einem Admin-Ticket wird eine Übergangsregel diskutiert [unsicher, ob
-und wie sie kommt]. Kommt eine strenge Regel wie bei IzzyOnDroid, könnte sie auch Drink With Me treffen. Deshalb:
-vor dem Antrag im Februar 2027 die Policy neu lesen und im Merge Request offen angeben, wie die App entstanden ist.
+KI-erstelltem Code. Diskutiert wird an zwei Stellen, beide ohne Beschluss:
+
+- Admin-Ticket [#699](https://gitlab.com/fdroid/admin/-/issues/699) („Interim Policy on Use of Generative AI“):
+  eine eher erlaubende Übergangsregel nach dem Vorbild von Debian – ausdrücklich **nur** für Beiträge zu F-Droid
+  selbst, nicht für die Aufnahme von Apps.
+- Admin-Ticket [#641](https://gitlab.com/fdroid/admin/-/issues/641) („Tag apps that use AI or LLMs with an
+  anti-feature“): Apps, die KI oder LLMs **nutzen**, mit einem Anti-Feature kennzeichnen. Drink With Me nutzt keine
+  KI-Dienste; ob der Vorschlag auch Apps erfassen würde, die mit KI **geschrieben** wurden, ist offen [unsicher].
+- Dazu eine Diskussion im [F-Droid-Forum](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279).
+
+Eine strenge Regel wie bei IzzyOnDroid würde auch Drink With Me treffen; danach sieht es bei F-Droid derzeit nicht
+aus [unsicher]. Deshalb: vor dem Antrag im Februar 2027 die Policy neu lesen und im Merge Request offen angeben, wie
+die App entstanden ist.
 
 ## Quellen
 
@@ -408,14 +421,15 @@ vor dem Antrag im Februar 2027 die Policy neu lesen und im Merge Request offen a
   (u. a. `Inclusion_Policy.md`, `Setup_an_F-Droid_App_Repo.md`, `Publishing_Nightly_Builds.md`),
   [fdroidserver](https://gitlab.com/fdroid/fdroidserver),
   [voreingestellte Paketquellen des F-Droid-Clients](https://gitlab.com/fdroid/fdroidclient/-/blob/master/app/src/main/assets/default_repos.json),
-  [Forum: Does F-Droid have a formal policy on libre „AI“?](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279)
+  [Forum: Does F-Droid have a formal policy on libre „AI“?](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279),
+  Admin-Tickets [#641](https://gitlab.com/fdroid/admin/-/issues/641) und [#699](https://gitlab.com/fdroid/admin/-/issues/699)
 - IzzyOnDroid: [App Inclusion Policy](https://izzyondroid.org/docs/general/AppInclusionPolicy/),
   [Wiki (archiviert)](https://gitlab.com/IzzyOnDroid/repo/-/wikis/home),
   [Anträge auf Codeberg](https://codeberg.org/IzzyOnDroid/repodata);
   Beispiele für die Anwendung der KI-Richtlinie:
   [aard2-android #217](https://github.com/itkach/aard2-android/issues/217),
   [perritodeck #6](https://github.com/perritodeck/perritodeck/pull/6),
-  [kikidame #124](https://github.com/t-seki/kikidame/pull/124)
+  [kikidame (README)](https://github.com/t-seki/kikidame#readme)
 - Obtainium: [Quellcode](https://github.com/ImranR98/Obtainium) (Deep-Links in `lib/pages/home.dart`,
   App-Format in `lib/models/app.dart`, GitHub-Quelle in `lib/app_sources/github.dart`),
   [Weiterleitungsseite](https://github.com/ImranR98/apps.obtainium.imranr.dev/blob/main/src/pages/redirect.astro)
