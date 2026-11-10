@@ -65,7 +65,9 @@ Dieses Dokument ist die Grundlage für den Umbau; offene Entscheidungen stehen a
 
 Technische Umsetzung: siehe [`ARCHITEKTUR.md`](ARCHITEKTUR.md).
 
+- **Repository** heißt jetzt `q0ochen/DrinkWithMe` und ist **öffentlich** (Voraussetzung für F-Droid) (10.11.2026).
+- **Web-App-Hosting:** kostenlos über **GitHub Pages** unter `https://q0ochen.github.io/DrinkWithMe/` (10.11.2026).
+
 ## Offene Entscheidungen
 
-- Hosting der Web-App (z. B. GitHub Pages – setzt ein öffentliches Repository voraus, das für F-Droid ohnehin
-  nötig ist – oder Netlify/Cloudflare Pages).
+- Keine.

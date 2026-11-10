@@ -264,8 +264,9 @@ Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_
 
 ## 4. Web-App (`web/`) für iPhone und Browser
 
-- Statische PWA (Vite + TypeScript, `@supabase/supabase-js`, kleine UI-Bibliothek erlaubt, z. B. Preact), kostenlos
-  hostbar (GitHub Pages bei öffentlichem Repo, sonst Netlify/Cloudflare Pages ohne Karte). Basis-URL konfigurierbar.
+- Statische PWA (Vite + TypeScript, `@supabase/supabase-js`, kleine UI-Bibliothek erlaubt, z. B. Preact), gehostet
+  kostenlos auf **GitHub Pages**: `WEB_APP_URL = https://q0ochen.github.io/DrinkWithMe` (Vite-`base` = `/DrinkWithMe/`;
+  Basis-URL bleibt konfigurierbar). Deploy per Workflow `web.yml` (`actions/deploy-pages`) aus `main`.
 - Gleiche Bereiche wie Android (Bar, Verlauf, Freunde, Einstellungen), gleiche Texte und Regeln; Bar und Historie
   **lokal** in IndexedDB; Icons aus `design/icons/*.svg`.
 - Google-Anmeldung über Supabase (`signInWithOAuth`, PKCE, Redirect `<WEB_APP_URL>/auth/callback`).
@@ -286,7 +287,8 @@ Geheimnisse (nur in Supabase gesetzt, nie im Repo): `VAPID_PRIVATE_KEY`, `VAPID_
 - `android.yml`: Kern-Tests, App-Tests, Debug-APK, Signaturprüfung (wie bisher).
 - `supabase.yml`: `supabase start` (Docker auf GitHub-Runnern), Migrationen, pgTAP-Tests (`supabase test db`),
   Deno-Tests der Edge Functions.
-- `web.yml`: Build + Tests der Web-App, Artefakt.
+- `web.yml`: Build + Tests der Web-App bei jedem Push; auf `main` zusätzlich Veröffentlichung auf GitHub Pages
+  (einmalig in den Repo-Einstellungen: Pages → Quelle „GitHub Actions“).
 - `supabase-deploy.yml` (manuell): `supabase link` + `db push` + `functions deploy` mit Secrets
   `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und Variable `SUPABASE_PROJECT_REF`.
 - Die Firebase-Workflows und `firebase/` entfallen.
