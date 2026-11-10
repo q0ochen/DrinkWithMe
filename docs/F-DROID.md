@@ -6,9 +6,14 @@ Android-Handys, -Tablets und -Fernseher (siehe [`ANFORDERUNGEN.md`](ANFORDERUNGE
 
 Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit zu rechnen ist**.
 
-> **Unsichere Punkte sind mit [unsicher] markiert.** Stand der Recherche: November 2026. Die Seiten von f-droid.org
-> konnten bei der Recherche nicht direkt abgerufen werden; die F-Droid-Regeln stammen aus Suchergebnissen und
-> bekannter Dokumentation. Vor dem Einreichen bitte die verlinkten Originalseiten lesen.
+> **Unsichere Punkte sind mit [unsicher] markiert.** Stand der Recherche: 10. November 2026. Die Seiten von
+> f-droid.org, izzyondroid.org und codeberg.org konnten bei der Recherche nicht direkt abgerufen werden. Die
+> F-Droid-Regeln stammen aus den Quelltexten der Dokumentation auf GitLab (`fdroid-website`, `fdroidserver`) und aus
+> Suchergebnissen. Vor dem Einreichen bitte die verlinkten Originalseiten lesen.
+>
+> **Schneller zur App, bis F-Droid so weit ist:** Testversion per Link oder mit **Obtainium**, siehe
+> [Abschnitt 11](#11-bis-zur-aufnahme-andere-wege). **IzzyOnDroid** kommt wegen seiner KI-Richtlinie praktisch nicht
+> in Frage.
 
 ---
 
@@ -16,10 +21,11 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 
 | Thema | Stand |
 |---|---|
-| Freie Lizenz (CC0 1.0) | erfüllt [unsicher: CC0 ist von der FSF als freie Lizenz anerkannt, nicht von der OSI – F-Droid nimmt sie nach unserem Kenntnisstand an] |
+| Freie Lizenz (CC0 1.0) | **erfüllt:** CC0 ist von der FSF als freie Lizenz anerkannt (nicht von der OSI) und steht in der Liste erlaubter Lizenzen von `fdroidserver` (`CC0-1.0`) |
 | Keine proprietären Abhängigkeiten (kein Firebase, keine Google Play Services) | **erfüllt** |
 | Öffentlicher Quellcode, Fehler-Tracker | erfüllt, sofern „Issues“ im GitHub-Repository eingeschaltet sind |
-| Mindestens 3 Monate aktive Entwicklung | Repository seit 9. November 2026 → frühestens **Februar 2027** |
+| Mindestens 3 Monate aktive Entwicklung | steht seit 16. Oktober 2026 ausdrücklich in der Inclusion Policy; Repository seit 9. November 2026 → frühestens **Februar 2027** |
+| Regel zu KI-erstelltem Code | F-Droid: **keine** (Stand 10.11.2026), eine Übergangsregel wird diskutiert [unsicher]; vor dem Einreichen neu prüfen (Abschnitt 11.4) |
 | Anti-Features | voraussichtlich **NonFreeNet**, möglicherweise zusätzlich **TetheredNet** |
 | Store-Texte und Bilder (Fastlane) | **fehlt noch** |
 | Eigener Release-Schlüssel und Release-Workflow | **fehlt noch** |
@@ -289,6 +295,7 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 
 | Wann | Was |
 |---|---|
+| ab sofort | Testversion per Link oder mit Obtainium verteilen (Abschnitt 11) |
 | bis Dezember 2026 | Testphase mit Test-APKs; Fehler beheben |
 | Dezember 2026 – Januar 2027 | Release-Schlüssel erzeugen, Release-Workflow, Reproduzierbarkeit prüfen (`dependenciesInfo` ist schon abgeschaltet); Fastlane-Texte und Bildschirmfotos; `versionCode` erhöhen und Tag setzen; ggf. Export/Import des Verlaufs in der Android-App |
 | ab Mitte Februar 2027 | 3 Monate aktive Entwicklung erreicht → Merge Request bei `fdroiddata` |
@@ -313,6 +320,82 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 - [ ] 3 Monate aktive Entwicklung erreicht (ab etwa 9. Februar 2027)
 - [ ] Merge Request „New app: Drink With Me“ bei `fdroiddata`
 
+---
+
+## 11. Bis zur Aufnahme: andere Wege
+
+Frage des Hauptentwicklers (10.11.2026): Lässt sich die App schon jetzt in F-Droid oder einem F-Droid-kompatiblen
+Katalog anbieten? Ergebnis der Recherche:
+
+| Weg | Ab wann | Kosten | Bewertung |
+|---|---|---|---|
+| **Testversion per Link** | sofort | 0 € | läuft schon; Updates von Hand |
+| **Obtainium** + Testversion | sofort | 0 € | **Empfehlung für die Testphase:** meldet neue Testversionen, keine Projektänderung nötig |
+| **Eigenes F-Droid-Verzeichnis** auf GitHub | nach 2–4 Stunden Einrichtung | 0 € | möglich; lohnt sich nur, wenn Testerinnen und Tester ausdrücklich einen F-Droid-Client nutzen wollen |
+| **IzzyOnDroid** | – | 0 € | **praktisch ausgeschlossen** wegen der KI-Richtlinie (11.2) |
+| **Offizielles F-Droid** | Antrag ab etwa 9.2.2027, Aufnahme etwa Februar bis Mai 2027 | 0 € | das Ziel (Abschnitte 1–10); Restrisiko KI-Regel (11.4) |
+
+### 11.1 Obtainium (jetzt)
+
+[Obtainium](https://github.com/ImranR98/Obtainium) (GPL-3.0, erhältlich als APK bei GitHub, in F-Droid und bei
+IzzyOnDroid) installiert Apps direkt aus GitHub-Releases und meldet neue Versionen.
+
+- Die Testversion hat einen **festen Tag** (`testversion`), ist als **Vorabversion** markiert und behält
+  `versionCode` 2. Obtainium erkennt neue Builds deshalb nur mit drei Einstellungen: **Vorabversionen einbeziehen**
+  (`includePrereleases`), **Veröffentlichungsdatum als Version verwenden** (`releaseDateAsVersion`, dazu
+  `versionDetection` aus) und **Letzten Upload eines Release-Anhangs als Veröffentlichungsdatum verwenden**
+  (`useLatestAssetDateAsReleaseDate`). Die letzte ist nötig, weil `android.yml` das Release nur bearbeitet und die
+  APK mit `--clobber` ersetzt; das Datum des Releases selbst ändert sich dabei nicht.
+- Der Ein-Tipp-Link in der [README](../README.md#android-testversion) und in den Release-Hinweisen setzt alle drei.
+  Format geprüft gegen den Obtainium-Quellcode (`lib/pages/home.dart`, `lib/models/app.dart`,
+  `lib/providers/app_json_migration.dart`, `lib/app_sources/github.dart`, Stand 10.11.2026) und gegen die
+  Weiterleitungsseite `apps.obtainium.imranr.dev/redirect`.
+- **Beim Umstieg auf den Release-Schlüssel** (Abschnitt 5) muss der Obtainium-Eintrag gelöscht und die App neu
+  installiert werden. Für versionierte Releases (`v2.0.0` …) reicht danach ein normaler Eintrag ohne die drei
+  Einstellungen.
+
+### 11.2 IzzyOnDroid (nicht empfohlen)
+
+IzzyOnDroid ist ein unabhängiges, F-Droid-kompatibles Verzeichnis. Es kennt **keine** 3-Monats-Regel und ist in
+den Clients **Droid-ify** und **Neo Store** voreingestellt, im offiziellen F-Droid-App 2.0 aber **nicht**.
+
+- **KI-Richtlinie (Hauptgrund):** „We are strongly opposed to apps which are fully or in part created by generative
+  AI tools.“ und „Vibe-coded apps will be rejected.“ Fehlende Offenheit kann nachträglich zur Ablehnung führen.
+  Das Antragsformular hat einen **Pflichtabschnitt zur KI-Nutzung**. Drink With Me ist zum größten Teil mit
+  Claude Code geschrieben (fast alle Commits). Bei ehrlicher Angabe ist eine Ablehnung sehr wahrscheinlich;
+  andere Projekte mit Claude-Code-Anteil reichen aus diesem Grund gar nicht erst ein. Der Wortlaut stammt aus
+  Suchauszügen und Drittkopien der Seite [AppInclusionPolicy](https://izzyondroid.org/docs/general/AppInclusionPolicy/)
+  (dort selbst nicht abrufbar) – vor einer Entscheidung bitte einmal direkt lesen.
+- **Technisch** würde IzzyOnDroid die heutige Testversion ebenfalls ablehnen: Debug-Build (`debuggable`) mit
+  öffentlichem Debug-Zertifikat, wandernder Vorabversions-Tag, gleichbleibender `versionCode`. Nötig wären
+  Release-Schlüssel, reguläre Releases je Version mit steigendem `versionCode` und Fastlane-Texte – also dieselben
+  Vorarbeiten wie für F-Droid.
+- Antrag (falls doch): Issue „App Inclusion Request“ auf
+  [codeberg.org/IzzyOnDroid/repodata](https://codeberg.org/IzzyOnDroid/repodata) (kostenloses Codeberg-Konto).
+
+### 11.3 Eigenes F-Droid-Verzeichnis (optional)
+
+Mit `fdroidserver` (`fdroid update`) lässt sich aus fertigen APKs ein signiertes F-Droid-Verzeichnis erzeugen und
+kostenlos auf GitHub bereitstellen. Nutzer tragen es im F-Droid-Client unter Einstellungen → Paketquellen mit
+Adresse und Fingerabdruck ein (QR-Code, `fdroidrepos://…` oder `https://fdroid.link/#…`).
+
+- Ein **eigener, geheimer Index-Schlüssel** als GitHub-Secret ist nötig – **niemals** `debug.keystore`, sonst
+  könnte jeder ein gültiges Verzeichnis fälschen.
+- F-Droid-Clients bieten ein Update nur bei **höherem `versionCode`** an. Er müsste pro Build automatisch steigen.
+- GitHub Pages ist durch die Web-App belegt (ein Repository hat nur eine Pages-Seite, jedes Deploy ersetzt sie).
+  Also entweder gemeinsam mit der Web-App bereitstellen, ein eigenes Repository nutzen oder `fdroid nightly` in ein
+  Repository `q0ochen/DrinkWithMe-nightly` schreiben lassen. `fdroid nightly` ist dokumentiert, F-Droid
+  unterstützt GitHub Actions aber ausdrücklich nicht offiziell. Außerdem signiert es die APK neu: Alle Tester
+  müssten einmal neu installieren.
+- Bewertung: In der Testphase bringt das gegenüber Obtainium wenig. Nur einrichten, wenn ausdrücklich gewünscht.
+
+### 11.4 Offizielles F-Droid und KI
+
+Die [Inclusion Policy](https://f-droid.org/docs/Inclusion_Policy/) enthält (Stand 10.11.2026) **keine** Regel zu
+KI-erstelltem Code. Im F-Droid-Forum und in einem Admin-Ticket wird eine Übergangsregel diskutiert [unsicher, ob
+und wie sie kommt]. Kommt eine strenge Regel wie bei IzzyOnDroid, könnte sie auch Drink With Me treffen. Deshalb:
+vor dem Antrag im Februar 2027 die Policy neu lesen und im Merge Request offen angeben, wie die App entstanden ist.
+
 ## Quellen
 
 - F-Droid: [Inclusion Policy](https://f-droid.org/docs/Inclusion_Policy/),
@@ -320,7 +403,22 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
   [Submitting to F-Droid – Quick Start Guide](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/),
   [Reproducible Builds](https://f-droid.org/docs/Reproducible_Builds/),
   [All About Descriptions, Graphics, and Screenshots](https://f-droid.org/docs/All_About_Descriptions_Graphics_and_Screenshots/),
-  [Neues Anti-Feature TetheredNet (Juli 2024)](https://f-droid.org/en/2024/07/25/twif.html)
+  [Neues Anti-Feature TetheredNet (Juli 2024)](https://f-droid.org/en/2024/07/25/twif.html),
+  Quelltexte: [fdroid-website `_docs`](https://gitlab.com/fdroid/fdroid-website/-/tree/master/_docs)
+  (u. a. `Inclusion_Policy.md`, `Setup_an_F-Droid_App_Repo.md`, `Publishing_Nightly_Builds.md`),
+  [fdroidserver](https://gitlab.com/fdroid/fdroidserver),
+  [voreingestellte Paketquellen des F-Droid-Clients](https://gitlab.com/fdroid/fdroidclient/-/blob/master/app/src/main/assets/default_repos.json),
+  [Forum: Does F-Droid have a formal policy on libre „AI“?](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279)
+- IzzyOnDroid: [App Inclusion Policy](https://izzyondroid.org/docs/general/AppInclusionPolicy/),
+  [Wiki (archiviert)](https://gitlab.com/IzzyOnDroid/repo/-/wikis/home),
+  [Anträge auf Codeberg](https://codeberg.org/IzzyOnDroid/repodata);
+  Beispiele für die Anwendung der KI-Richtlinie:
+  [aard2-android #217](https://github.com/itkach/aard2-android/issues/217),
+  [perritodeck #6](https://github.com/perritodeck/perritodeck/pull/6),
+  [kikidame #124](https://github.com/t-seki/kikidame/pull/124)
+- Obtainium: [Quellcode](https://github.com/ImranR98/Obtainium) (Deep-Links in `lib/pages/home.dart`,
+  App-Format in `lib/models/app.dart`, GitHub-Quelle in `lib/app_sources/github.dart`),
+  [Weiterleitungsseite](https://github.com/ImranR98/apps.obtainium.imranr.dev/blob/main/src/pages/redirect.astro)
 - Google: [Android developer verification](https://developer.android.com/developer-verification),
   [FAQ](https://developer.android.com/developer-verification/guides/faq),
   [Limited distribution](https://developer.android.com/developer-verification/guides/limited-distribution),

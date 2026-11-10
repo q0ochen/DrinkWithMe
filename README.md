@@ -17,6 +17,34 @@ Belohnungen für Alkohol, und deine Statistik verlässt nie dein Gerät.
 
 Eine echte iPhone-App ist erst nach der Testphase geplant.
 
+## Android-Testversion
+
+Die aktuelle Testversion lässt sich **ohne Anmeldung** herunterladen. Sie wird nach jedem erfolgreichen Build
+automatisch ersetzt:
+**https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk**
+
+1. Den Link auf dem Android-Gerät öffnen, die Datei herunterladen und antippen.
+2. „Aus dieser Quelle zulassen“ erlauben und **Installieren** tippen. Warnt Play Protect: **Weitere Details →
+   Trotzdem installieren**.
+3. **Fire TV** (Fire OS 7/8): in der App „Downloader“ den Link eingeben. Vorher in den Entwickleroptionen
+   „Apps unbekannter Herkunft“ für Downloader erlauben.
+
+**Automatisch aktuell bleiben (optional):** Die freie App [Obtainium](https://github.com/ImranR98/Obtainium)
+installiert die Testversion direkt aus GitHub und meldet jede neue Testversion.
+
+1. Obtainium installieren, z. B. die APK von [github.com/ImranR98/Obtainium/releases](https://github.com/ImranR98/Obtainium/releases).
+2. Auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
+   **[Drink With Me in Obtainium hinzufügen](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D)**.
+3. In Obtainium „Drink With Me“ antippen und **Installieren** wählen.
+
+Der Link setzt die drei Einstellungen, die für die Testversion nötig sind: „Vorabversionen einbeziehen“,
+„Veröffentlichungsdatum als Version verwenden“ und „Letzten Upload eines Release-Anhangs als
+Veröffentlichungsdatum verwenden“. Die Testversion hat immer denselben Namen und dieselbe Versionsnummer,
+deshalb erkennt Obtainium neue Builds nur am Datum. Wer die App von Hand in Obtainium hinzufügt
+(`https://github.com/q0ochen/DrinkWithMe`), schaltet diese drei Einstellungen selbst ein.
+
+Wann die App in F-Droid kommt, steht in [`docs/F-DROID.md`](docs/F-DROID.md).
+
 ## Funktionen
 
 - **Bar:** Du stellst dir deine eigene Bar aus über 20 Getränken zusammen (Wasser, Kaffee, Apfelschorle, Cola,
@@ -100,7 +128,7 @@ Jeder Push und jeder Pull Request startet automatisch die passenden Prüfungen (
 
 | Workflow | Wann | Was |
 |---|---|---|
-| **Android** (`android.yml`) | Änderungen an `android/` oder `design/` | Icons prüfen (SVG ↔ Android), Tests der Grafik-Werkzeuge, Tests des Kerns und der App, Debug-APK bauen, Signatur prüfen → Artifact **`DrinkWithMe-android-apk`** |
+| **Android** (`android.yml`) | Änderungen an `android/` oder `design/` | Icons prüfen (SVG ↔ Android), Tests der Grafik-Werkzeuge, Tests des Kerns und der App, Debug-APK bauen, Signatur prüfen → Artifact **`DrinkWithMe-android-apk`**; bei einem Push auf `main` oder den Entwicklungszweig zusätzlich die öffentliche **Testversion** (Release `testversion`, siehe oben) ersetzen |
 | **Supabase** (`supabase.yml`) | Änderungen an `supabase/` | Lokales Supabase in Docker starten, alle Migrationen auf leerer Datenbank, pgTAP-Tests; Edge Functions: Formatierung, Lint, Typprüfung, Deno-Tests (u. a. gegen die Beispielwerte aus RFC 8291) |
 | **Web-App** (`web.yml`) | Änderungen an `web/` oder `design/icons/`; auch manuell (Run workflow) | Typprüfung, Lint, Unit-Tests (inkl. Golden-Tests gegen den Kotlin-Kern), Build, Playwright-Tests → Artifact **`DrinkWithMe-web`**; bei einem Push auf `main` oder einem manuellen Start auf `main` (Actions → „Web-App“ → Run workflow) zusätzlich **Veröffentlichung auf GitHub Pages** |
 | **Supabase Deploy** (`supabase-deploy.yml`) | **nur manuell** (Actions → „Supabase Deploy“ → Run workflow) | Migrationen und Edge Functions im echten Supabase-Projekt bereitstellen; braucht die Secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und die Variable `SUPABASE_PROJECT_REF` |

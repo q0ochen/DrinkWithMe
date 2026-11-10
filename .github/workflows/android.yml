@@ -104,6 +104,10 @@ jobs:
           sha256sum DrinkWithMe.apk | tee DrinkWithMe.apk.sha256
 
       - name: Beschreibung der Testversion
+        env:
+          # Ein-Tipp-Import für Obtainium (gleicher Link wie in der README): Vorabversionen einbeziehen und das Datum
+          # des letzten APK-Uploads als Version verwenden – nötig, weil Tag und versionCode der Testversion gleich bleiben.
+          OBTAINIUM_LINK: "https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D"
         run: |
           STAND="$(date -u '+%d.%m.%Y, %H:%M UTC')"
           KURZ="${GITHUB_SHA::7}"
@@ -118,6 +122,10 @@ jobs:
           3. **Installieren** tippen. Warnt Play Protect: **Weitere Details → Trotzdem installieren**.
 
           Fire TV Stick (Fire OS 7/8): in der App „Downloader“ den Link oben eingeben.
+
+          ### Automatisch aktuell bleiben (optional)
+          Die freie App [Obtainium](https://github.com/ImranR98/Obtainium/releases) installieren, dann auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
+          [Drink With Me in Obtainium hinzufügen](${OBTAINIUM_LINK}). Obtainium meldet dann jede neue Testversion.
 
           ### Hinweise
           - Testversion, mit dem öffentlichen Test-Schlüssel signiert. Neue Testversionen lassen sich einfach drüber installieren.
