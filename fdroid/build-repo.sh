@@ -33,7 +33,8 @@ cp -R "$ROOT/fastlane/metadata/android/." "$WORK/metadata/com.drinkwithme.app/"
 cp "$ROOT/fastlane/metadata/android/en-US/images/icon.png" "$WORK/icon.png"
 
 umask 077
-printf '%s' "$FDROID_REPO_KEYSTORE" | base64 -d > "$WORK/keystore.p12"
+# Leerzeichen und Zeilenumbrüche entfernen (beim Einfügen am Handy entstehen leicht welche).
+printf '%s' "$FDROID_REPO_KEYSTORE" | tr -d ' \t\r\n' | base64 -d > "$WORK/keystore.p12"
 umask 022
 
 ACTUAL="$(keytool -list -v -keystore "$WORK/keystore.p12" -storepass "$FDROID_KEYSTORE_PASS" -alias "$ALIAS" | fingerprint)"
