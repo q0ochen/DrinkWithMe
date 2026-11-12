@@ -1,0 +1,5 @@
+# Bezeichnungen der Anti-Features für die eigene Paketquelle. F-Droid 2.0 zeigt nur Anti-Features an, die die
+# Paketquelle selbst definiert (Texte wie im offiziellen F-Droid, fdroiddata/config/antiFeatures.yml).
+NonFreeNet:
+  name: Non-Free Network Services
+  description: This app promotes or depends entirely on a non-free network service.

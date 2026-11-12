@@ -11,7 +11,7 @@ Belohnungen für Alkohol, und deine Statistik verlässt nie dein Gerät.
 
 | Gerät | So bekommst du Drink With Me |
 |---|---|
-| **Android-Handy und -Tablet** (ab Android 8) | Android-App (APK aus GitHub, später F-Droid) |
+| **Android-Handy und -Tablet** (ab Android 8) | Android-App: APK aus GitHub oder über unsere eigene F-Droid-Paketquelle; später im offiziellen F-Droid |
 | **Android TV / Fire TV** (Fire OS 7/8) | dieselbe APK – Bar, Verlauf und Vorlesen; Anmeldung auf dem Fernseher ist nicht eigens gebaut |
 | **iPhone** (ab iOS 16.4) und jeder Browser | Web-App: [q0ochen.github.io/DrinkWithMe](https://q0ochen.github.io/DrinkWithMe/) – „Zum Home-Bildschirm“ für Benachrichtigungen (die Home-Bildschirm-App hat einen eigenen Speicher; Bar und Verlauf nimmst du per Sicherungsdatei mit) |
 
@@ -55,29 +55,45 @@ deshalb erkennt Obtainium neue Builds am Datum. Wer die App von Hand in Obtainiu
 
 ### In F-Droid (eigene Paketquelle)
 
-Wer [F-Droid](https://f-droid.org) nutzt, kann Drink With Me **schon jetzt über F-Droid** installieren und
-aktualisieren – aus unserer eigenen Paketquelle. In das offizielle F-Droid-Verzeichnis kommt die App frühestens
-ab Februar 2027 (siehe [`docs/F-DROID.md`](docs/F-DROID.md)).
+Wer [F-Droid](https://f-droid.org) nutzt, kann Drink With Me über F-Droid installieren und aktualisieren – aus
+unserer eigenen Paketquelle. In das offizielle F-Droid-Verzeichnis kommt die App frühestens ab Februar 2027 (siehe
+[`docs/F-DROID.md`](docs/F-DROID.md)). Die Paketquelle ist erreichbar, sobald der Betreiber den Schlüssel
+hinterlegt hat ([`docs/EINRICHTUNG.md`](docs/EINRICHTUNG.md), Schritt 5.5).
 
 1. **F-Droid installieren:** auf [f-droid.org](https://f-droid.org) „F-Droid herunterladen“ antippen und die Datei
    öffnen – mit denselben Schritten wie oben (Erlaubnis zulassen, bei Play Protect „Weitere Details → Trotzdem
    installieren“).
-2. **Paketquelle hinzufügen:** auf dem Android-Gerät diesen Link öffnen →
-   **[„Drink With Me – Testversionen“ in F-Droid hinzufügen](https://fdroid.link/#https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo?fingerprint=D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523)**
-   → in F-Droid öffnen → **Paketquelle hinzufügen** bestätigen. Oder den QR-Code unten mit dem Handy scannen
-   (z. B. vom Computer-Bildschirm).
-3. In F-Droid nach **„Drink With Me“** suchen → **Installieren**. Neue Testversionen erscheinen danach als ganz
-   normale Updates in F-Droid.
+2. **Paketquelle hinzufügen:** auf dem Android-Gerät diesen Link öffnen:
+   **[„Drink With Me – Testversionen“ in F-Droid hinzufügen](https://fdroid.link/#https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo?fingerprint=D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523)**.
+   F-Droid öffnet sich und fragt, ob die Paketquelle hinzugefügt werden soll → **bestätigen**. (Öffnet sich
+   stattdessen eine englische Webseite: dort „Android Deep Link“ antippen.) Oder den QR-Code unten mit dem Handy
+   scannen, z. B. vom Computer-Bildschirm.
+3. In F-Droid nach **„Drink With Me“** suchen → **Installieren**. Beim ersten Mal fragt Android, ob **F-Droid**
+   Apps installieren darf → **zulassen**; warnt Play Protect: **Weitere Details → Trotzdem installieren**. Neue
+   Testversionen erscheinen danach als normale Updates in F-Droid.
 
 <img src="docs/fdroid-paketquelle-qr.svg" alt="QR-Code: Paketquelle „Drink With Me – Testversionen“ in F-Droid hinzufügen" width="200">
 
-Von Hand: F-Droid → Einstellungen → **Paketquellen** → **+** → Adresse
-`https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo` und Fingerabdruck
-`D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523`.
+Von Hand: F-Droid → **Entdecken** → oben das Symbol **Paketquellen** (neben dem Zahnrad; in F-Droid 1.x:
+Einstellungen → Paketquellen) → **+** → „Repository-URL manuell eingeben“ → diese **eine** Zeile einfügen
+(der Fingerabdruck steckt darin) → Hinzufügen:
 
-Die App aus F-Droid, aus dem Download-Link oben und aus Obtainium ist **dieselbe** (gleiche Signatur): Man kann
-zwischen den Wegen wechseln, ohne neu zu installieren. F-Droid kennzeichnet die App mit „Nicht-freier
-Netzwerkdienst“, weil Freunde und Benachrichtigungen eine Google-Anmeldung brauchen.
+```
+https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo?fingerprint=D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523
+```
+
+Gut zu wissen:
+
+- Meldet F-Droid beim Hinzufügen **„Ungültiges Repository“** oder beim Aktualisieren einen Fehler: **5 Minuten
+  warten und noch einmal versuchen**. GitHub liefert die Dateien bis zu 5 Minuten zwischengespeichert aus; direkt
+  nach einer neuen Testversion passen sie kurz nicht zusammen.
+- **„Download fehlgeschlagen“** bei einem Update: In F-Droid die Paketquellen aktualisieren (Meine Apps → ⋮ → Auf
+  Aktualisierungen prüfen) und erneut versuchen – dann kennt F-Droid die neueste Testversion.
+- Die App aus F-Droid, aus dem Download-Link oben und aus Obtainium ist **dieselbe** (gleiche Signatur); man muss
+  beim Wechsel nicht neu installieren. Ab Android 14 fragt Android beim Wechsel der Quelle einmal nach, ob die App
+  künftig auch von dort aktualisiert werden darf → bestätigen. Am einfachsten nur **einen** Weg für Updates nutzen.
+- F-Droid kennzeichnet die App mit **„Nicht-freier Netzwerkdienst“**, weil Freunde und Benachrichtigungen eine
+  Google-Anmeldung brauchen.
 
 ## Funktionen
 

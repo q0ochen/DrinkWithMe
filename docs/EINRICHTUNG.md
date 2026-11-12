@@ -355,16 +355,19 @@ diesen Teil nur (Hinweis im Lauf), alles andere läuft normal.
 
 > **Wichtig:** Den Schlüssel **nicht verlieren und nicht austauschen** – sonst müssen alle die Paketquelle in
 > F-Droid neu hinzufügen. Am besten zusätzlich im Passwort-Manager sichern. Der Workflow prüft, dass der
-> Schlüssel zum Fingerabdruck in `.github/workflows/android.yml` (`FDROID_REPO_FINGERPRINT`) und im Link in der
-> README passt; ein anderer Schlüssel bricht den Job mit einer Fehlermeldung ab.
+> Schlüssel zum Fingerabdruck `FDROID_REPO_FINGERPRINT` in `.github/workflows/android.yml` passt und dass README,
+> QR-Code und `docs/F-DROID.md` denselben Fingerabdruck nennen; sonst bricht der Job mit einer Fehlermeldung ab
+> (z. B. „Secret … passt nicht zum erwarteten Fingerabdruck oder ist nicht lesbar“ bei unvollständig kopiertem Text).
 >
 > **Selbst erzeugen** (am Computer mit Java): `keytool -genkeypair -keystore repo.p12 -storetype PKCS12
 > -storepass drinkwithme-fdroid -keypass drinkwithme-fdroid -alias drinkwithme-fdroid -keyalg RSA -keysize 4096
-> -validity 10000 -dname "CN=Drink With Me F-Droid Repo"`, dann `base64 -w0 repo.p12` als Secret eintragen. Das
-> Passwort ist absichtlich nicht geheim – geheim ist die Datei. Den neuen Fingerabdruck
-> (`keytool -list -v -keystore repo.p12 -storepass drinkwithme-fdroid`, Zeile „SHA256“, ohne Doppelpunkte, klein
-> geschrieben) dann in `android.yml`, in den Link in der README und in `docs/fdroid-paketquelle-qr.svg` übernehmen
-> (Claude kann das erledigen).
+> -validity 10000 -dname "CN=Drink With Me F-Droid Repo"`, dann die Datei als Base64-Text ins Secret – Linux:
+> `base64 -w0 repo.p12`, macOS: `base64 -i repo.p12`, Windows (PowerShell):
+> `[Convert]::ToBase64String([IO.File]::ReadAllBytes("repo.p12"))`. Das Passwort ist absichtlich nicht geheim –
+> geheim ist die Datei. Den neuen Fingerabdruck (`keytool -list -v -keystore repo.p12 -storepass
+> drinkwithme-fdroid`, Zeile „SHA256“, ohne Doppelpunkte) dann **überall** übernehmen: `FDROID_REPO_FINGERPRINT`
+> in `.github/workflows/android.yml` (klein geschrieben), Link und Zeile „Von Hand“ in der README, Tabelle in
+> `docs/F-DROID.md` (11.3) und den QR-Code `docs/fdroid-paketquelle-qr.svg` neu erzeugen (Claude kann das erledigen).
 
 ---
 
@@ -716,6 +719,8 @@ genaue Meldung notieren (Bildschirmfoto).
 | Android: Schalter „Dieser Quelle vertrauen“ lässt sich nicht einschalten | **Erweiterter Schutz** (Android 16+) ist an, verwaltetes Gerät/Arbeitsprofil, Kinderschutz (Family Link) oder ein laufender Anruf mit einer unbekannten Nummer | In den Einstellungen nach „Erweiterter Schutz“ suchen, vorübergehend ausschalten und danach die Erlaubnis **neu** erteilen (sie wird beim Einschalten entzogen); Anruf beenden. Für Entwickler: `adb install DrinkWithMe.apk` funktioniert auch mit Erweitertem Schutz |
 | Android: nur „App wurde nicht installiert“ ohne Grund | Verschiedenes (Play Protect, Konflikt, …) | Für Entwickler: am Computer `adb install -r DrinkWithMe.apk` zeigt den genauen Fehlercode |
 | Download-Link zeigt „404“ | Alter Link `…/releases/latest/download/app-debug.apk` | Den Link aus 8.1 nehmen (`…/releases/download/testversion/DrinkWithMe.apk`) |
+| F-Droid: „Ungültiges Repository“ beim Hinzufügen der Paketquelle, oder Fehler beim Aktualisieren | Direkt nach einer neuen Testversion liefert GitHub die Dateien bis zu 5 Minuten zwischengespeichert aus – kurz passen Index und Signatur nicht zusammen. Oder die Paketquelle ist noch nicht eingerichtet (5.5) | 5 Minuten warten, erneut versuchen. Prüfen: `https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo/index-v2.json` muss sich im Browser öffnen |
+| F-Droid: „Download fehlgeschlagen“ bei einem Update | F-Droid kennt noch eine ältere Liste; die Paketquelle hält nur die aktuelle und die vorige Testversion | In F-Droid die Paketquellen aktualisieren (Meine Apps → ⋮ → Auf Aktualisierungen prüfen), dann erneut |
 | Fire TV: Downloader fehlt unter „Apps unbekannter Herkunft“ | Fehler im Fire-TV-Update (Herbst 2026) oder Vega-OS-Gerät | System aktualisieren (11.2); bei Vega OS geht es nicht |
 | Vorlesen bleibt stumm | Keine deutsche Stimme installiert | Die Hilfe **„Vorlesen einrichten“** erscheint in den Einstellungen und auf dem Ereignis-Bildschirm – je nach Fall mit **Deutsche Stimme installieren** oder **SherpaTTS bei F-Droid**. Danach einfach zurück in die App – die Sprachausgabe startet dann neu |
 | Mikrofon-Knopf „Sprechen“ fehlt | Keine Spracherkennungs-App auf dem Gerät | Normal auf manchen Geräten; Eintragen per Tipp geht immer |

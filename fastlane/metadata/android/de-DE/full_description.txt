@@ -13,4 +13,4 @@
 
 <p><b>Hinweis:</b> Für Freunde und Benachrichtigungen ist eine Anmeldung mit einem Google-Konto nötig (nicht freier Netzwerkdienst). Bar, Verlauf, Sprache und Vorlesen funktionieren ohne Konto und ohne Internet.</p>
 
-<p>Freie Software (CC0 1.0). Quellcode: https://github.com/q0ochen/DrinkWithMe</p>
+<p>Freie Software (CC0 1.0). Quellcode: <a href="https://github.com/q0ochen/DrinkWithMe">github.com/q0ochen/DrinkWithMe</a></p>

@@ -178,10 +178,11 @@ jobs:
 
   # Öffentliche Testversion: Nach einem erfolgreichen Build (alle Tests grün, Signatur geprüft) wird die APK
   # als Release „testversion“ veröffentlicht – ohne GitHub-Anmeldung und ohne ZIP herunterladbar, mit festem Link.
-  # Es gibt immer nur EINE Testversion; sie wird bei jedem Build ersetzt.
+  # Es gibt immer nur EINE Testversion; sie wird bei jedem Build ersetzt – erst nach dem Installationstest und nie
+  # durch einen älteren Lauf (die versionCode steigt mit der Laufnummer; Android verweigert Rückschritte).
   testversion:
     name: Öffentliche Testversion aktualisieren
-    needs: build
+    needs: [build, installtest]
     if: >-
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
@@ -196,17 +197,34 @@ jobs:
       GH_REPO: ${{ github.repository }}
       TAG: testversion
     steps:
+      # Ein langsamer älterer Lauf darf eine neuere Testversion nicht überschreiben. Die Concurrency-Gruppe sorgt
+      # dafür, dass Prüfen und Veröffentlichen nicht zwischen zwei Läufen verzahnt werden.
+      - name: Ist schon eine neuere Testversion veröffentlicht?
+        id: newer
+        run: |
+          PUB="$(gh release view "$TAG" --json body --jq .body 2>/dev/null | grep -oP '2\.0\.0-test\.\K[0-9]+' | head -1 || true)"
+          echo "Veröffentlicht: ${PUB:-keine}, dieser Lauf: ${GITHUB_RUN_NUMBER}"
+          if [ -n "$PUB" ] && [ "$PUB" -gt "$GITHUB_RUN_NUMBER" ]; then
+            echo "::warning::Veröffentlicht ist schon Testversion ${PUB} (neuer als ${GITHUB_RUN_NUMBER}) – übersprungen. Wurde android.yml umbenannt, beginnt die Laufnummer neu: dann in android/app/build.gradle.kts den Versatz 1000 erhöhen."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/download-artifact@v4
+        if: steps.newer.outputs.skip != 'true'
         with:
           name: DrinkWithMe-android-apk
           path: apk
 
       - name: APK benennen und Prüfsumme bilden
+        if: steps.newer.outputs.skip != 'true'
         run: |
           cp apk/app-debug.apk DrinkWithMe.apk
           sha256sum DrinkWithMe.apk | tee DrinkWithMe.apk.sha256
 
       - name: Beschreibung der Testversion
+        if: steps.newer.outputs.skip != 'true'
         env:
           # Ein-Tipp-Import für Obtainium (gleicher Link wie in der README): Vorabversionen einbeziehen und das Datum
           # des letzten APK-Uploads als Version verwenden – nötig, weil Tag und versionCode der Testversion gleich bleiben.
@@ -241,6 +259,7 @@ jobs:
           EOF
 
       - name: Testversion veröffentlichen oder ersetzen
+        if: steps.newer.outputs.skip != 'true'
         run: |
           TITEL="Testversion (Android)"
           if gh release view "$TAG" >/dev/null 2>&1; then
@@ -253,13 +272,15 @@ jobs:
           gh release upload "$TAG" DrinkWithMe.apk DrinkWithMe.apk.sha256 --clobber
           echo "Öffentlicher Link: https://github.com/$GH_REPO/releases/download/$TAG/DrinkWithMe.apk"
 
-  # Eigene F-Droid-Paketquelle (nicht das offizielle F-Droid): signierter Index + aktuelle Testversion auf dem Zweig
-  # „fdroid-repo“, abrufbar über raw.githubusercontent.com. Tester fügen sie einmal in der F-Droid-App hinzu und
-  # bekommen Updates über F-Droid. Braucht das Secret FDROID_REPO_KEYSTORE (docs/EINRICHTUNG.md, Schritt 5.5);
-  # fehlt es, wird der Job übersprungen. Erklärung: docs/F-DROID.md, Abschnitt 11.3.
+  # Eigene F-Droid-Paketquelle (nicht das offizielle F-Droid): signierter Index + die aktuelle und die vorige
+  # Testversion auf dem Zweig „fdroid-repo“, abrufbar über raw.githubusercontent.com. Tester fügen sie einmal in der
+  # F-Droid-App hinzu und bekommen Updates über F-Droid. Braucht das Secret FDROID_REPO_KEYSTORE (docs/EINRICHTUNG.md,
+  # Schritt 5.5); fehlt es, wird der Job übersprungen. Erklärung: docs/F-DROID.md, Abschnitt 11.3.
+  # Sicherheit: Der geheime Schlüssel ist nur im Schritt „Paketquelle bauen“ sichtbar, das Schreib-Token nur in den
+  # Schritten, die es brauchen; fdroidserver wird mit festen Prüfsummen installiert (fdroid/requirements.txt).
   fdroid:
     name: Eigene F-Droid-Paketquelle aktualisieren
-    needs: build
+    needs: [build, installtest]
     if: >-
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
@@ -270,49 +291,79 @@ jobs:
       group: android-fdroid
       cancel-in-progress: false
     env:
-      FDROID_REPO_KEYSTORE: ${{ secrets.FDROID_REPO_KEYSTORE }}
-      # SHA-256 des Zertifikats der Paketquelle – derselbe Wert steht im Link in README.md.
+      # SHA-256 des Zertifikats der Paketquelle – derselbe Wert steht im Link in README.md, im QR-Code und in
+      # docs/F-DROID.md (build-repo.sh prüft das).
       FDROID_REPO_FINGERPRINT: d358dcffd3b82c09460943df4513e5f7951f2c0c6a6fd7ebab8e0741becd7523
-      GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Schlüssel vorhanden?
         id: key
+        env:
+          HAS_KEY: ${{ secrets.FDROID_REPO_KEYSTORE != '' }}
         run: |
-          if [ -z "$FDROID_REPO_KEYSTORE" ]; then
+          if [ "$HAS_KEY" != "true" ]; then
             echo "::notice::Das Secret FDROID_REPO_KEYSTORE fehlt – die F-Droid-Paketquelle wird nicht aktualisiert (docs/EINRICHTUNG.md, Schritt 5.5)."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v4
+      # Bisherige Paketquelle holen (öffentlich, ohne Token): für die vorige APK und die bisherige Laufnummer.
+      - name: Bisherige Paketquelle holen
+        id: previous
         if: steps.key.outputs.ready == 'true'
+        run: |
+          PREV="$RUNNER_TEMP/fdroid-previous"
+          rm -rf "$PREV" && git init -q "$PREV"
+          PUB=""
+          if git -C "$PREV" fetch -q --depth=1 "https://github.com/${GH_REPO}.git" fdroid-repo 2>/dev/null; then
+            git -C "$PREV" checkout -q FETCH_HEAD
+            PUB="$(git -C "$PREV" log -1 --format=%s | grep -oP '2\.0\.0-test\.\K[0-9]+' | head -1 || true)"
+          fi
+          echo "Veröffentlicht: ${PUB:-keine}, dieser Lauf: ${GITHUB_RUN_NUMBER}"
+          if [ -n "$PUB" ] && [ "$PUB" -gt "$GITHUB_RUN_NUMBER" ]; then
+            echo "::warning::In der F-Droid-Paketquelle liegt schon Testversion ${PUB} (neuer als ${GITHUB_RUN_NUMBER}) – übersprungen. Wurde android.yml umbenannt, beginnt die Laufnummer neu: dann in android/app/build.gradle.kts den Versatz 1000 erhöhen."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "dir=$PREV/fdroid/repo" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v4
-        if: steps.key.outputs.ready == 'true'
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
         with:
           name: DrinkWithMe-android-apk
           path: apk
 
       - uses: actions/setup-python@v5
-        if: steps.key.outputs.ready == 'true'
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
         with:
           python-version: "3.12"
 
-      - name: fdroidserver installieren
-        if: steps.key.outputs.ready == 'true'
+      - name: fdroidserver installieren (feste Prüfsummen)
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
         run: |
-          python -m pip install --quiet "fdroidserver==2.4.5"
+          python -m pip install --quiet --require-hashes -r fdroid/requirements.txt
           # apksigner (für die Signatur des Index) aus den neuesten Android-Build-Tools.
           ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1 >> "$GITHUB_PATH"
 
       - name: Paketquelle bauen
-        if: steps.key.outputs.ready == 'true'
-        run: fdroid/build-repo.sh apk/app-debug.apk "$((1000 + GITHUB_RUN_NUMBER))" "$RUNNER_TEMP/fdroidwork"
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        env:
+          FDROID_REPO_KEYSTORE: ${{ secrets.FDROID_REPO_KEYSTORE }}
+        run: >-
+          fdroid/build-repo.sh apk/app-debug.apk "$((1000 + GITHUB_RUN_NUMBER))" "$RUNNER_TEMP/fdroidwork"
+          "${{ steps.previous.outputs.dir }}"
 
       - name: Auf dem Zweig „fdroid-repo“ veröffentlichen
-        if: steps.key.outputs.ready == 'true'
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           PUB="$RUNNER_TEMP/fdroid-publish"
           rm -rf "$PUB" && mkdir -p "$PUB/fdroid"
@@ -322,7 +373,8 @@ jobs:
           # F-Droid-Paketquelle für die Testversionen von Drink With Me
 
           Dieser Zweig wird automatisch von \`.github/workflows/android.yml\` erzeugt und bei jedem Build ersetzt –
-          bitte nicht von Hand ändern. Er enthält nur die aktuelle Testversion (2.0.0-test.${GITHUB_RUN_NUMBER}).
+          bitte nicht von Hand ändern. Er enthält die aktuelle Testversion (2.0.0-test.${GITHUB_RUN_NUMBER}) und die
+          vorige.
 
           In der F-Droid-App hinzufügen: ${LINK}
 

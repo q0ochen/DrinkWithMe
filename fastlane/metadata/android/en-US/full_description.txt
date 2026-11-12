@@ -15,4 +15,4 @@
 
 <p><b>Note:</b> friends and notifications require signing in with a Google account (non-free network service). Bar, history, voice and read-aloud work without an account and offline.</p>
 
-<p>Free software (CC0 1.0). Source code: https://github.com/q0ochen/DrinkWithMe</p>
+<p>Free software (CC0 1.0). Source code: <a href="https://github.com/q0ochen/DrinkWithMe">github.com/q0ochen/DrinkWithMe</a></p>

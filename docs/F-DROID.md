@@ -371,7 +371,7 @@ den Clients **Droid-ify** und **Neo Store** voreingestellt, in der offiziellen F
   Suchauszügen und Drittkopien der Seite [AppInclusionPolicy](https://izzyondroid.org/docs/general/AppInclusionPolicy/)
   (dort selbst nicht abrufbar) – vor einer Entscheidung bitte einmal direkt lesen.
 - **Technisch** würde IzzyOnDroid die heutige Testversion ebenfalls ablehnen: Debug-Build (`debuggable`) mit
-  öffentlichem Debug-Zertifikat, wandernder Vorabversions-Tag, gleichbleibender `versionCode`. Nötig wären
+  öffentlichem Debug-Zertifikat, wandernder Vorabversions-Tag, Testversionen statt regulärer Releases. Nötig wären
   Release-Schlüssel, reguläre Releases je Version mit steigendem `versionCode` und Fastlane-Texte – also dieselben
   Vorarbeiten wie für F-Droid.
 - Antrag (falls doch): Issue „App Inclusion Request“ auf
@@ -390,8 +390,10 @@ installiert und aktualisiert Drink With Me dann wie jede andere F-Droid-App. Anl
 | Fingerabdruck (SHA-256) | `d358dcffd3b82c09460943df4513e5f7951f2c0c6a6fd7ebab8e0741becd7523` |
 | Link zum Hinzufügen | `https://fdroid.link/#<Adresse>?fingerprint=<Fingerabdruck>` (F-Droid 2.0 fängt nur `fdroid.link` und `fdroidrepos://` ab, keine normalen https-Links) |
 | Gebaut von | Job „Eigene F-Droid-Paketquelle aktualisieren“ in `.github/workflows/android.yml` mit `fdroid/build-repo.sh` und `fdroidserver` 2.4.5 (`fdroid update`) |
-| Inhalt | signierter Index (`entry.jar`, `index-v2.json`, für alte Clients `index-v1.jar`), die **aktuelle** Testversion, Texte und Bilder aus `fastlane/metadata/android/`, Angaben aus `fdroid/metadata/com.drinkwithme.app.yml` (u. a. Anti-Feature NonFreeNet) |
-| Ort | Zweig `fdroid-repo` – bei jedem Build mit **einem einzigen** Commit ersetzt, damit alte APKs das Repository nicht wachsen lassen (er enthält rund 13 MB) |
+| Inhalt | signierter Index (`entry.jar`, `index-v2.json`, für alte Clients `index-v1.jar`), die **aktuelle und die vorige** Testversion (`archive_older: 2`), Texte und Bilder aus `fastlane/metadata/android/`, Angaben aus `fdroid/metadata/com.drinkwithme.app.yml` (u. a. Anti-Feature NonFreeNet) und die Anti-Feature-Bezeichnungen aus `fdroid/config/` (F-Droid 2.0 zeigt nur Anti-Features, die die Paketquelle definiert) |
+| Ort | Zweig `fdroid-repo` – bei jedem Build mit **einem einzigen** Commit ersetzt, damit alte APKs das Repository nicht wachsen lassen (rund 26 MB; jeder vollständige Klon des Repositorys lädt sie mit) |
+| Reihenfolge | Veröffentlicht wird erst nach dem Installationstest im Emulator, und nie von einem älteren Lauf: Liegt schon eine neuere Testversion in der Paketquelle (bzw. im Release „testversion“), wird übersprungen. Wird `android.yml` umbenannt, beginnt die Laufnummer neu – dann den Versatz 1000 in `build.gradle.kts` erhöhen (der Workflow warnt) |
+| Sicherheit | Der geheime Schlüssel ist nur im Schritt „Paketquelle bauen“ sichtbar, das Schreib-Token nur beim Veröffentlichen; `fdroidserver` und alle Abhängigkeiten werden mit festen Prüfsummen installiert (`fdroid/requirements.txt`) |
 | Signatur des Index | eigener geheimer Schlüssel im Secret `FDROID_REPO_KEYSTORE` (EINRICHTUNG 5.5) – **nicht** `android/app/debug.keystore`. Der Job prüft vor und nach dem Bauen, dass Schlüssel und Index zum Fingerabdruck passen; fehlt das Secret, wird der Job übersprungen |
 | Signatur der APK | unverändert der feste Test-Schlüssel: Die App aus F-Droid, aus dem Download-Link und aus Obtainium ist austauschbar |
 | Updates | F-Droid bietet ein Update nur bei höherem `versionCode` an. Deshalb haben Testversionen aus der CI `versionCode` **1000 + Laufnummer** und `versionName` `2.0.0-test.<Laufnummer>` (`-PciBuildNumber` in `android/app/build.gradle.kts`) |
@@ -405,6 +407,11 @@ Grenzen und Hinweise:
   `fdroid nightly`). `fdroid nightly` selbst passt nicht, weil es die APK neu signiert – alle Tester müssten neu
   installieren.
 - `fdroid update` warnt, dass die APK „debuggable“ ist – das ist bei Testversionen so gewollt.
+- `raw.githubusercontent.com` hält Dateien bis zu 5 Minuten im Zwischenspeicher. Direkt nach einer neuen
+  Testversion können `entry.jar` und `index-v2.json` kurz aus verschiedenen Builds stammen; F-Droid meldet dann
+  „Ungültiges Repository“. Abhilfe: einige Minuten warten (steht auch in README und EINRICHTUNG 13).
+- F-Droid 2.0 aktualisiert die Paketquellen standardmäßig nur alle paar Stunden (und nur im WLAN). Deshalb bleibt
+  die vorige APK erhalten; ist eine Liste noch älter, hilft „Auf Aktualisierungen prüfen“.
 - Den Schlüssel **nie verlieren oder austauschen**: Ein neuer Schlüssel heißt, dass alle die Paketquelle neu
   hinzufügen müssen.
 - Nach der Aufnahme ins offizielle F-Droid kann die eigene Paketquelle eingestellt werden; wer mag, behält sie für

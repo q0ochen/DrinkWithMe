@@ -6,7 +6,7 @@ repo_name: Drink With Me – Testversionen
 repo_description: >-
   Testversionen von Drink With Me, automatisch aus dem öffentlichen Quellcode auf GitHub gebaut.
   Das ist nicht das offizielle F-Droid-Verzeichnis.
-archive_older: 3
+archive_older: 2
 repo_keyalias: drinkwithme-fdroid
 keystore: keystore.p12
 # Das Passwort ist absichtlich nicht geheim: Geheim ist die Schlüsseldatei selbst (GitHub-Secret FDROID_REPO_KEYSTORE).
