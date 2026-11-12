@@ -1,0 +1,101 @@
+{
+  "repo": {
+    "timestamp": 1794515696000,
+    "version": 20002,
+    "name": "Drink With Me \u2013 Testversionen",
+    "icon": "icon.png",
+    "address": "https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo",
+    "description": "Testversionen von Drink With Me, automatisch aus dem \u00f6ffentlichen Quellcode auf GitHub gebaut. Das ist nicht das offizielle F-Droid-Verzeichnis."
+  },
+  "requests": {
+    "install": [],
+    "uninstall": []
+  },
+  "apps": [
+    {
+      "antiFeatures": [
+        "NonFreeNet"
+      ],
+      "authorName": "Drink With Me",
+      "categories": [
+        "Sports & Health"
+      ],
+      "suggestedVersionCode": "1022",
+      "issueTracker": "https://github.com/q0ochen/DrinkWithMe/issues",
+      "license": "CC0-1.0",
+      "sourceCode": "https://github.com/q0ochen/DrinkWithMe",
+      "webSite": "https://q0ochen.github.io/DrinkWithMe/",
+      "added": 1794515692000,
+      "packageName": "com.drinkwithme.app",
+      "lastUpdated": 1794515692000,
+      "localized": {
+        "de-DE": {
+          "description": "<p><b>Dein Getr\u00e4nketagebuch \u2013 f\u00fcr dich und mit deinen Freunden.</b> Drink With Me zeigt dir anschaulich, wie viel Alkohol und Zucker du \u00fcber Getr\u00e4nke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du m\u00f6chtest, sehen deine Freunde, was du gerade trinkst \u2013 und du bekommst eine Nachricht, wenn sie etwas trinken.</p>\n\n<ul>\n<li><b>Bar:</b> Stell dir deine eigene Bar aus \u00fcber 20 selbst gezeichneten Getr\u00e4nken zusammen oder lege eigene an. Ein Tipp = jetzt getrunken.</li>\n<li><b>Verlauf:</b> Zucker pro Tag, Alkohol pro Woche (mit den Bezugswerten der DGE 2024), alkoholfreie Tage in Folge, Vergleich mit dem Vormonat. Alle Werte auch als Text, Statistik als Bild teilen.</li>\n<li><b>Freunde (optional):</b> Anmeldung mit einem Google-Konto, Freunde per Einladungs-Link oder E-Mail-Adresse, Benachrichtigung, wenn ein Freund etwas trinkt. Einzelne Getr\u00e4nke kannst du privat eintragen.</li>\n<li><b>Sprache und Vorlesen:</b> Getr\u00e4nke per Sprache eintragen, Ereignisse laut vorlesen lassen \u2013 gedacht auch f\u00fcr Menschen, die schlecht sehen.</li>\n<li><b>Barrierefrei:</b> gro\u00dfe Bedienfl\u00e4chen, Screenreader-Beschriftungen, Bedienung mit Fernbedienung (Android TV, Fire TV).</li>\n<li><b>Benachrichtigungen ohne Google-Dienste:</b> \u00fcber UnifiedPush (empfohlen: ntfy), sonst pr\u00fcft die App etwa alle 15 Minuten.</li>\n</ul>\n\n<p><b>Datenschutz:</b> Bar, Verlauf und Statistik bleiben auf deinem Ger\u00e4t. Ohne Anmeldung verl\u00e4sst nichts das Ger\u00e4t. Geteilt werden nur Name, Icon, Art, Menge und Zeitpunkt eines Getr\u00e4nks \u2013 alkoholische Getr\u00e4nke erst nach deiner Zustimmung, nach 30 Tagen automatisch gel\u00f6scht. Keine Werbung, kein Tracking.</p>\n\n<p><b>Hinweis:</b> F\u00fcr Freunde und Benachrichtigungen ist eine Anmeldung mit einem Google-Konto n\u00f6tig (nicht freier Netzwerkdienst). Bar, Verlauf, Sprache und Vorlesen funktionieren ohne Konto und ohne Internet.</p>\n\n<p>Freie Software (CC0 1.0). Quellcode: <a href=\"https://github.com/q0ochen/DrinkWithMe\">github.com/q0ochen/DrinkWithMe</a></p>\n",
+          "name": "Drink With Me",
+          "summary": "Getr\u00e4nketagebuch f\u00fcr Alkohol und Zucker \u2013 auf Wunsch mit Freunden teilen"
+        },
+        "en-US": {
+          "description": "<p><b>Your drink diary \u2013 for you and with your friends.</b> Drink With Me shows how much alcohol and sugar you consume through drinks and helps you drink less of them. If you like, your friends see what you are drinking right now, and you get a notification when they drink something.</p>\n\n<p><b>The app is currently available in German only.</b></p>\n\n<ul>\n<li><b>Bar:</b> build your own bar from more than 20 hand-drawn drinks or add your own. One tap = drunk now.</li>\n<li><b>History:</b> sugar per day, alcohol per week (with the 2024 reference values of the German Nutrition Society), alcohol-free days in a row, comparison with the previous month. All values also as text; share your statistics as an image.</li>\n<li><b>Friends (optional):</b> sign in with a Google account, add friends via invite link or e-mail address, get a notification when a friend drinks something. Single drinks can be logged privately.</li>\n<li><b>Voice and read-aloud:</b> log drinks by voice, have events read aloud \u2013 also meant for people with low vision.</li>\n<li><b>Accessible:</b> large touch targets, screen reader labels, remote control navigation (Android TV, Fire TV).</li>\n<li><b>Notifications without Google services:</b> via UnifiedPush (recommended: ntfy); otherwise the app checks about every 15 minutes.</li>\n</ul>\n\n<p><b>Privacy:</b> your bar, history and statistics stay on your device. Without signing in, nothing leaves the device. Only the name, icon, type, amount and time of a drink are shared \u2013 alcoholic drinks only after your consent \u2013 and deleted automatically after 30 days. No ads, no tracking.</p>\n\n<p><b>Note:</b> friends and notifications require signing in with a Google account (non-free network service). Bar, history, voice and read-aloud work without an account and offline.</p>\n\n<p>Free software (CC0 1.0). Source code: <a href=\"https://github.com/q0ochen/DrinkWithMe\">github.com/q0ochen/DrinkWithMe</a></p>\n",
+          "icon": "icon_1biO0RzhPGAqIY8cxDAa_c4f78bXdytyIz2DHRoM2jk=.png",
+          "name": "Drink With Me",
+          "summary": "Drink diary for alcohol and sugar, optionally shared with friends (German)",
+          "tvBanner": "tvBanner_693RyYXP1cbCwEWhMPuCS9XgIv27ANrcGVWJKjQqyhs=.png"
+        }
+      }
+    }
+  ],
+  "packages": {
+    "com.drinkwithme.app": [
+      {
+        "added": 1794515692000,
+        "apkName": "com.drinkwithme.app_1022.apk",
+        "hash": "b385258562168068d175cb593e791780090257b5d6f3135731e7800ad133e367",
+        "hashType": "sha256",
+        "minSdkVersion": 26,
+        "nativecode": [
+          "arm64-v8a",
+          "armeabi-v7a",
+          "x86",
+          "x86_64"
+        ],
+        "packageName": "com.drinkwithme.app",
+        "sig": "5597009553b4a786a35cc1d305550618",
+        "signer": "be67020f5d8535b0173b3bf3cb704f6587cb56e2c41fb0eb7959411513b11c85",
+        "size": 13221058,
+        "targetSdkVersion": 35,
+        "uses-permission": [
+          [
+            "android.permission.INTERNET",
+            null
+          ],
+          [
+            "android.permission.POST_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.WAKE_LOCK",
+            null
+          ],
+          [
+            "android.permission.ACCESS_NETWORK_STATE",
+            null
+          ],
+          [
+            "android.permission.RECEIVE_BOOT_COMPLETED",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE",
+            null
+          ],
+          [
+            "com.drinkwithme.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+            null
+          ]
+        ],
+        "versionCode": 1022,
+        "versionName": "2.0.0-test.22"
+      }
+    ]
+  }
+}

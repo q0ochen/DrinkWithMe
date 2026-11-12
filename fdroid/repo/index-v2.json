@@ -1,0 +1,139 @@
+{
+  "repo": {
+    "name": {
+      "en-US": "Drink With Me – Testversionen"
+    },
+    "description": {
+      "en-US": "Testversionen von Drink With Me, automatisch aus dem öffentlichen Quellcode auf GitHub gebaut. Das ist nicht das offizielle F-Droid-Verzeichnis."
+    },
+    "icon": {
+      "en-US": {
+        "name": "/icons/icon.png",
+        "sha256": "650724683c637f4a467a1ca1fad83eaa54e03d661f2093a868391863fb1e9cb3",
+        "size": 18940
+      }
+    },
+    "address": "https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo",
+    "timestamp": 1794515696000,
+    "antiFeatures": {
+      "NonFreeNet": {
+        "name": {
+          "de": "Nicht-freier Netzwerkdienst",
+          "en-US": "Non-Free Network Services"
+        },
+        "description": {
+          "de": "Diese App bewirbt einen nicht-quelloffenen Netzwerkdienst oder ist ganz auf ihn angewiesen.",
+          "en-US": "This app promotes or depends entirely on a non-free network service."
+        }
+      }
+    },
+    "categories": {
+      "Sports & Health": {
+        "name": {
+          "en-US": "Sports & Health"
+        }
+      }
+    }
+  },
+  "packages": {
+    "com.drinkwithme.app": {
+      "metadata": {
+        "added": 1794515692000,
+        "categories": [
+          "Sports & Health"
+        ],
+        "issueTracker": "https://github.com/q0ochen/DrinkWithMe/issues",
+        "lastUpdated": 1794515692000,
+        "license": "CC0-1.0",
+        "sourceCode": "https://github.com/q0ochen/DrinkWithMe",
+        "webSite": "https://q0ochen.github.io/DrinkWithMe/",
+        "tvBanner": {
+          "en-US": {
+            "name": "/com.drinkwithme.app/en-US/tvBanner_693RyYXP1cbCwEWhMPuCS9XgIv27ANrcGVWJKjQqyhs=.png",
+            "sha256": "ebddd1c985cfd5c6c2c045a130fb824bd5e022fdbb00dadc1955892a342aca1b",
+            "size": 53752
+          }
+        },
+        "authorName": "Drink With Me",
+        "name": {
+          "de-DE": "Drink With Me",
+          "en-US": "Drink With Me"
+        },
+        "summary": {
+          "de-DE": "Getränketagebuch für Alkohol und Zucker – auf Wunsch mit Freunden teilen",
+          "en-US": "Drink diary for alcohol and sugar, optionally shared with friends (German)"
+        },
+        "description": {
+          "de-DE": "<p><b>Dein Getränketagebuch – für dich und mit deinen Freunden.</b> Drink With Me zeigt dir anschaulich, wie viel Alkohol und Zucker du über Getränke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du möchtest, sehen deine Freunde, was du gerade trinkst – und du bekommst eine Nachricht, wenn sie etwas trinken.</p>\n\n<ul>\n<li><b>Bar:</b> Stell dir deine eigene Bar aus über 20 selbst gezeichneten Getränken zusammen oder lege eigene an. Ein Tipp = jetzt getrunken.</li>\n<li><b>Verlauf:</b> Zucker pro Tag, Alkohol pro Woche (mit den Bezugswerten der DGE 2024), alkoholfreie Tage in Folge, Vergleich mit dem Vormonat. Alle Werte auch als Text, Statistik als Bild teilen.</li>\n<li><b>Freunde (optional):</b> Anmeldung mit einem Google-Konto, Freunde per Einladungs-Link oder E-Mail-Adresse, Benachrichtigung, wenn ein Freund etwas trinkt. Einzelne Getränke kannst du privat eintragen.</li>\n<li><b>Sprache und Vorlesen:</b> Getränke per Sprache eintragen, Ereignisse laut vorlesen lassen – gedacht auch für Menschen, die schlecht sehen.</li>\n<li><b>Barrierefrei:</b> große Bedienflächen, Screenreader-Beschriftungen, Bedienung mit Fernbedienung (Android TV, Fire TV).</li>\n<li><b>Benachrichtigungen ohne Google-Dienste:</b> über UnifiedPush (empfohlen: ntfy), sonst prüft die App etwa alle 15 Minuten.</li>\n</ul>\n\n<p><b>Datenschutz:</b> Bar, Verlauf und Statistik bleiben auf deinem Gerät. Ohne Anmeldung verlässt nichts das Gerät. Geteilt werden nur Name, Icon, Art, Menge und Zeitpunkt eines Getränks – alkoholische Getränke erst nach deiner Zustimmung, nach 30 Tagen automatisch gelöscht. Keine Werbung, kein Tracking.</p>\n\n<p><b>Hinweis:</b> Für Freunde und Benachrichtigungen ist eine Anmeldung mit einem Google-Konto nötig (nicht freier Netzwerkdienst). Bar, Verlauf, Sprache und Vorlesen funktionieren ohne Konto und ohne Internet.</p>\n\n<p>Freie Software (CC0 1.0). Quellcode: <a href=\"https://github.com/q0ochen/DrinkWithMe\">github.com/q0ochen/DrinkWithMe</a></p>\n",
+          "en-US": "<p><b>Your drink diary – for you and with your friends.</b> Drink With Me shows how much alcohol and sugar you consume through drinks and helps you drink less of them. If you like, your friends see what you are drinking right now, and you get a notification when they drink something.</p>\n\n<p><b>The app is currently available in German only.</b></p>\n\n<ul>\n<li><b>Bar:</b> build your own bar from more than 20 hand-drawn drinks or add your own. One tap = drunk now.</li>\n<li><b>History:</b> sugar per day, alcohol per week (with the 2024 reference values of the German Nutrition Society), alcohol-free days in a row, comparison with the previous month. All values also as text; share your statistics as an image.</li>\n<li><b>Friends (optional):</b> sign in with a Google account, add friends via invite link or e-mail address, get a notification when a friend drinks something. Single drinks can be logged privately.</li>\n<li><b>Voice and read-aloud:</b> log drinks by voice, have events read aloud – also meant for people with low vision.</li>\n<li><b>Accessible:</b> large touch targets, screen reader labels, remote control navigation (Android TV, Fire TV).</li>\n<li><b>Notifications without Google services:</b> via UnifiedPush (recommended: ntfy); otherwise the app checks about every 15 minutes.</li>\n</ul>\n\n<p><b>Privacy:</b> your bar, history and statistics stay on your device. Without signing in, nothing leaves the device. Only the name, icon, type, amount and time of a drink are shared – alcoholic drinks only after your consent – and deleted automatically after 30 days. No ads, no tracking.</p>\n\n<p><b>Note:</b> friends and notifications require signing in with a Google account (non-free network service). Bar, history, voice and read-aloud work without an account and offline.</p>\n\n<p>Free software (CC0 1.0). Source code: <a href=\"https://github.com/q0ochen/DrinkWithMe\">github.com/q0ochen/DrinkWithMe</a></p>\n"
+        },
+        "icon": {
+          "en-US": {
+            "name": "/com.drinkwithme.app/en-US/icon_1biO0RzhPGAqIY8cxDAa_c4f78bXdytyIz2DHRoM2jk=.png",
+            "sha256": "d5b88ed11ce13c602a218f1cc4301afdce1fefc6d7772b72233d831d1a0cda39",
+            "size": 18714
+          }
+        },
+        "preferredSigner": "be67020f5d8535b0173b3bf3cb704f6587cb56e2c41fb0eb7959411513b11c85"
+      },
+      "versions": {
+        "b385258562168068d175cb593e791780090257b5d6f3135731e7800ad133e367": {
+          "added": 1794515692000,
+          "file": {
+            "name": "/com.drinkwithme.app_1022.apk",
+            "sha256": "b385258562168068d175cb593e791780090257b5d6f3135731e7800ad133e367",
+            "size": 13221058
+          },
+          "manifest": {
+            "nativecode": [
+              "arm64-v8a",
+              "armeabi-v7a",
+              "x86",
+              "x86_64"
+            ],
+            "versionName": "2.0.0-test.22",
+            "versionCode": 1022,
+            "usesSdk": {
+              "minSdkVersion": 26,
+              "targetSdkVersion": 35
+            },
+            "signer": {
+              "sha256": [
+                "be67020f5d8535b0173b3bf3cb704f6587cb56e2c41fb0eb7959411513b11c85"
+              ]
+            },
+            "usesPermission": [
+              {
+                "name": "android.permission.INTERNET"
+              },
+              {
+                "name": "android.permission.POST_NOTIFICATIONS"
+              },
+              {
+                "name": "android.permission.WAKE_LOCK"
+              },
+              {
+                "name": "android.permission.ACCESS_NETWORK_STATE"
+              },
+              {
+                "name": "android.permission.RECEIVE_BOOT_COMPLETED"
+              },
+              {
+                "name": "android.permission.FOREGROUND_SERVICE"
+              },
+              {
+                "name": "com.drinkwithme.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+              }
+            ]
+          },
+          "antiFeatures": {
+            "NonFreeNet": {
+              "de-DE": "Freunde und Benachrichtigungen erfordern eine Anmeldung mit einem Google-Konto. Bar, Verlauf, Sprache und Vorlesen funktionieren ohne Konto.",
+              "en-US": "Friends and notifications require signing in with a Google account. Bar, history, voice and read-aloud work without an account."
+            }
+          }
+        }
+      }
+    }
+  }
+}

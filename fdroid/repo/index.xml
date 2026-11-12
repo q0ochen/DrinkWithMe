@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fdroid>
+	<repo icon="icon.png" name="Drink With Me – Testversionen" pubkey="308204f0308202d8a003020102020900e6c2eedc39db2287300d06092a864886f70d01010c05003025312330210603550403131a4472696e6b2057697468204d6520462d44726f6964205265706f3020170d3236313131323139333830375a180f32303534303333303139333830375a3025312330210603550403131a4472696e6b2057697468204d6520462d44726f6964205265706f30820222300d06092a864886f70d01010105000382020f003082020a0282020100a77838a03d462d5e0d941df5f4ecccc042f3baf4c0c83a4251fbb671185a25020b0216f1c00fa2b2cb31f5d35a5886e99d17fb364b08e5dd6f239820d6ec7c3362064442da77aa52b484496f5b51ddfb8a23a7ccb1db6c77d4130e70b386525ce4475a546f8e451e8b62c0002328f66f346280c89aef2d3c36d2eb6817a6bc77f1947d253e8666f74d779ff3e553cf83b00451bac61ce54a50e4f0707e9ac8542f8430e94d4ff14a3788dae326827ed62b33e2b5697df45bdc10468560a6fbdf0efaa881549b7990a5332ef6682baf4c6f0d2058a959b692ff8f4f3e39f7780f949156bef2dc64c18700320261d26f60d768186f637f7cc2921d3e4e722121f2570a190502a6180789062ae11b99d82d5627e813f0c7c31828835453655d53b19a9b495984778c038d5e4829d9b6db09896becd49c6f2b75bc039a45ef06b5c1d7d4f238a3d82719db2b8837981c730cbd2110d5ddec96f6fd611e9a7df924ba0827eb541a29affb561c133bb7a89a9239ad9c70dfc33007ebedf527fae823b6dbe77341bb3a612aac279b9514f7c0c5b80d6b30bc4cf9de50a5b0a48ab735c93d7c5a960391b3e9a6255f8ed9847782799383cd7cf5b7fcb7b16c585fd764b732950eca44f9dace3259effa55bd551e77def0b4d81a2c7bbdc8fbed5c3709016fbc8b43c542b29a3d96451e02c36840d0de2311dcb1764d3d98fb9cc902509b0203010001a321301f301d0603551d0e041604140373882b96626c5193a24319190e0bde47a7d025300d06092a864886f70d01010c0500038202010083d34c8867c16f722fc09c54797af53514691376d3fd6ac9d969c4b4280fc5fee5ae0948007a3e2d64e84fda725aabe2ec83d349c886d773ee253548da8e50dfca09456a5c2d01ff972a101aae74f753a184ed69d0954826f0c9bee0cbf40136609384acec7689e8ba750638d8f2ab5eda0b92b43149e8ee9a07cd8caca8ed0ebc97fe9fd71f78c304946a2776ed732ee798e9bbfc050f2806c57bdd1e1e17d1700046a5c482c4ca456b7c54cc30630dfa8051d010894d6a860488a0ab12272ad2892fabba17ece02b5496b1563de01f3dc113400aadef4835faa038403698b7302265b095329497625eabff9101beeb11e73dc732750448c3947e29b3d6b511b465cd2240f900d5085698695e69aa36af807823d4e806f122f6511331ba265181116306a3b41c190e76e3319fffa0118294d3172d2c628e69411faff1c0242818885061958d0b9509e5b14be37119772279f5e9db716e3d1efadc78b269fffca7c7d2630301c4e62286cc1e40be953e79b1606dd2696d48709ba0b02575ce46606e389a73d8f3e2bb236fbb781755a45bf2ef0372203875576f4d990f4584262448fc3e77ea305f22a7b17a5bbdb1ddbe7e13a942436b4404b60e7d528db1c5a6b7aebd009bfb23f0ce1d80717a89518a2b71a410a4aa317d37772a904f52ee5ed882f8e245f34f0da7868d3cc828241f783723e269b8c7b38fe12182f67f80" timestamp="1794515696" url="https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo" version="20002">
+		<description>Testversionen von Drink With Me, automatisch aus dem öffentlichen Quellcode auf GitHub gebaut. Das ist nicht das offizielle F-Droid-Verzeichnis.</description>
+	</repo>
+	<application id="com.drinkwithme.app">
+		<id>com.drinkwithme.app</id>
+		<added>2026-11-12</added>
+		<lastupdated>2026-11-12</lastupdated>
+		<name>Drink With Me</name>
+		<summary>Drink diary for alcohol and sugar, optionally shared with friends (German)</summary>
+		<desc>&lt;p&gt;&lt;b&gt;Your drink diary – for you and with your friends.&lt;/b&gt; Drink With Me shows how much alcohol and sugar you consume through drinks and helps you drink less of them. If you like, your friends see what you are drinking right now, and you get a notification when they drink something.&lt;/p&gt;
+
+&lt;p&gt;&lt;b&gt;The app is currently available in German only.&lt;/b&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Bar:&lt;/b&gt; build your own bar from more than 20 hand-drawn drinks or add your own. One tap = drunk now.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;History:&lt;/b&gt; sugar per day, alcohol per week (with the 2024 reference values of the German Nutrition Society), alcohol-free days in a row, comparison with the previous month. All values also as text; share your statistics as an image.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Friends (optional):&lt;/b&gt; sign in with a Google account, add friends via invite link or e-mail address, get a notification when a friend drinks something. Single drinks can be logged privately.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Voice and read-aloud:&lt;/b&gt; log drinks by voice, have events read aloud – also meant for people with low vision.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Accessible:&lt;/b&gt; large touch targets, screen reader labels, remote control navigation (Android TV, Fire TV).&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Notifications without Google services:&lt;/b&gt; via UnifiedPush (recommended: ntfy); otherwise the app checks about every 15 minutes.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;b&gt;Privacy:&lt;/b&gt; your bar, history and statistics stay on your device. Without signing in, nothing leaves the device. Only the name, icon, type, amount and time of a drink are shared – alcoholic drinks only after your consent – and deleted automatically after 30 days. No ads, no tracking.&lt;/p&gt;
+
+&lt;p&gt;&lt;b&gt;Note:&lt;/b&gt; friends and notifications require signing in with a Google account (non-free network service). Bar, history, voice and read-aloud work without an account and offline.&lt;/p&gt;
+
+&lt;p&gt;Free software (CC0 1.0). Source code: &lt;a href=&quot;https://github.com/q0ochen/DrinkWithMe&quot;&gt;github.com/q0ochen/DrinkWithMe&lt;/a&gt;&lt;/p&gt;
+</desc>
+		<license>CC0-1.0</license>
+		<categories>Sports &amp; Health</categories>
+		<category>Sports &amp; Health</category>
+		<web>https://q0ochen.github.io/DrinkWithMe/</web>
+		<source>https://github.com/q0ochen/DrinkWithMe</source>
+		<tracker>https://github.com/q0ochen/DrinkWithMe/issues</tracker>
+		<author>Drink With Me</author>
+		<marketversion></marketversion>
+		<marketvercode>1022</marketvercode>
+		<antifeatures>NonFreeNet</antifeatures>
+		<package>
+			<version>2.0.0-test.22</version>
+			<versioncode>1022</versioncode>
+			<apkname>com.drinkwithme.app_1022.apk</apkname>
+			<hash type="sha256">b385258562168068d175cb593e791780090257b5d6f3135731e7800ad133e367</hash>
+			<size>13221058</size>
+			<sdkver>26</sdkver>
+			<targetSdkVersion>35</targetSdkVersion>
+			<added>2026-11-12</added>
+			<sig>5597009553b4a786a35cc1d305550618</sig>
+			<permissions>ACCESS_NETWORK_STATE,FOREGROUND_SERVICE,INTERNET,POST_NOTIFICATIONS,RECEIVE_BOOT_COMPLETED,WAKE_LOCK,com.drinkwithme.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION</permissions>
+			<nativecode>arm64-v8a,armeabi-v7a,x86,x86_64</nativecode>
+		</package>
+	</application>
+</fdroid>
