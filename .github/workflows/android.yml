@@ -9,11 +9,15 @@ on:
     paths:
       - "android/**"
       - "design/**"
+      - "fastlane/**"
+      - "fdroid/**"
       - ".github/workflows/android.yml"
   pull_request:
     paths:
       - "android/**"
       - "design/**"
+      - "fastlane/**"
+      - "fdroid/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
@@ -51,8 +55,10 @@ jobs:
       - name: Tests des App-Moduls
         run: ./gradlew :app:testDebugUnitTest --no-daemon
 
+      # Laufnummer → steigende versionCode (1000 + Nummer) und versionName „2.0.0-test.<Nummer>“, damit Android,
+      # F-Droid und Obtainium jede Testversion als Update erkennen (siehe android/app/build.gradle.kts).
       - name: Debug-APK bauen
-        run: ./gradlew :app:assembleDebug --no-daemon
+        run: ./gradlew :app:assembleDebug --no-daemon -PciBuildNumber=${{ github.run_number }}
 
       # Stellt sicher, dass die APK mit dem festen Schlüssel aus app/debug.keystore signiert ist.
       # Nur dann lassen sich neue Versionen über alte installieren, ohne Daten zu verlieren.
@@ -177,7 +183,7 @@ jobs:
     name: Öffentliche Testversion aktualisieren
     needs: build
     if: >-
-      github.event_name == 'push' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
     runs-on: ubuntu-latest
     permissions:
@@ -209,7 +215,7 @@ jobs:
           STAND="$(date -u '+%d.%m.%Y, %H:%M UTC')"
           KURZ="${GITHUB_SHA::7}"
           cat > notes.md <<EOF
-          **Testversion von Drink With Me für Android** – Stand ${STAND}, Code-Stand \`${KURZ}\`.
+          **Testversion von Drink With Me für Android** – Version \`2.0.0-test.${GITHUB_RUN_NUMBER}\`, Stand ${STAND}, Code-Stand \`${KURZ}\`.
 
           **Herunterladen (ohne Anmeldung):** https://github.com/${GH_REPO}/releases/download/${TAG}/DrinkWithMe.apk
 
@@ -246,3 +252,90 @@ jobs:
           fi
           gh release upload "$TAG" DrinkWithMe.apk DrinkWithMe.apk.sha256 --clobber
           echo "Öffentlicher Link: https://github.com/$GH_REPO/releases/download/$TAG/DrinkWithMe.apk"
+
+  # Eigene F-Droid-Paketquelle (nicht das offizielle F-Droid): signierter Index + aktuelle Testversion auf dem Zweig
+  # „fdroid-repo“, abrufbar über raw.githubusercontent.com. Tester fügen sie einmal in der F-Droid-App hinzu und
+  # bekommen Updates über F-Droid. Braucht das Secret FDROID_REPO_KEYSTORE (docs/EINRICHTUNG.md, Schritt 5.5);
+  # fehlt es, wird der Job übersprungen. Erklärung: docs/F-DROID.md, Abschnitt 11.3.
+  fdroid:
+    name: Eigene F-Droid-Paketquelle aktualisieren
+    needs: build
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: android-fdroid
+      cancel-in-progress: false
+    env:
+      FDROID_REPO_KEYSTORE: ${{ secrets.FDROID_REPO_KEYSTORE }}
+      # SHA-256 des Zertifikats der Paketquelle – derselbe Wert steht im Link in README.md.
+      FDROID_REPO_FINGERPRINT: d358dcffd3b82c09460943df4513e5f7951f2c0c6a6fd7ebab8e0741becd7523
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Schlüssel vorhanden?
+        id: key
+        run: |
+          if [ -z "$FDROID_REPO_KEYSTORE" ]; then
+            echo "::notice::Das Secret FDROID_REPO_KEYSTORE fehlt – die F-Droid-Paketquelle wird nicht aktualisiert (docs/EINRICHTUNG.md, Schritt 5.5)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+
+      - uses: actions/download-artifact@v4
+        if: steps.key.outputs.ready == 'true'
+        with:
+          name: DrinkWithMe-android-apk
+          path: apk
+
+      - uses: actions/setup-python@v5
+        if: steps.key.outputs.ready == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: fdroidserver installieren
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          python -m pip install --quiet "fdroidserver==2.4.5"
+          # apksigner (für die Signatur des Index) aus den neuesten Android-Build-Tools.
+          ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1 >> "$GITHUB_PATH"
+
+      - name: Paketquelle bauen
+        if: steps.key.outputs.ready == 'true'
+        run: fdroid/build-repo.sh apk/app-debug.apk "$((1000 + GITHUB_RUN_NUMBER))" "$RUNNER_TEMP/fdroidwork"
+
+      - name: Auf dem Zweig „fdroid-repo“ veröffentlichen
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          PUB="$RUNNER_TEMP/fdroid-publish"
+          rm -rf "$PUB" && mkdir -p "$PUB/fdroid"
+          cp -R "$RUNNER_TEMP/fdroidwork/repo" "$PUB/fdroid/repo"
+          LINK="https://fdroid.link/#https://raw.githubusercontent.com/${GH_REPO}/fdroid-repo/fdroid/repo?fingerprint=${FDROID_REPO_FINGERPRINT^^}"
+          cat > "$PUB/README.md" <<EOF
+          # F-Droid-Paketquelle für die Testversionen von Drink With Me
+
+          Dieser Zweig wird automatisch von \`.github/workflows/android.yml\` erzeugt und bei jedem Build ersetzt –
+          bitte nicht von Hand ändern. Er enthält nur die aktuelle Testversion (2.0.0-test.${GITHUB_RUN_NUMBER}).
+
+          In der F-Droid-App hinzufügen: ${LINK}
+
+          Fingerabdruck: \`${FDROID_REPO_FINGERPRINT}\`
+          EOF
+          cd "$PUB"
+          git init -q -b fdroid-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "F-Droid-Paketquelle: Testversion 2.0.0-test.${GITHUB_RUN_NUMBER} (${GITHUB_SHA::7})"
+          # Nur ein einziger Commit: Alte APKs sollen den Zweig nicht wachsen lassen.
+          AUTH="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic ${AUTH}" \
+            push --force "https://github.com/${GH_REPO}.git" HEAD:refs/heads/fdroid-repo
+          echo "Veröffentlicht: ${LINK}" | tee -a "$GITHUB_STEP_SUMMARY"

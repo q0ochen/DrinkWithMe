@@ -11,9 +11,10 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 > F-Droid-Regeln stammen aus den Quelltexten der Dokumentation auf GitLab (`fdroid-website`, `fdroidserver`) und aus
 > Suchergebnissen. Vor dem Einreichen bitte die verlinkten Originalseiten lesen.
 >
-> **Schneller zur App, bis F-Droid so weit ist:** Testversion per Link oder mit **Obtainium**, siehe
-> [Abschnitt 11](#11-bis-zur-aufnahme-andere-wege). **IzzyOnDroid** kommt wegen seiner KI-Richtlinie praktisch nicht
-> in Frage.
+> **Schon jetzt in der F-Droid-App:** über unsere **eigene F-Droid-Paketquelle** (Abschnitt 11.3, Anleitung in der
+> [README](../README.md#in-f-droid-eigene-paketquelle)). Außerdem: Testversion per Link oder mit **Obtainium**
+> ([Abschnitt 11](#11-bis-zur-aufnahme-andere-wege)). **IzzyOnDroid** kommt wegen seiner KI-Richtlinie praktisch
+> nicht in Frage.
 
 ---
 
@@ -27,10 +28,10 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 | Mindestens 3 Monate aktive Entwicklung | steht seit 16. Oktober 2026 ausdrücklich in der Inclusion Policy; Repository seit 9. November 2026 → frühestens **Februar 2027** |
 | Regel zu KI-erstelltem Code | F-Droid: **keine** (Stand 10.11.2026); ob eine kommt, ist offen [unsicher]; vor dem Einreichen neu prüfen (Abschnitt 11.4) |
 | Anti-Features | voraussichtlich **NonFreeNet**, möglicherweise zusätzlich **TetheredNet** |
-| Store-Texte und Bilder (Fastlane) | **fehlt noch** |
+| Store-Texte und Bilder (Fastlane) | **teilweise:** Titel, Kurz- und Langbeschreibung (`de-DE`, `en-US`), Icon und TV-Banner unter `fastlane/metadata/android/`; Bildschirmfotos und Änderungshinweise fehlen noch |
 | Eigener Release-Schlüssel und Release-Workflow | **fehlt noch** |
 | Abhängigkeits-Block von Google (`dependenciesInfo`) | **abgeschaltet** |
-| Versionsnummern und Tags | **teilweise:** `versionName` ist `2.0.0`; `versionCode` erhöhen und Tag setzen fehlen noch (Schema unten) |
+| Versionsnummern und Tags | **teilweise:** Testversionen zählen automatisch hoch (`1000 + Laufnummer`); für Veröffentlichungen Schema und Tag unten |
 | Einreichen bei F-Droid (Merge Request) | nach den Punkten oben |
 | Realistische Aufnahme | **etwa Februar bis Mai 2027** [unsicher – hängt von freiwilligen Prüfern ab] |
 
@@ -183,10 +184,10 @@ Reproduzierbare Builds sind bei F-Droid **keine Pflicht**, gelten aber als gute 
 
 | Was | Regel | Beispiel |
 |---|---|---|
-| `versionCode` (in `android/app/build.gradle.kts`) | ganze Zahl, bei **jeder** Veröffentlichung um mindestens 1 höher, nie wiederverwenden | jetzt `2` → erste F-Droid-Version z. B. `3` |
+| `versionCode` (in `android/app/build.gradle.kts`) | ganze Zahl, bei **jeder** Veröffentlichung höher, nie wiederverwenden. Testversionen aus der CI haben `1000 + Laufnummer` (automatisch, `-PciBuildNumber`); Veröffentlichungen **Major × 1.000.000 + Minor × 1.000 + Patch**, fest eingecheckt – damit liegen sie immer über den Testversionen | `2.0.0` → `2000000` |
 | `versionName` | dreiteilig, passend zum Tag | `2.0.0` (gesetzt) |
 | Git-Tag | `v` + `versionName`, auf dem Commit, aus dem gebaut wird | `v2.0.0` |
-| Änderungshinweis | `fastlane/metadata/android/de-DE/changelogs/<versionCode>.txt` (und `en-US`) | `changelogs/3.txt` |
+| Änderungshinweis | `fastlane/metadata/android/de-DE/changelogs/<versionCode>.txt` (und `en-US`) | `changelogs/2000000.txt` |
 
 - Die automatische Testversion nutzt den festen Tag `testversion` (`.github/workflows/android.yml`). Er passt nicht
   zum Muster `^v[0-9.]+$`, deshalb hält F-Droid ihn nicht für eine Veröffentlichung. Eigene Test-Tags bitte nie
@@ -225,7 +226,7 @@ Packaging“-Tracker – dauert meist deutlich länger).
 
    Builds:
      - versionName: 2.0.0
-       versionCode: 3
+       versionCode: 2000000
        commit: v2.0.0
        subdir: android/app
        gradle:
@@ -241,7 +242,7 @@ Packaging“-Tracker – dauert meist deutlich länger).
    AutoUpdateMode: Version
    UpdateCheckMode: Tags ^v[0-9.]+$
    CurrentVersion: 2.0.0
-   CurrentVersionCode: 3
+   CurrentVersionCode: 2000000
    ```
 
 4. Merge Request mit dem Titel **„New app: Drink With Me“** öffnen, die Vorlage (Checkliste) ausfüllen und
@@ -296,7 +297,7 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 
 | Wann | Was |
 |---|---|
-| ab sofort | Testversion per Link oder mit Obtainium verteilen (Abschnitt 11) |
+| ab sofort | Testversion per Link, mit Obtainium oder über die eigene F-Droid-Paketquelle verteilen (Abschnitt 11) |
 | bis Dezember 2026 | Testphase mit Test-APKs; Fehler beheben |
 | Dezember 2026 – Januar 2027 | Release-Schlüssel erzeugen, Release-Workflow, Reproduzierbarkeit prüfen (`dependenciesInfo` ist schon abgeschaltet); Fastlane-Texte und Bildschirmfotos; `versionCode` erhöhen und Tag setzen; ggf. Export/Import des Verlaufs in der Android-App |
 | ab Mitte Februar 2027 | 3 Monate aktive Entwicklung erreicht → Merge Request bei `fdroiddata` |
@@ -315,7 +316,8 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 - [ ] Reproduzierbarkeit geprüft (zwei Builds aus demselben Commit sind identisch)
 - [x] `versionName` dreiteilig (`2.0.0`)
 - [ ] `versionCode` erhöht, Tag `v2.0.0` gesetzt
-- [ ] Fastlane-Texte (`de-DE`, `en-US`), Icon, Bildschirmfotos, Änderungshinweise
+- [x] Fastlane-Texte (`de-DE`, `en-US`), Icon, TV-Banner
+- [ ] Fastlane: Bildschirmfotos, Änderungshinweise
 - [ ] Datenschutzerklärung unter fester Adresse (siehe [`DATENSCHUTZ_ENTWURF.md`](DATENSCHUTZ_ENTWURF.md))
 - [ ] Umstieg der Testerinnen und Tester angekündigt (Deinstallation, Datenverlust) oder Export in der Android-App gebaut
 - [ ] 3 Monate aktive Entwicklung erreicht (ab etwa 9. Februar 2027)
@@ -332,7 +334,7 @@ Katalog anbieten? Ergebnis der Recherche:
 |---|---|---|---|
 | **Testversion per Link** | sofort | 0 € | läuft schon; Updates von Hand |
 | **Obtainium** + Testversion | sofort | 0 € | **Empfehlung für die Testphase:** meldet neue Testversionen, keine Projektänderung nötig |
-| **Eigenes F-Droid-Verzeichnis** auf GitHub | nach 2–4 Stunden Einrichtung | 0 € | möglich; lohnt sich nur, wenn Testerinnen und Tester ausdrücklich einen F-Droid-Client nutzen wollen |
+| **Eigene F-Droid-Paketquelle** auf GitHub | **eingerichtet** (12.11.2026), aktiv sobald das Secret `FDROID_REPO_KEYSTORE` gesetzt ist | 0 € | für alle, die die App in der F-Droid-App haben wollen (11.3) |
 | **IzzyOnDroid** | – | 0 € | **praktisch ausgeschlossen** wegen der KI-Richtlinie (11.2) |
 | **Offizielles F-Droid** | Antrag ab etwa 9.2.2027, Aufnahme etwa Februar bis Mai 2027 | 0 € | das Ziel (Abschnitte 1–10); Restrisiko KI-Regel (11.4) |
 
@@ -341,8 +343,8 @@ Katalog anbieten? Ergebnis der Recherche:
 [Obtainium](https://github.com/ImranR98/Obtainium) (GPL-3.0, erhältlich als APK bei GitHub, in F-Droid und bei
 IzzyOnDroid) installiert Apps direkt aus GitHub-Releases und meldet neue Versionen.
 
-- Die Testversion hat einen **festen Tag** (`testversion`), ist als **Vorabversion** markiert und behält
-  `versionCode` 2. Obtainium erkennt neue Builds deshalb nur mit drei Einstellungen: **Vorabversionen einbeziehen**
+- Die Testversion hat einen **festen Tag** (`testversion`) und ist als **Vorabversion** markiert. Obtainium liest
+  die Version aus dem Tag-Namen und erkennt neue Builds deshalb nur mit drei Einstellungen: **Vorabversionen einbeziehen**
   (`includePrereleases`), **Veröffentlichungsdatum als Version verwenden** (`releaseDateAsVersion`, dazu
   `versionDetection` aus) und **Letzten Upload eines Release-Anhangs als Veröffentlichungsdatum verwenden**
   (`useLatestAssetDateAsReleaseDate`). Die letzte ist nötig, weil `android.yml` das Release nur bearbeitet und die
@@ -375,22 +377,38 @@ den Clients **Droid-ify** und **Neo Store** voreingestellt, in der offiziellen F
 - Antrag (falls doch): Issue „App Inclusion Request“ auf
   [codeberg.org/IzzyOnDroid/repodata](https://codeberg.org/IzzyOnDroid/repodata) (kostenloses Codeberg-Konto).
 
-### 11.3 Eigenes F-Droid-Verzeichnis (optional)
+### 11.3 Eigene F-Droid-Paketquelle (eingerichtet)
 
-Mit `fdroidserver` (`fdroid update`) lässt sich aus fertigen APKs ein signiertes F-Droid-Verzeichnis erzeugen und
-kostenlos auf GitHub bereitstellen. Nutzer tragen es im F-Droid-Client unter Einstellungen → Paketquellen mit
-Adresse und Fingerabdruck ein (QR-Code, `fdroidrepos://…` oder `https://fdroid.link/#…`).
+Seit 12.11.2026 baut der Workflow „Android“ bei jedem Push auf `main` bzw. den Entwicklungszweig (und bei einem
+manuellen Start) eine eigene F-Droid-Paketquelle. Wer die F-Droid-App nutzt, fügt sie einmal hinzu und
+installiert und aktualisiert Drink With Me dann wie jede andere F-Droid-App. Anleitung mit Link und QR-Code:
+[README](../README.md#in-f-droid-eigene-paketquelle).
 
-- Ein **eigener, geheimer Index-Schlüssel** als GitHub-Secret ist nötig – **niemals** das öffentliche
-  `android/app/debug.keystore` aus dem Repository (auch nicht als `DEBUG_KEYSTORE` für `fdroid nightly`), sonst
-  könnte jeder ein gültiges Verzeichnis fälschen.
-- F-Droid-Clients bieten ein Update nur bei **höherem `versionCode`** an. Er müsste pro Build automatisch steigen.
-- GitHub Pages ist durch die Web-App belegt (ein Repository hat nur eine Pages-Seite, jedes Deploy ersetzt sie).
-  Also entweder gemeinsam mit der Web-App bereitstellen, ein eigenes Repository nutzen oder `fdroid nightly` in ein
-  Repository `q0ochen/DrinkWithMe-nightly` schreiben lassen. `fdroid nightly` ist dokumentiert, F-Droid
-  unterstützt GitHub Actions aber ausdrücklich nicht offiziell. Außerdem signiert es die APK neu: Alle Tester
-  müssten einmal neu installieren.
-- Bewertung: In der Testphase bringt das gegenüber Obtainium wenig. Nur einrichten, wenn ausdrücklich gewünscht.
+| Was | Wie |
+|---|---|
+| Adresse | `https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo` |
+| Fingerabdruck (SHA-256) | `d358dcffd3b82c09460943df4513e5f7951f2c0c6a6fd7ebab8e0741becd7523` |
+| Link zum Hinzufügen | `https://fdroid.link/#<Adresse>?fingerprint=<Fingerabdruck>` (F-Droid 2.0 fängt nur `fdroid.link` und `fdroidrepos://` ab, keine normalen https-Links) |
+| Gebaut von | Job „Eigene F-Droid-Paketquelle aktualisieren“ in `.github/workflows/android.yml` mit `fdroid/build-repo.sh` und `fdroidserver` 2.4.5 (`fdroid update`) |
+| Inhalt | signierter Index (`entry.jar`, `index-v2.json`, für alte Clients `index-v1.jar`), die **aktuelle** Testversion, Texte und Bilder aus `fastlane/metadata/android/`, Angaben aus `fdroid/metadata/com.drinkwithme.app.yml` (u. a. Anti-Feature NonFreeNet) |
+| Ort | Zweig `fdroid-repo` – bei jedem Build mit **einem einzigen** Commit ersetzt, damit alte APKs das Repository nicht wachsen lassen (er enthält rund 13 MB) |
+| Signatur des Index | eigener geheimer Schlüssel im Secret `FDROID_REPO_KEYSTORE` (EINRICHTUNG 5.5) – **nicht** `android/app/debug.keystore`. Der Job prüft vor und nach dem Bauen, dass Schlüssel und Index zum Fingerabdruck passen; fehlt das Secret, wird der Job übersprungen |
+| Signatur der APK | unverändert der feste Test-Schlüssel: Die App aus F-Droid, aus dem Download-Link und aus Obtainium ist austauschbar |
+| Updates | F-Droid bietet ein Update nur bei höherem `versionCode` an. Deshalb haben Testversionen aus der CI `versionCode` **1000 + Laufnummer** und `versionName` `2.0.0-test.<Laufnummer>` (`-PciBuildNumber` in `android/app/build.gradle.kts`) |
+
+Grenzen und Hinweise:
+
+- Das ist **nicht** das offizielle F-Droid: F-Droid baut hier nichts selbst und prüft nichts. Die Paketquelle
+  verteilt genau die APK, die GitHub Actions gebaut und getestet hat.
+- Warum nicht GitHub Pages? Pages ist durch die Web-App belegt (ein Repository hat nur eine Pages-Seite, jedes
+  Deploy ersetzt sie). `raw.githubusercontent.com` ist der übliche Weg für solche Paketquellen (so arbeitet auch
+  `fdroid nightly`). `fdroid nightly` selbst passt nicht, weil es die APK neu signiert – alle Tester müssten neu
+  installieren.
+- `fdroid update` warnt, dass die APK „debuggable“ ist – das ist bei Testversionen so gewollt.
+- Den Schlüssel **nie verlieren oder austauschen**: Ein neuer Schlüssel heißt, dass alle die Paketquelle neu
+  hinzufügen müssen.
+- Nach der Aufnahme ins offizielle F-Droid kann die eigene Paketquelle eingestellt werden; wer mag, behält sie für
+  Testversionen.
 
 ### 11.4 Offizielles F-Droid und KI
 

@@ -67,6 +67,9 @@ Technische Umsetzung: siehe [`ARCHITEKTUR.md`](ARCHITEKTUR.md).
 
 - **Repository** heißt jetzt `q0ochen/DrinkWithMe` und ist **öffentlich** (Voraussetzung für F-Droid) (10.11.2026).
 - **Web-App-Hosting:** kostenlos über **GitHub Pages** unter `https://q0ochen.github.io/DrinkWithMe/` (10.11.2026).
+- **F-Droid:** Bis zur Aufnahme ins offizielle F-Droid (frühestens ab Februar 2027) gibt es eine **eigene
+  F-Droid-Paketquelle** für die Testversionen, damit Tester die App schon jetzt über die F-Droid-App installieren
+  und aktualisieren können (12.11.2026). IzzyOnDroid kommt wegen seiner KI-Richtlinie nicht in Frage.
 
 ## Offene Entscheidungen
 

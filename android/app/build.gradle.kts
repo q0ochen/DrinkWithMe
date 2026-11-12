@@ -17,6 +17,12 @@ val supabaseProperties = Properties().apply {
 
 fun supabaseValue(key: String): String = supabaseProperties.getProperty(key, "").trim()
 
+// Testversionen aus der CI (-PciBuildNumber=<Laufnummer>) bekommen eine steigende Versionsnummer, damit Android,
+// F-Droid und Obtainium sie als Update erkennen: versionCode 1000 + Laufnummer, versionName „2.0.0-test.<Laufnummer>“.
+// Lokale Builds bleiben bei 2 / „2.0.0“ (über eine neuere Testversion lassen sie sich deshalb nicht installieren).
+// Spätere Veröffentlichungen (F-Droid) nutzen Major × 1.000.000 + Minor × 1.000 + Patch und liegen damit darüber.
+val ciBuildNumber: Int? = providers.gradleProperty("ciBuildNumber").orNull?.trim()?.toIntOrNull()?.takeIf { it > 0 }
+
 /** Als Java-String-Literal für BuildConfig (Backslashes und Anführungszeichen maskiert). */
 fun String.asJavaStringLiteral(): String = "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
@@ -28,9 +34,9 @@ android {
         applicationId = "com.drinkwithme.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        // Dreiteilig (F-Droid/Semver); versionCode bleibt, es gab noch kein Release.
-        versionName = "2.0.0"
+        versionCode = ciBuildNumber?.let { 1000 + it } ?: 2
+        // Dreiteilig (F-Droid/Semver); Testversionen mit Zusatz „-test.<Laufnummer>“.
+        versionName = ciBuildNumber?.let { "2.0.0-test.$it" } ?: "2.0.0"
 
         buildConfigField("String", "SUPABASE_URL", supabaseValue("supabaseUrl").asJavaStringLiteral())
         buildConfigField("String", "SUPABASE_ANON_KEY", supabaseValue("supabaseAnonKey").asJavaStringLiteral())

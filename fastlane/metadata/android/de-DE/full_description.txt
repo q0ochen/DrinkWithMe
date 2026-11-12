@@ -1,0 +1,16 @@
+<p><b>Dein Getränketagebuch – für dich und mit deinen Freunden.</b> Drink With Me zeigt dir anschaulich, wie viel Alkohol und Zucker du über Getränke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du möchtest, sehen deine Freunde, was du gerade trinkst – und du bekommst eine Nachricht, wenn sie etwas trinken.</p>
+
+<ul>
+<li><b>Bar:</b> Stell dir deine eigene Bar aus über 20 selbst gezeichneten Getränken zusammen oder lege eigene an. Ein Tipp = jetzt getrunken.</li>
+<li><b>Verlauf:</b> Zucker pro Tag, Alkohol pro Woche (mit den Bezugswerten der DGE 2024), alkoholfreie Tage in Folge, Vergleich mit dem Vormonat. Alle Werte auch als Text, Statistik als Bild teilen.</li>
+<li><b>Freunde (optional):</b> Anmeldung mit einem Google-Konto, Freunde per Einladungs-Link oder E-Mail-Adresse, Benachrichtigung, wenn ein Freund etwas trinkt. Einzelne Getränke kannst du privat eintragen.</li>
+<li><b>Sprache und Vorlesen:</b> Getränke per Sprache eintragen, Ereignisse laut vorlesen lassen – gedacht auch für Menschen, die schlecht sehen.</li>
+<li><b>Barrierefrei:</b> große Bedienflächen, Screenreader-Beschriftungen, Bedienung mit Fernbedienung (Android TV, Fire TV).</li>
+<li><b>Benachrichtigungen ohne Google-Dienste:</b> über UnifiedPush (empfohlen: ntfy), sonst prüft die App etwa alle 15 Minuten.</li>
+</ul>
+
+<p><b>Datenschutz:</b> Bar, Verlauf und Statistik bleiben auf deinem Gerät. Ohne Anmeldung verlässt nichts das Gerät. Geteilt werden nur Name, Icon, Art, Menge und Zeitpunkt eines Getränks – alkoholische Getränke erst nach deiner Zustimmung, nach 30 Tagen automatisch gelöscht. Keine Werbung, kein Tracking.</p>
+
+<p><b>Hinweis:</b> Für Freunde und Benachrichtigungen ist eine Anmeldung mit einem Google-Konto nötig (nicht freier Netzwerkdienst). Bar, Verlauf, Sprache und Vorlesen funktionieren ohne Konto und ohne Internet.</p>
+
+<p>Freie Software (CC0 1.0). Quellcode: https://github.com/q0ochen/DrinkWithMe</p>

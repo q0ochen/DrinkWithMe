@@ -49,11 +49,35 @@ installiert die Testversion direkt aus GitHub und meldet jede neue Testversion.
 
 Der Link setzt die drei Einstellungen, die für die Testversion nötig sind: „Vorabversionen einbeziehen“,
 „Veröffentlichungsdatum als Version verwenden“ und „Letzten Upload eines Release-Anhangs als
-Veröffentlichungsdatum verwenden“. Die Testversion hat immer denselben Namen und dieselbe Versionsnummer,
-deshalb erkennt Obtainium neue Builds nur am Datum. Wer die App von Hand in Obtainium hinzufügt
+Veröffentlichungsdatum verwenden“. Die Testversion liegt immer unter demselben Release-Namen („testversion“),
+deshalb erkennt Obtainium neue Builds am Datum. Wer die App von Hand in Obtainium hinzufügt
 (`https://github.com/q0ochen/DrinkWithMe`), schaltet diese drei Einstellungen selbst ein.
 
-Wann die App in F-Droid kommt, steht in [`docs/F-DROID.md`](docs/F-DROID.md).
+### In F-Droid (eigene Paketquelle)
+
+Wer [F-Droid](https://f-droid.org) nutzt, kann Drink With Me **schon jetzt über F-Droid** installieren und
+aktualisieren – aus unserer eigenen Paketquelle. In das offizielle F-Droid-Verzeichnis kommt die App frühestens
+ab Februar 2027 (siehe [`docs/F-DROID.md`](docs/F-DROID.md)).
+
+1. **F-Droid installieren:** auf [f-droid.org](https://f-droid.org) „F-Droid herunterladen“ antippen und die Datei
+   öffnen – mit denselben Schritten wie oben (Erlaubnis zulassen, bei Play Protect „Weitere Details → Trotzdem
+   installieren“).
+2. **Paketquelle hinzufügen:** auf dem Android-Gerät diesen Link öffnen →
+   **[„Drink With Me – Testversionen“ in F-Droid hinzufügen](https://fdroid.link/#https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo?fingerprint=D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523)**
+   → in F-Droid öffnen → **Paketquelle hinzufügen** bestätigen. Oder den QR-Code unten mit dem Handy scannen
+   (z. B. vom Computer-Bildschirm).
+3. In F-Droid nach **„Drink With Me“** suchen → **Installieren**. Neue Testversionen erscheinen danach als ganz
+   normale Updates in F-Droid.
+
+<img src="docs/fdroid-paketquelle-qr.svg" alt="QR-Code: Paketquelle „Drink With Me – Testversionen“ in F-Droid hinzufügen" width="200">
+
+Von Hand: F-Droid → Einstellungen → **Paketquellen** → **+** → Adresse
+`https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo` und Fingerabdruck
+`D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523`.
+
+Die App aus F-Droid, aus dem Download-Link oben und aus Obtainium ist **dieselbe** (gleiche Signatur): Man kann
+zwischen den Wegen wechseln, ohne neu zu installieren. F-Droid kennzeichnet die App mit „Nicht-freier
+Netzwerkdienst“, weil Freunde und Benachrichtigungen eine Google-Anmeldung brauchen.
 
 ## Funktionen
 
@@ -122,6 +146,8 @@ supabase/
 web/             Web-App/PWA (Vite, TypeScript, Preact, supabase-js, IndexedDB, Service Worker):
                  Port des Kotlin-Kerns mit Golden-Tests, Supabase-Adapter, Oberfläche, Playwright-Tests
 design/          Selbst gezeichnete SVG-Icons (CC0) und Werkzeuge (SVG → Android-VectorDrawable, Prüfungen)
+fastlane/        Store-Texte und -Bilder (de-DE, en-US) für F-Droid
+fdroid/          Eigene F-Droid-Paketquelle für Testversionen (Einstellungen, Metadaten, Bau-Skript)
 ios/             Alte, rein lokale iPhone-App (Swift/SwiftUI) – wird in dieser Phase NICHT weiterentwickelt;
                  iPhone-Nutzer nehmen die Web-App
 docs/            Einrichtung, Anforderungen, Architektur, Datenschutz-Entwurf, F-Droid
@@ -138,7 +164,7 @@ Jeder Push und jeder Pull Request startet automatisch die passenden Prüfungen (
 
 | Workflow | Wann | Was |
 |---|---|---|
-| **Android** (`android.yml`) | Änderungen an `android/` oder `design/` | Icons prüfen (SVG ↔ Android), Tests der Grafik-Werkzeuge, Tests des Kerns und der App, Debug-APK bauen, Signatur prüfen → Artifact **`DrinkWithMe-android-apk`**; **Installationstest**: die APK im Emulator mit dem neuesten Android installieren und starten (normal und mit 16-KB-Speicherseiten, Bildschirmfoto und Protokoll als Artifact); bei einem Push auf `main` oder den Entwicklungszweig zusätzlich die öffentliche **Testversion** (Release `testversion`, siehe oben) ersetzen |
+| **Android** (`android.yml`) | Änderungen an `android/`, `design/`, `fastlane/` oder `fdroid/`; auch manuell | Icons prüfen (SVG ↔ Android), Tests der Grafik-Werkzeuge, Tests des Kerns und der App, Debug-APK bauen, Signatur prüfen → Artifact **`DrinkWithMe-android-apk`**; **Installationstest**: die APK im Emulator mit dem neuesten Android installieren und starten (normal und mit 16-KB-Speicherseiten, Bildschirmfoto und Protokoll als Artifact); bei einem Push auf `main` oder den Entwicklungszweig (oder manuell) zusätzlich die öffentliche **Testversion** (Release `testversion`, siehe oben) ersetzen und die **eigene F-Droid-Paketquelle** (Zweig `fdroid-repo`, braucht das Secret `FDROID_REPO_KEYSTORE`) neu bauen |
 | **Supabase** (`supabase.yml`) | Änderungen an `supabase/` | Lokales Supabase in Docker starten, alle Migrationen auf leerer Datenbank, pgTAP-Tests; Edge Functions: Formatierung, Lint, Typprüfung, Deno-Tests (u. a. gegen die Beispielwerte aus RFC 8291) |
 | **Web-App** (`web.yml`) | Änderungen an `web/` oder `design/icons/`; auch manuell (Run workflow) | Typprüfung, Lint, Unit-Tests (inkl. Golden-Tests gegen den Kotlin-Kern), Build, Playwright-Tests → Artifact **`DrinkWithMe-web`**; bei einem Push auf `main` oder einem manuellen Start auf `main` (Actions → „Web-App“ → Run workflow) zusätzlich **Veröffentlichung auf GitHub Pages** |
 | **Supabase Deploy** (`supabase-deploy.yml`) | **nur manuell** (Actions → „Supabase Deploy“ → Run workflow) | Migrationen und Edge Functions im echten Supabase-Projekt bereitstellen; braucht die Secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und die Variable `SUPABASE_PROJECT_REF` |
@@ -157,6 +183,8 @@ Wer nicht programmiert, braucht das nicht: Die CI baut alles, siehe [`docs/EINRI
 cd android
 ./gradlew :core:test :app:testDebugUnitTest   # Tests
 ./gradlew :app:assembleDebug                  # APK unter app/build/outputs/apk/debug/
+# Lokale Builds haben versionCode 2; die CI-Testversionen 1000 + Laufnummer. Eine lokale APK lässt sich deshalb
+# nicht über eine Testversion installieren (Android: „Paket offenbar ungültig“) – vorher deinstallieren.
 
 # Web-App (Node.js 22)
 cd web

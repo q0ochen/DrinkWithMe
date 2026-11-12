@@ -336,6 +336,36 @@ Die Variable `WEB_APP_URL` ist optional; ohne sie gilt `https://q0ochen.github.i
 **Settings → Pages → Build and deployment → Source:** **GitHub Actions** auswählen. Mehr ist nicht nötig – den
 Rest erledigt der Workflow „Web-App“.
 
+### 5.5 F-Droid-Paketquelle: Schlüssel als Secret (einmalig, Handy geht)
+
+Damit Testerinnen und Tester Drink With Me **in der F-Droid-App** installieren können, baut der Workflow „Android“
+eine eigene F-Droid-Paketquelle (siehe README, „In F-Droid“). Sie wird mit einem **geheimen Schlüssel**
+unterschrieben; daran erkennt F-Droid, dass die Paketquelle echt ist. Unabhängig von den Schritten 1–4 und 6–7 –
+geht also auch, bevor der Server eingerichtet ist.
+
+1. **Settings → Secrets and variables → Actions** → Reiter **Secrets** → **New repository secret**.
+2. **Name:** `FDROID_REPO_KEYSTORE`
+3. **Secret:** den Schlüssel als Base64-Text einfügen – entweder den, den Claude erzeugt und dir als Datei
+   gegeben hat (ganzen Inhalt kopieren, eine einzige lange Zeile), oder einen selbst erzeugten (unten).
+4. **Add secret** → dann **Actions → Android → Run workflow** → Branch wählen → **Run workflow**. Der Job
+   „Eigene F-Droid-Paketquelle aktualisieren“ veröffentlicht die Paketquelle auf dem Zweig `fdroid-repo`.
+
+Danach baut jede neue Testversion die Paketquelle automatisch neu. Fehlt das Secret, überspringt der Workflow
+diesen Teil nur (Hinweis im Lauf), alles andere läuft normal.
+
+> **Wichtig:** Den Schlüssel **nicht verlieren und nicht austauschen** – sonst müssen alle die Paketquelle in
+> F-Droid neu hinzufügen. Am besten zusätzlich im Passwort-Manager sichern. Der Workflow prüft, dass der
+> Schlüssel zum Fingerabdruck in `.github/workflows/android.yml` (`FDROID_REPO_FINGERPRINT`) und im Link in der
+> README passt; ein anderer Schlüssel bricht den Job mit einer Fehlermeldung ab.
+>
+> **Selbst erzeugen** (am Computer mit Java): `keytool -genkeypair -keystore repo.p12 -storetype PKCS12
+> -storepass drinkwithme-fdroid -keypass drinkwithme-fdroid -alias drinkwithme-fdroid -keyalg RSA -keysize 4096
+> -validity 10000 -dname "CN=Drink With Me F-Droid Repo"`, dann `base64 -w0 repo.p12` als Secret eintragen. Das
+> Passwort ist absichtlich nicht geheim – geheim ist die Datei. Den neuen Fingerabdruck
+> (`keytool -list -v -keystore repo.p12 -storepass drinkwithme-fdroid`, Zeile „SHA256“, ohne Doppelpunkte, klein
+> geschrieben) dann in `android.yml`, in den Link in der README und in `docs/fdroid-paketquelle-qr.svg` übernehmen
+> (Claude kann das erledigen).
+
 ---
 
 ## 6. Android-Konfiguration ins Repository bringen (Handy geht)
@@ -464,6 +494,11 @@ und Verlauf bleiben erhalten. Getränke aus der **alten** App-Version (vor dem U
 > registrierten Entwicklern stammen. Nicht registrierte Apps lassen sich dann nur noch über einen „erweiterten
 > Ablauf“ (einmalig, mit 24 Stunden Wartezeit) oder per ADB installieren. In Deutschland gilt das (Stand
 > November 2026) noch nicht. Mehr dazu in [`F-DROID.md`](F-DROID.md).
+
+**Über F-Droid (optional):** Wer lieber F-Droid nutzt, fügt dort die eigene Paketquelle hinzu und installiert
+Drink With Me aus F-Droid – Anleitung mit Link und QR-Code in der [README](../README.md#in-f-droid-eigene-paketquelle).
+Voraussetzung: Schritt 5.5 ist erledigt. Updates kommen dann über F-Droid; die App ist dieselbe wie aus dem
+Download-Link (gleiche Signatur).
 
 ### 8.3 Anmelden
 
