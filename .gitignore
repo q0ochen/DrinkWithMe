@@ -1,0 +1,34 @@
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+DerivedData/
+*.xcodeproj/
+.swiftpm/
+.build/
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Node.js-Abhängigkeiten (Web-App, Werkzeuge)
+node_modules/
+
+# Supabase CLI (lokale Daten, Verknüpfung mit dem Projekt, Geheimnisse)
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+supabase/.env.*
+supabase/functions/.env
+supabase/functions/.env.*
+
+# Web-App (Build-Ausgaben, Testberichte)
+web/dist/
+web/test-results/
+web/playwright-report/
+web/.vite/

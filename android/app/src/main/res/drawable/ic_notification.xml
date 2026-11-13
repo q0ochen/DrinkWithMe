@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/notification.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,6.4 V2.6"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M9.3,7 L8,5"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M14.7,7 L16,5"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <group
+        android:rotation="9"
+        android:pivotX="5.6"
+        android:pivotY="14.5">
+        <path
+            android:pathData="M1.6,8.5 H9.6 L8.48,19.7 Q8.4,20.5,7.6,20.5 H3.6 Q2.8,20.5,2.72,19.7 Z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.8"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M2.15,14 H9.05 L8.48,19.7 Q8.4,20.5,7.6,20.5 H3.6 Q2.8,20.5,2.72,19.7 Z"
+            android:fillColor="#FFFFFF" />
+    </group>
+    <group
+        android:rotation="-9"
+        android:pivotX="18.4"
+        android:pivotY="14.5">
+        <path
+            android:pathData="M14.4,8.5 H22.4 L21.28,19.7 Q21.2,20.5,20.4,20.5 H16.4 Q15.6,20.5,15.52,19.7 Z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.8"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M14.95,14 H21.85 L21.28,19.7 Q21.2,20.5,20.4,20.5 H16.4 Q15.6,20.5,15.52,19.7 Z"
+            android:fillColor="#FFFFFF" />
+    </group>
+</vector>

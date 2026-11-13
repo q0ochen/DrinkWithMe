@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/beer.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M31,19 H35 Q39,19,39,23 V30 Q39,34,35,34 H31"
+        android:strokeColor="#263238"
+        android:strokeWidth="7"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M31,19 H35 Q39,19,39,23 V30 Q39,34,35,34 H31"
+        android:strokeColor="#E4F2F9"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M10,13 H32 V38.5 Q32,43,27.5,43 H14.5 Q10,43,10,38.5 Z"
+        android:fillColor="#E4F2F9" />
+    <path
+        android:pathData="M10,16 H32 V38.5 Q32,43,27.5,43 H14.5 Q10,43,10,38.5 Z"
+        android:fillColor="#F6B92B" />
+    <path
+        android:pathData="M15.5,22 V38"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M21,22 V38"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M26.5,22 V38"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M10,13 H32 V38.5 Q32,43,27.5,43 H14.5 Q10,43,10,38.5 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M9,16 C7.2,15,7.5,11.5,10,11 C10,7.8,13.6,6.2,16,8 C17.5,5.4,22,5,23.8,7.6 C25.8,5.8,30,6.4,30.6,9.8 C33.2,10,34.4,13,33,15 C33.6,17,31.6,18.6,29.8,17.8 V21 Q29.8,22.8,28.4,22.8 Q27,22.8,27,21 V18 C25,18.8,22.5,18.6,21,17.2 C19,18.6,16,18.6,14.6,17.2 C13,18.2,10.5,17.8,9,16 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+</vector>

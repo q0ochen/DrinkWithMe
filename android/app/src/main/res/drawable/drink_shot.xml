@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/shot.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M13,18 H35 L32.62,39.8 Q32.4,42,30.2,42 H17.8 Q15.6,42,15.38,39.8 Z"
+        android:fillColor="#E4F2F9" />
+    <path
+        android:pathData="M13.55,23 H34.45 L33.31,33.5 H14.69 Z"
+        android:fillColor="#E8A33D" />
+    <path
+        android:pathData="M17,36.6 H31"
+        android:strokeColor="#59263238"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M17.4,25.5 L17.8,31"
+        android:strokeColor="#CCFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M13,18 H35 L32.62,39.8 Q32.4,42,30.2,42 H17.8 Q15.6,42,15.38,39.8 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+</vector>

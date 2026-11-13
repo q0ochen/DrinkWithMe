@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Freigegeben wird nur der Cache-Unterordner für geteilte Statistik-Bilder (siehe share/ShareImageFiles.kt). -->
+<paths>
+    <cache-path
+        name="shared_images"
+        path="shared_images/" />
+</paths>

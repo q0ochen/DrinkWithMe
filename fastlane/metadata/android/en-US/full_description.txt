@@ -1,0 +1,18 @@
+<p><b>Your drink diary – for you and with your friends.</b> Drink With Me shows how much alcohol and sugar you consume through drinks and helps you drink less of them. If you like, your friends see what you are drinking right now, and you get a notification when they drink something.</p>
+
+<p><b>The app is currently available in German only.</b></p>
+
+<ul>
+<li><b>Bar:</b> build your own bar from more than 20 hand-drawn drinks or add your own. One tap = drunk now.</li>
+<li><b>History:</b> sugar per day, alcohol per week (with the 2024 reference values of the German Nutrition Society), alcohol-free days in a row, comparison with the previous month. All values also as text; share your statistics as an image.</li>
+<li><b>Friends (optional):</b> sign in with a Google account, add friends via invite link or e-mail address, get a notification when a friend drinks something. Single drinks can be logged privately.</li>
+<li><b>Voice and read-aloud:</b> log drinks by voice, have events read aloud – also meant for people with low vision.</li>
+<li><b>Accessible:</b> large touch targets, screen reader labels, remote control navigation (Android TV, Fire TV).</li>
+<li><b>Notifications without Google services:</b> via UnifiedPush (recommended: ntfy); otherwise the app checks about every 15 minutes.</li>
+</ul>
+
+<p><b>Privacy:</b> your bar, history and statistics stay on your device. Without signing in, nothing leaves the device. Only the name, icon, type, amount and time of a drink are shared – alcoholic drinks only after your consent – and deleted automatically after 30 days. No ads, no tracking.</p>
+
+<p><b>Note:</b> friends and notifications require signing in with a Google account (non-free network service). Bar, history, voice and read-aloud work without an account and offline.</p>
+
+<p>Free software (CC0 1.0). Source code: <a href="https://github.com/q0ochen/DrinkWithMe">github.com/q0ochen/DrinkWithMe</a></p>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180">
+  <title>Drink With Me – TV-Banner</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 · Schrift als gezeichnete Linien (VectorDrawable kann keinen Text) -->
+  <rect x="0" y="0" width="320" height="180" fill="#12707F"/>
+  <!-- Bildmarke wie im App-Symbol -->
+  <g transform="translate(-14 4) scale(1.55)">
+    <circle cx="54" cy="56" r="30" fill="#1A8191"/>
+    <g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round">
+      <path d="M54 37.5 V31"/>
+      <path d="M47.4 39 L44.2 34.4"/>
+      <path d="M60.6 39 L63.8 34.4"/>
+    </g>
+    <g transform="rotate(14 41 57)">
+      <path fill="#E4F2F9" d="M30 42 H52 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z"/>
+      <path fill="#4FB4E8" d="M30.9 51 C34 49.6 37.6 52.4 41 51 C44.4 49.6 48 52.4 51.1 51 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z"/>
+      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round" d="M35.4 55 L36.2 66"/>
+      <path fill="none" stroke="#263238" stroke-width="2.4" stroke-linejoin="round" d="M30 42 H52 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z"/>
+    </g>
+    <g transform="rotate(-14 67 57)">
+      <path fill="#E4F2F9" d="M56 42 H78 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z"/>
+      <path fill="#FFA21F" d="M57 52 H77 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z"/>
+      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round" d="M61.4 56 L62.2 66"/>
+      <path fill="none" stroke="#263238" stroke-width="2.4" stroke-linejoin="round" d="M56 42 H78 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z"/>
+    </g>
+  </g>
+  <!-- „Drink“ -->
+  <g transform="translate(134 49.8) scale(0.84)" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 0 V36 H9 C20 36 26 28.5 26 18 C26 7.5 20 0 9 0 Z"/>
+    <path transform="translate(38 0)" d="M0 12 V36 M0 22.5 C0 15.5 5 12 12.5 12"/>
+    <path transform="translate(60 0)" d="M0 13 V36"/>
+    <circle cx="60" cy="1.5" r="4.2" fill="#FFFFFF" stroke="none"/>
+    <path transform="translate(72 0)" d="M0 12 V36 M0 23.5 C0 16 4.5 12 10 12 C15.5 12 20 16 20 23.5 V36"/>
+    <path transform="translate(104 0)" d="M0 0 V36 M18.5 12 L1.5 26.5 M8 21 L19 36"/>
+  </g>
+  <!-- „With Me“ -->
+  <g transform="translate(134 101.8) scale(0.84)" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 0 L8.5 36 L18 8 L27.5 36 L36 0"/>
+    <path transform="translate(48 0)" d="M0 13 V36"/>
+    <circle cx="48" cy="1.5" r="4.2" fill="#FFFFFF" stroke="none"/>
+    <path transform="translate(60 0)" d="M5 2 V29 C5 33.5 7.5 36 12.5 36 M0 13 H13"/>
+    <path transform="translate(85 0)" d="M0 0 V36 M0 23.5 C0 16 4.5 12 10 12 C15.5 12 20 16 20 23.5 V36"/>
+    <path transform="translate(131 0)" d="M0 36 V0 L16 25 L32 0 V36"/>
+    <path transform="translate(175 0)" d="M1 24 H21.5 C21.5 16.5 17 12 11 12 C4.5 12 0 17 0 24 C0 31 5 36 11.5 36 C15.5 36 18.5 34.6 20.5 32.4"/>
+  </g>
+</svg>

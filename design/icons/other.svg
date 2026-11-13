@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Sonstiges</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <path fill="#E4F2F9" d="M14 20 H34 L31.66 40.5 Q31.4 43 28.9 43 H19.1 Q16.6 43 16.34 40.5 Z"/>
+  <path fill="#9C7BD6" d="M14.34 23 H33.66 L31.66 40.5 Q31.4 43 28.9 43 H19.1 Q16.6 43 16.34 40.5 Z"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="2" stroke-linecap="round" d="M18.6 27 L19.3 38"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M14 20 H34 L31.66 40.5 Q31.4 43 28.9 43 H19.1 Q16.6 43 16.34 40.5 Z"/>
+  <path fill="#F4FAFD" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M15 17 C15 10.5 33 10.5 33 17 Z"/>
+  <path fill="none" stroke="#263238" stroke-width="5" stroke-linecap="round" d="M25.5 13 L28.3 3.6"/>
+  <path fill="none" stroke="#5BC0A8" stroke-width="2" stroke-linecap="round" d="M25.5 13 L28.3 3.6"/>
+  <rect x="12" y="16.5" width="24" height="4" rx="1.6" fill="#FFFFFF" stroke="#263238" stroke-width="2"/>
+</svg>

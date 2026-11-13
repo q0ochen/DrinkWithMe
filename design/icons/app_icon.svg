@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <title>Drink With Me – App-Symbol</title>
+  <!-- Erzeugt aus app_icon_background.svg + app_icon_foreground.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, CC0 1.0 -->
+  <g>
+    <rect x="0" y="0" width="108" height="108" fill="#12707F" />
+    <circle cx="54" cy="56" r="30" fill="#1A8191" />
+  </g>
+  <g>
+    <g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round">
+      <path d="M54 37.5 V31" />
+      <path d="M47.4 39 L44.2 34.4" />
+      <path d="M60.6 39 L63.8 34.4" />
+    </g>
+    <g transform="rotate(14 41 57)">
+      <path fill="#E4F2F9" d="M30 42 H52 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z" />
+      <path fill="#4FB4E8" d="M30.9 51 C34 49.6 37.6 52.4 41 51 C44.4 49.6 48 52.4 51.1 51 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z" />
+      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round" d="M35.4 55 L36.2 66" />
+      <path fill="none" stroke="#263238" stroke-width="2.4" stroke-linejoin="round" d="M30 42 H52 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z" />
+    </g>
+    <g transform="rotate(-14 67 57)">
+      <path fill="#E4F2F9" d="M56 42 H78 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z" />
+      <path fill="#FFA21F" d="M57 52 H77 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z" />
+      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round" d="M61.4 56 L62.2 66" />
+      <path fill="none" stroke="#263238" stroke-width="2.4" stroke-linejoin="round" d="M56 42 H78 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z" />
+    </g>
+  </g>
+</svg>

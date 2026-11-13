@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/milk.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M16.8,5 H31.2 A0.8,0.8,0,0,1,32,5.8 V8.7 A0.8,0.8,0,0,1,31.2,9.5 H16.8 A0.8,0.8,0,0,1,16,8.7 V5.8 A0.8,0.8,0,0,1,16.8,5 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M13,19.5 L17,9.5 L31,9.5 L35,19.5 Z"
+        android:fillColor="#E3EEF7"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M13,19.5 H35 V41.5 Q35,43,33.5,43 H14.5 Q13,43,13,41.5 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M13,28 H35 V41.5 Q35,43,33.5,43 H14.5 Q13,43,13,41.5 Z"
+        android:fillColor="#4A9FE0" />
+    <path
+        android:pathData="M24,29.8 C24,29.8,20.4,33.8,20.4,36.2 A3.6,3.6,0,0,0,27.6,36.2 C27.6,33.8,24,29.8,24,29.8 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M13,19.5 H35 V41.5 Q35,43,33.5,43 H14.5 Q13,43,13,41.5 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+</vector>

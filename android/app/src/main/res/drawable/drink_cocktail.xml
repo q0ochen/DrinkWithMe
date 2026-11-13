@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/cocktail.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M15,43 C15,40.4,19,39.4,24,39.4 C29,39.4,33,40.4,33,43 Z"
+        android:fillColor="#E4F2F9"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M24,25 V40"
+        android:strokeColor="#263238"
+        android:strokeWidth="2.4" />
+    <path
+        android:pathData="M8,11 H40 L24,27 Z"
+        android:fillColor="#E4F2F9" />
+    <path
+        android:pathData="M35,8 L28.5,19"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M11,14 H37 L24,27 Z"
+        android:fillColor="#EC4F86" />
+    <path
+        android:pathData="M15.5,16.5 L19,20"
+        android:strokeColor="#CCFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M8,11 H40 L24,27 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M28,8 A7,5.5,0,0,1,42,8 Q40.25,6.6,38.5,8 Q36.75,6.6,35,8 Q33.25,6.6,31.5,8 Q29.75,6.6,28,8 Z"
+        android:fillColor="#33B5F0"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.8"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M35,2.8 L31.6,7.4 M35,2.8 L38.4,7.4"
+        android:strokeColor="#D9FFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
+</vector>

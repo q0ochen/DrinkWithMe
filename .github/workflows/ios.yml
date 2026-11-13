@@ -1,0 +1,65 @@
+# Testet die Geschäftslogik und baut die iOS-App auf einem Mac in der Cloud.
+# Ergebnis: eine unsignierte .ipa (DrinkWithMe-ios-unsigned) zum Herunterladen.
+# Zum Installieren auf einem iPhone muss sie noch mit einer Apple-ID signiert werden.
+name: iOS
+
+on:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode-Version
+        run: xcodebuild -version
+
+      - name: Tests der Geschäftslogik
+        working-directory: ios/DrinkWithMeCore
+        run: swift test
+
+      - name: XcodeGen installieren
+        run: brew install xcodegen
+
+      - name: Xcode-Projekt erzeugen
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: App bauen (ohne Signatur)
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project DrinkWithMe.xcodeproj \
+            -scheme DrinkWithMe \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Unsignierte IPA verpacken
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/DrinkWithMe.app Payload/
+          zip -qry DrinkWithMe-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DrinkWithMe-ios-unsigned
+          path: ios/DrinkWithMe-unsigned.ipa
+          if-no-files-found: error

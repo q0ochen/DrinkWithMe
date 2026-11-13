@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Tee</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <g fill="none" stroke="#90A4AE" stroke-width="2" stroke-linecap="round">
+    <path d="M23 15.5 C21.2 13.7 24.8 11.9 23 9.7 C22 8.5 22.6 7.5 23.4 6.9"/>
+    <path d="M30.5 15.5 C28.7 13.7 32.3 11.9 30.5 9.7 C29.5 8.5 30.1 7.5 30.9 6.9"/>
+  </g>
+  <ellipse cx="26" cy="39.5" rx="17" ry="3.6" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <path fill="none" stroke="#263238" stroke-width="7" stroke-linejoin="round" d="M38.5 24 Q43.5 23.5 43 28.3 Q42.5 32.5 37 32.2"/>
+  <path fill="none" stroke="#FFF7EA" stroke-width="3" stroke-linejoin="round" d="M38.5 24 Q43.5 23.5 43 28.3 Q42.5 32.5 37 32.2"/>
+  <path fill="#FFF7EA" d="M12 21 H40 C40 30.5 35 37.5 26 37.5 C17 37.5 12 30.5 12 21 Z"/>
+  <path fill="none" stroke="#5BA4D9" stroke-width="2.2" d="M12 28.5 H40"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M12 21 H40 C40 30.5 35 37.5 26 37.5 C17 37.5 12 30.5 12 21 Z"/>
+  <ellipse cx="26" cy="21" rx="14" ry="3.4" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <ellipse cx="26" cy="21.4" rx="11.6" ry="2.2" fill="#D9822B"/>
+  <!-- Teebeutel-Faden und Etikett -->
+  <path fill="none" stroke="#263238" stroke-width="1.3" stroke-linecap="round" d="M19 21.6 C17 17.5 13 17.2 11.8 20.8 C11.2 22.6 9.8 24 8.4 25"/>
+  <rect x="4" y="25" width="7" height="8" rx="1.2" fill="#FFCB47" stroke="#263238" stroke-width="1.6"/>
+</svg>

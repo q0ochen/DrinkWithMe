@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Schnaps</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <path fill="#E4F2F9" d="M13 18 H35 L32.62 39.8 Q32.4 42 30.2 42 H17.8 Q15.6 42 15.38 39.8 Z"/>
+  <path fill="#E8A33D" d="M13.55 23 H34.45 L33.31 33.5 H14.69 Z"/>
+  <path fill="none" stroke="#263238" stroke-opacity="0.35" stroke-width="1.5" stroke-linecap="round" d="M17 36.6 H31"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" d="M17.4 25.5 L17.8 31"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M13 18 H35 L32.62 39.8 Q32.4 42 30.2 42 H17.8 Q15.6 42 15.38 39.8 Z"/>
+</svg>
