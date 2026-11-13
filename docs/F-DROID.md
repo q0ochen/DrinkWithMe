@@ -25,7 +25,7 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 | Freie Lizenz (CC0 1.0) | **erfüllt:** CC0 ist von der FSF als freie Lizenz anerkannt (nicht von der OSI) und steht in der Liste erlaubter Lizenzen von `fdroidserver` (`CC0-1.0`) |
 | Keine proprietären Abhängigkeiten (kein Firebase, keine Google Play Services) | **erfüllt** |
 | Öffentlicher Quellcode, Fehler-Tracker | erfüllt, sofern „Issues“ im GitHub-Repository eingeschaltet sind |
-| Mindestens 3 Monate aktive Entwicklung | steht seit 16. Oktober 2026 ausdrücklich in der Inclusion Policy; Repository seit 9. November 2026 → frühestens **Februar 2027** |
+| Mindestens 3 Monate aktive Entwicklung | steht seit 16. Oktober 2026 in der Inclusion Policy. **Es gibt keinen Startknopf:** Die Prüfer zählen ab der Erstellung des öffentlichen Repositorys (9. November 2026) und schauen, ob seitdem sichtbar weiterentwickelt wurde. Eine eigene Paketquelle, ein Release oder eine Anmeldung zählen nicht → Antrag frühestens **ab 9. Februar 2027**, besser Mitte/Ende Februar |
 | Regel zu KI-erstelltem Code | F-Droid: **keine** (Stand 10.11.2026); ob eine kommt, ist offen [unsicher]; vor dem Einreichen neu prüfen (Abschnitt 11.4) |
 | Anti-Features | voraussichtlich **NonFreeNet**, möglicherweise zusätzlich **TetheredNet** |
 | Store-Texte und Bilder (Fastlane) | **teilweise:** Titel, Kurz- und Langbeschreibung (`de-DE`, `en-US`), Icon und TV-Banner unter `fastlane/metadata/android/`; Bildschirmfotos und Änderungshinweise fehlen noch |
@@ -33,7 +33,7 @@ Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit
 | Abhängigkeits-Block von Google (`dependenciesInfo`) | **abgeschaltet** |
 | Versionsnummern und Tags | **teilweise:** Testversionen zählen automatisch hoch (`1000 + Laufnummer`); für Veröffentlichungen Schema und Tag unten |
 | Einreichen bei F-Droid (Merge Request) | nach den Punkten oben |
-| Realistische Aufnahme | **etwa Februar bis Mai 2027** [unsicher – hängt von freiwilligen Prüfern ab] |
+| Realistische Aufnahme | **Frühjahr bis Sommer 2027** [unsicher – die Warteschlange ist lang: im November 2026 warteten 141 Anträge auf Prüfung, der älteste seit Mai 2026] |
 
 ---
 
@@ -300,8 +300,9 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 | ab sofort | Testversion per Link, mit Obtainium oder über die eigene F-Droid-Paketquelle verteilen (Abschnitt 11) |
 | bis Dezember 2026 | Testphase mit Test-APKs; Fehler beheben |
 | Dezember 2026 – Januar 2027 | Release-Schlüssel erzeugen, Release-Workflow, Reproduzierbarkeit prüfen (`dependenciesInfo` ist schon abgeschaltet); Fastlane-Texte und Bildschirmfotos; `versionCode` erhöhen und Tag setzen; ggf. Export/Import des Verlaufs in der Android-App |
-| ab Mitte Februar 2027 | 3 Monate aktive Entwicklung erreicht → Merge Request bei `fdroiddata` |
-| Februar – Mai 2027 | Prüfung durch Freiwillige, Rückfragen beantworten [unsicher: Dauer] |
+| sofort | Arbeitszweig in `main` zusammenführen (normaler Merge, **kein** Squash, damit Historie und Daten sichtbar bleiben); danach regelmäßig auf `main` weiterentwickeln und Versionen taggen – „aktiv entwickelt“ muss sichtbar sein |
+| ab Mitte Februar 2027 | 3 Monate erreicht → Merge Request bei `fdroiddata`, Vorlage **vollständig** ausfüllen, Beschreibung und Antworten **selbst** schreiben (Prüfer reagieren im Herbst 2026 deutlich ablehnend auf KI-geschriebene MR-Texte) |
+| Frühjahr – Sommer 2027 | Prüfung durch Freiwillige; Rückfragen zügig beantworten (inaktive Anträge werden geschlossen). Mithelfen beim Testen anderer Anträge ist ausdrücklich erwünscht und beschleunigt die Warteschlange [unsicher: Dauer] |
 | 2027 | Android-Entwicklerprüfung: Entscheidung (Abschnitt 8) |
 
 ---
@@ -320,7 +321,8 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 - [ ] Fastlane: Bildschirmfotos, Änderungshinweise
 - [ ] Datenschutzerklärung unter fester Adresse (siehe [`DATENSCHUTZ_ENTWURF.md`](DATENSCHUTZ_ENTWURF.md))
 - [ ] Umstieg der Testerinnen und Tester angekündigt (Deinstallation, Datenverlust) oder Export in der Android-App gebaut
-- [ ] 3 Monate aktive Entwicklung erreicht (ab etwa 9. Februar 2027)
+- [ ] Arbeitszweig in `main` zusammengeführt (ohne Squash), danach regelmäßig weiterentwickelt und getaggt
+- [ ] 3 Monate aktive Entwicklung erreicht (ab 9. Februar 2027; zählt automatisch ab Erstellung des Repositorys)
 - [ ] Merge Request „New app: Drink With Me“ bei `fdroiddata`
 
 ---
@@ -430,6 +432,10 @@ KI-erstelltem Code. Diskutiert wird an zwei Stellen, beide ohne Beschluss:
   KI-Dienste; ob der Vorschlag auch Apps erfassen würde, die mit KI **geschrieben** wurden, ist offen [unsicher].
 - Dazu eine Diskussion im [F-Droid-Forum](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279).
 
+Stand 13.11.2026: #641 ist weiter offen und aktiv; dort wird auch vorgeschlagen, mit KI geschriebene Apps
+abzulehnen. Bei Drink With Me ist die KI-Herkunft offensichtlich (fast alle Commits stammen von „Claude“). Mit
+Rückfragen ist zu rechnen; wer einreicht, sollte den Code erklären und dafür einstehen können.
+
 Eine strenge Regel wie bei IzzyOnDroid würde auch Drink With Me treffen; danach sieht es bei F-Droid derzeit nicht
 aus [unsicher]. Deshalb: vor dem Antrag im Februar 2027 die Policy neu lesen und im Merge Request offen angeben, wie
 die App entstanden ist.
@@ -447,7 +453,10 @@ die App entstanden ist.
   [fdroidserver](https://gitlab.com/fdroid/fdroidserver),
   [voreingestellte Paketquellen des F-Droid-Clients](https://gitlab.com/fdroid/fdroidclient/-/blob/master/app/src/main/assets/default_repos.json),
   [Forum: Does F-Droid have a formal policy on libre „AI“?](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279),
-  Admin-Tickets [#641](https://gitlab.com/fdroid/admin/-/issues/641) und [#699](https://gitlab.com/fdroid/admin/-/issues/699)
+  Admin-Tickets [#641](https://gitlab.com/fdroid/admin/-/issues/641) und [#699](https://gitlab.com/fdroid/admin/-/issues/699),
+  3-Monats-Regel: [Commit a9c6e1c5](https://gitlab.com/fdroid/fdroid-website/-/commit/a9c6e1c591bfa4a36d4da0ce9ad15d1b7463c244)
+  und [Diskussion !1643](https://gitlab.com/fdroid/fdroid-website/-/merge_requests/1643); wie Prüfer zählen (Alter des
+  Repositorys): [fdroiddata !56510](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/56510)
 - IzzyOnDroid: [App Inclusion Policy](https://izzyondroid.org/docs/general/AppInclusionPolicy/),
   [Wiki (archiviert)](https://gitlab.com/IzzyOnDroid/repo/-/wikis/home),
   [Anträge auf Codeberg](https://codeberg.org/IzzyOnDroid/repodata);

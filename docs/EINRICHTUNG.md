@@ -558,6 +558,13 @@ Nachricht kommt, nicht ihren Inhalt.
 Fürs iPhone gibt es in der Testphase die kostenlose **Web-App** – mit Bar, Verlauf, Freunden, Vorlesen und
 Benachrichtigungen. Voraussetzung: **iOS 16.4 oder neuer** (Einstellungen → Allgemein → Info → iOS-Version).
 
+> **Warum nicht „sideloaden“?** Eine Android-APK läuft auf dem iPhone nicht. Kostenloses Sideloading mit Apple-ID
+> und Windows-PC (AltStore, SideStore, Sideloadly) könnte nur die **alte, rein lokale** iPhone-App ohne Freunde
+> installieren, muss **alle 7 Tage** erneuert werden und war im Herbst 2026 wegen Änderungen bei Apple mehrfach
+> gestört. TestFlight und EU-Marktplätze (z. B. AltStore PAL) setzen das Apple-Entwicklerprogramm (99 € pro Jahr)
+> und eine neue iPhone-App voraus. Die Web-App hat dagegen alle Funktionen, braucht keinen Computer und kostet
+> nichts. Sie ist online, sobald der Arbeitsstand in `main` zusammengeführt ist (Schritt 7).
+
 1. In **Safari** öffnen: **https://q0ochen.github.io/DrinkWithMe/**
 2. Auf **Teilen** tippen (Quadrat mit Pfeil nach oben; je nach iOS-Version hinter den drei Punkten „…“ unten
    rechts) → **Zum Home-Bildschirm** → falls angeboten, **„Als Web-App öffnen“** eingeschaltet lassen →
