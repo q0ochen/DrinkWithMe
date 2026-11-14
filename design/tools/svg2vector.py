@@ -672,7 +672,7 @@ class Project:
 
     def render_app_icon(self) -> str:
         layers = [(self.icons_dir / name).read_text(encoding="utf-8") for name in self.app_icon_layers]
-        return compose_svg(layers, "Drink With Me – App-Symbol",
+        return compose_svg(layers, "DrinkWithMe – App-Symbol",
                            f"Erzeugt aus {' + '.join(self.app_icon_layers)} {GENERATED_MARKER} – nicht von Hand "
                            "bearbeiten. Eigenes Werk, CC0 1.0")
 
@@ -728,7 +728,7 @@ def _cmd_check(args: argparse.Namespace, project: Project) -> int:
 
 
 def main(argv: Sequence[str] | None = None, project_factory: Callable[[], Project] = Project.from_repository) -> int:
-    parser = argparse.ArgumentParser(description="Wandelt Drink-With-Me-SVGs in Android-VectorDrawables um.")
+    parser = argparse.ArgumentParser(description="Wandelt DrinkWithMe-SVGs in Android-VectorDrawables um.")
     sub = parser.add_subparsers(dest="command", required=True)
     convert = sub.add_parser("convert", help="eine SVG-Datei umwandeln")
     convert.add_argument("input")

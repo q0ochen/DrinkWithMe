@@ -213,7 +213,7 @@ export async function spoken(page: Page): Promise<string[]> {
 /** Erster Start: Vorauswahl übernehmen. */
 export async function setUpBar(page: Page, base = APP): Promise<void> {
   await page.goto(base);
-  await expect(page.getByRole("heading", { level: 1, name: "Willkommen bei Drink With Me" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Willkommen bei DrinkWithMe" })).toBeVisible();
   await page.getByRole("button", { name: /Bar einrichten \(7 Getränke\)/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
 }

@@ -55,7 +55,7 @@ object PushTexts {
 
     fun registrationFailed(reason: String): String = when (reason) {
         "NETWORK" -> "Der Push-Dienst ist gerade nicht erreichbar. Die App prüft so lange etwa alle 15 Minuten."
-        "ACTION_REQUIRED" -> "Bitte öffne die Push-App (z. B. ntfy) und bestätige dort Drink With Me."
+        "ACTION_REQUIRED" -> "Bitte öffne die Push-App (z. B. ntfy) und bestätige dort DrinkWithMe."
         else -> "Die Einrichtung der Benachrichtigungen hat nicht geklappt. Die App prüft weiter etwa alle 15 Minuten."
     }
 }

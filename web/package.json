@@ -2,7 +2,7 @@
   "name": "drink-with-me-web",
   "private": true,
   "version": "2.0.0",
-  "description": "Drink With Me als Web-App (PWA) für iPhone und Browser – Bar, Verlauf, Freunde, Vorlesen.",
+  "description": "DrinkWithMe als Web-App (PWA) für iPhone und Browser – Bar, Verlauf, Freunde, Vorlesen.",
   "license": "CC0-1.0",
   "type": "module",
   "engines": {

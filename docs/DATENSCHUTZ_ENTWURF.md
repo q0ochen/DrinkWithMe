@@ -1,4 +1,4 @@
-# Datenschutzerklärung für „Drink With Me“ – ENTWURF
+# Datenschutzerklärung für „DrinkWithMe“ – ENTWURF
 
 > **Bitte zuerst lesen – das ist ein Entwurf, keine Rechtsberatung.**
 >
@@ -16,7 +16,7 @@
 
 ## 1. Wer ist verantwortlich?
 
-Verantwortlich für die Verarbeitung personenbezogener Daten in „Drink With Me“ (Android-App und Web-App) im Sinne
+Verantwortlich für die Verarbeitung personenbezogener Daten in „DrinkWithMe“ (Android-App und Web-App) im Sinne
 der Datenschutz-Grundverordnung (DSGVO) ist:
 
 [Vor- und Nachname]
@@ -134,7 +134,7 @@ Die Anmeldung läuft immer im Browser – dein Google-Passwort erhalten wir **ni
 | Zeitpunkte der Registrierung und letzten Anmeldung, aktive Sitzungen | Kontoverwaltung, Sicherheit | nur wir |
 | Sicherheitsprotokolle der Anmeldung (Zeitpunkt, Art des Ereignisses, ggf. **IP-Adresse** und Browser-/Gerätekennung) | Sicherheit, Missbrauchsschutz, Fehlersuche | nur wir [Prüfen: siehe Abschnitt 4.8] |
 
-Google erfährt dabei, dass du dich bei „Drink With Me“ anmeldest. Für dein Google-Konto ist Google selbst
+Google erfährt dabei, dass du dich bei „DrinkWithMe“ anmeldest. Für dein Google-Konto ist Google selbst
 verantwortlich. In deinem Google-Konto kannst du die Verbindung jederzeit trennen
 ([myaccount.google.com/connections](https://myaccount.google.com/connections)).
 

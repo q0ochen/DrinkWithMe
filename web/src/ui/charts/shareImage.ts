@@ -168,7 +168,7 @@ export async function renderShareImage(content: ShareImageContent, doc: Document
   context.font = `700 52px ${FONT}`;
   context.fillText("Mein Getränke-Verlauf", textX, 92);
   context.font = `28px ${FONT}`;
-  context.fillText(`Drink With Me · ${content.dateText}`, textX, 136);
+  context.fillText(`DrinkWithMe · ${content.dateText}`, textX, 136);
 
   // Kennzahlen
   let y = 200;

@@ -32,7 +32,7 @@ test("Einladungsseite: anmelden, zurückkehren und im Browser annehmen", async (
   const supabase = new FakeSupabase();
   await supabase.install(page);
   await page.goto(`einladung/${INVITE_TOKEN}`);
-  await expect(page.getByRole("heading", { level: 1, name: "Einladung zu Drink With Me" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Einladung zu DrinkWithMe" })).toBeVisible();
   await expect(page.getByRole("link", { name: "In der App öffnen" })).toHaveCount(0); // kein Android
   await page.getByRole("button", { name: "Mit Google anmelden" }).click();
   await expect(page).toHaveURL(new RegExp(`/DrinkWithMe/einladung/${INVITE_TOKEN}$`));

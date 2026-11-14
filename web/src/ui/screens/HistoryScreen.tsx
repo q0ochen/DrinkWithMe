@@ -268,7 +268,7 @@ export function HistoryScreen() {
                 onClick={async () => {
                   if (!preview) return;
                   try {
-                    if (await services.imageSharer.share(preview.file, "Mein Getränke-Verlauf", "Mein Verlauf aus Drink With Me")) closePreview();
+                    if (await services.imageSharer.share(preview.file, "Mein Getränke-Verlauf", "Mein Verlauf aus DrinkWithMe")) closePreview();
                   } catch {
                     setShareError("Teilen hat nicht geklappt. Du kannst das Bild stattdessen speichern.");
                   }

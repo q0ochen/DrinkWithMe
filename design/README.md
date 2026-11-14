@@ -1,4 +1,4 @@
-# Grafiken von Drink With Me
+# Grafiken von DrinkWithMe
 
 Alle Grafiken der App sind **selbst gezeichnet** (von Hand geschriebenes SVG, keine Vorlagen, keine Icon-Sammlungen,
 keine Marken oder Logos) und stehen unter **CC0 1.0** – siehe [`icons/LICENSE`](icons/LICENSE).
@@ -162,7 +162,7 @@ Schutzzone liegt.
   abgerundetes Quadrat …) nur die Mitte; der **Vordergrund muss im Kreis mit 66 dp Durchmesser um die Mitte
   (54/54) liegen** – `check` misst das nach. Motiv: zwei anstoßende Gläser (Wasser und Saft), bewusst ohne
   Alkohol. `app_icon.svg` (beide Ebenen übereinander) wird von `sync` erzeugt.
-- **TV-Banner:** 320 × 180, Schrift „Drink With Me“ als selbst gezeichnete Linien (VectorDrawable kann keinen Text).
+- **TV-Banner:** 320 × 180, Schrift „DrinkWithMe“ als selbst gezeichnete Linien (VectorDrawable kann keinen Text).
   Wichtiges im mittleren Bereich lassen, Launcher runden die Ecken ab.
 - **Benachrichtigung:** `notification.svg` ist einfarbig weiß auf transparent, wie Android es verlangt. Die
   bisherige `res/drawable/ic_notification.xml` wurde nicht mit diesem Werkzeug erzeugt; `sync` überschreibt

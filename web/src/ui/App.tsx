@@ -151,7 +151,7 @@ export function App({ services, router }: { services: AppServices; router: Route
               <header class="app-bar">
                 <Link to="/" class="brand">
                   <img src={`${services.config.basePath}icons/app_icon.svg`} width={36} height={36} alt="" />
-                  <span>Drink With Me</span>
+                  <span>DrinkWithMe</span>
                 </Link>
                 {onboarding ? null : <Navigation active={active} badge={unseen} />}
               </header>

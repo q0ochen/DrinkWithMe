@@ -1,6 +1,6 @@
-# Drink With Me – Web-App (PWA)
+# DrinkWithMe – Web-App (PWA)
 
-Die Web-App bringt Drink With Me aufs **iPhone** (Safari, ab iOS 16.4 über „Zum Home-Bildschirm“) und in jeden
+Die Web-App bringt DrinkWithMe aufs **iPhone** (Safari, ab iOS 16.4 über „Zum Home-Bildschirm“) und in jeden
 Browser auf Desktop und Android. Vertrag: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md), Abschnitt 4.
 Adresse: **https://q0ochen.github.io/DrinkWithMe/** (GitHub Pages, kostenlos).
 

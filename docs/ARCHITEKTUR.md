@@ -1,4 +1,4 @@
-# Drink With Me – Architektur & Schnittstellenvertrag (Version 2)
+# DrinkWithMe – Architektur & Schnittstellenvertrag (Version 2)
 
 Verbindlicher Vertrag für Kotlin-Kern, Android-App, Web-App und Supabase-Backend. **Namen, Tabellen, Spalten,
 Funktionen und Pfade sind exakt so zu verwenden.** Ersetzt die frühere Trinkrunden/Firebase-Architektur.

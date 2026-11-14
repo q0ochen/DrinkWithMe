@@ -82,10 +82,10 @@ object SpeechHelpTexts {
     const val HELP_TITLE = "Vorlesen einrichten"
     const val HELP_TEXT = "Auf diesem Gerät ist keine deutsche Sprachausgabe eingerichtet. Installiere zum Beispiel die " +
         "kostenlose App SherpaTTS aus F-Droid und wähle sie in den Android-Einstellungen unter „Bedienungshilfen“ → " +
-        "„Sprachausgabe“ als bevorzugtes Modul aus. Öffne danach Drink With Me erneut."
+        "„Sprachausgabe“ als bevorzugtes Modul aus. Öffne danach DrinkWithMe erneut."
     const val MISSING_DATA_TEXT = "Für die deutsche Stimme fehlen noch Sprachdaten."
     const val MISSING_DATA_HELP = "Für die deutsche Stimme fehlen noch Sprachdaten. Tippe auf „Deutsche Stimme " +
-        "installieren“ und lade dort Deutsch herunter. Öffne danach Drink With Me erneut."
+        "installieren“ und lade dort Deutsch herunter. Öffne danach DrinkWithMe erneut."
     const val NO_VOICE_TEXT = "Auf diesem Gerät gibt es noch keine deutsche Sprachausgabe."
     const val INSTALL_VOICE = "Deutsche Stimme installieren"
     const val SHERPA_FDROID_URL = "https://f-droid.org/packages/org.woheller69.ttsengine/"

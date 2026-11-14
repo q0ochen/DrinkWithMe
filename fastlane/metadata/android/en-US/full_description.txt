@@ -1,4 +1,4 @@
-<p><b>Your drink diary – for you and with your friends.</b> Drink With Me shows how much alcohol and sugar you consume through drinks and helps you drink less of them. If you like, your friends see what you are drinking right now, and you get a notification when they drink something.</p>
+<p><b>Your drink diary – for you and with your friends.</b> DrinkWithMe shows how much alcohol and sugar you consume through drinks and helps you drink less of them. If you like, your friends see what you are drinking right now, and you get a notification when they drink something.</p>
 
 <p><b>The app is currently available in German only.</b></p>
 

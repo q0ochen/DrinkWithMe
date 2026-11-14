@@ -26,7 +26,7 @@ export const MASCULINE_ENDINGS = [
 ] as const;
 export const NEUTER_ENDINGS = [
   "wasser", "bier", "pils", "pilsener", "pilsner", "weizen", "kölsch", "helles", "dunkles", "radler",
-  "getränk", "tonic", "export",
+  "getränk", "tonic", "export", "spezi",
 ] as const;
 
 /** Wortenden, längste zuerst (stabil sortiert wie `sortedByDescending` in Kotlin). */

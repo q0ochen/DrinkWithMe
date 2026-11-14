@@ -15,16 +15,33 @@ const publicDir = path.join(webRoot, "public");
 const iconDir = path.join(publicDir, "icons");
 const force = process.argv.includes("--force");
 
-/** PNG-Ausgaben: Größe, Quelle und Form („rund“ = abgerundete Ecken mit Transparenz, „voll“ = randlos). */
+/**
+ * Ausschnitte aus dem adaptiven App-Symbol (108 × 108, Motiv im Kreis Ø 66 um die Mitte):
+ * - SQUARE_CROP für quadratische Symbole ohne Maske (iPhone-Home-Bildschirm, Favicon, „any“): ungefähr der Bereich,
+ *   den auch Android-Launcher zeigen – sonst wirkt das Motiv mit dem breiten Rand des adaptiven Symbols zu klein.
+ * - MASKABLE_CROP für „maskable“-Symbole: Das Motiv muss im inneren Kreis mit 80 % Durchmesser liegen.
+ */
+export const SQUARE_CROP = "16 16 76 76";
+export const MASKABLE_CROP = "12 12 84 84";
+
+/** PNG-Ausgaben: Größe, Quelle, Form („rund“ = abgerundete Ecken mit Transparenz, „voll“ = randlos), Ausschnitt. */
 const RASTER_TARGETS = [
-  { file: path.join(iconDir, "app-192.png"), source: "app_icon.svg", size: 192, shape: "rounded" },
-  { file: path.join(iconDir, "app-512.png"), source: "app_icon.svg", size: 512, shape: "rounded" },
-  { file: path.join(iconDir, "app-maskable-192.png"), source: "app_icon.svg", size: 192, shape: "full" },
-  { file: path.join(iconDir, "app-maskable-512.png"), source: "app_icon.svg", size: 512, shape: "full" },
-  { file: path.join(publicDir, "apple-touch-icon.png"), source: "app_icon.svg", size: 180, shape: "full" },
-  { file: path.join(publicDir, "favicon.png"), source: "app_icon.svg", size: 32, shape: "rounded" },
+  { file: path.join(iconDir, "app-192.png"), source: "app_icon.svg", size: 192, shape: "rounded", viewBox: SQUARE_CROP },
+  { file: path.join(iconDir, "app-512.png"), source: "app_icon.svg", size: 512, shape: "rounded", viewBox: SQUARE_CROP },
+  { file: path.join(iconDir, "app-maskable-192.png"), source: "app_icon.svg", size: 192, shape: "full", viewBox: MASKABLE_CROP },
+  { file: path.join(iconDir, "app-maskable-512.png"), source: "app_icon.svg", size: 512, shape: "full", viewBox: MASKABLE_CROP },
+  { file: path.join(publicDir, "apple-touch-icon.png"), source: "app_icon.svg", size: 180, shape: "full", viewBox: SQUARE_CROP },
+  { file: path.join(publicDir, "favicon.png"), source: "app_icon.svg", size: 32, shape: "rounded", viewBox: SQUARE_CROP },
   { file: path.join(iconDir, "badge-96.png"), source: "notification.svg", size: 96, shape: "full" },
 ];
+
+/** Setzt einen anderen Ausschnitt (viewBox) in ein SVG; Breite und Höhe übernimmt dann das img-Element. */
+export function withViewBox(svgText, viewBox) {
+  if (!viewBox) return svgText;
+  const replaced = svgText.replace(/viewBox="[^"]*"/, `viewBox="${viewBox}"`);
+  if (replaced === svgText) throw new Error("SVG ohne viewBox – Ausschnitt nicht möglich.");
+  return replaced;
+}
 
 async function mtime(file) {
   try {
@@ -44,7 +61,12 @@ async function copySvgs() {
     const from = path.join(sourceDir, name);
     const to = path.join(iconDir, name);
     if (force || (await mtime(to)) < (await mtime(from))) {
-      await copyFile(from, to);
+      if (name === "app_icon.svg") {
+        // Favicon und Manifest („any“) zeigen das Symbol ohne Maske: gleicher Ausschnitt wie die PNGs.
+        await writeFile(to, withViewBox(await readFile(from, "utf8"), SQUARE_CROP));
+      } else {
+        await copyFile(from, to);
+      }
       copied++;
     }
   }
@@ -81,8 +103,8 @@ async function rasterize() {
   try {
     const page = await browser.newPage({ deviceScaleFactor: 1 });
     for (const target of pending) {
-      const svg = await readFile(path.join(sourceDir, target.source));
-      const dataUrl = `data:image/svg+xml;base64,${svg.toString("base64")}`;
+      const svg = withViewBox(await readFile(path.join(sourceDir, target.source), "utf8"), target.viewBox);
+      const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
       const radius = target.shape === "rounded" ? Math.round(target.size * 0.22) : 0;
       await page.setViewportSize({ width: target.size, height: target.size });
       await page.setContent(

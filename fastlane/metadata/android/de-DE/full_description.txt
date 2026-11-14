@@ -1,4 +1,4 @@
-<p><b>Dein Getränketagebuch – für dich und mit deinen Freunden.</b> Drink With Me zeigt dir anschaulich, wie viel Alkohol und Zucker du über Getränke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du möchtest, sehen deine Freunde, was du gerade trinkst – und du bekommst eine Nachricht, wenn sie etwas trinken.</p>
+<p><b>Dein Getränketagebuch – für dich und mit deinen Freunden.</b> DrinkWithMe zeigt dir anschaulich, wie viel Alkohol und Zucker du über Getränke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du möchtest, sehen deine Freunde, was du gerade trinkst – und du bekommst eine Nachricht, wenn sie etwas trinken.</p>
 
 <ul>
 <li><b>Bar:</b> Stell dir deine eigene Bar aus über 20 selbst gezeichneten Getränken zusammen oder lege eigene an. Ein Tipp = jetzt getrunken.</li>

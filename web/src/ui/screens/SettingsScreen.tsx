@@ -144,7 +144,7 @@ export function SettingsScreen() {
         </p>
         <details>
           <summary>Lizenzen</summary>
-          <p>Code und alle Grafiken von Drink With Me: CC0 1.0 (gemeinfrei). Verwendete freie Bibliotheken:</p>
+          <p>Code und alle Grafiken von DrinkWithMe: CC0 1.0 (gemeinfrei). Verwendete freie Bibliotheken:</p>
           <ul class="license-list">
             {THIRD_PARTY_LICENSES.map((entry) => (
               <li key={entry.name}>

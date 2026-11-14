@@ -30,13 +30,13 @@ export function InviteScreen({ token }: { token: string }) {
 
   return (
     <div class="screen">
-      <PageHeader title="Einladung zu Drink With Me">
+      <PageHeader title="Einladung zu DrinkWithMe">
         <p class="lead">Jemand möchte sich mit dir vernetzen: Ihr seht dann gegenseitig, was ihr gerade trinkt.</p>
       </PageHeader>
       {services.platform.isAndroid ? (
         <section class="card">
           <h2>Auf Android</h2>
-          <p>Hast du die App Drink With Me installiert? Dann öffne die Einladung direkt dort.</p>
+          <p>Hast du die App DrinkWithMe installiert? Dann öffne die Einladung direkt dort.</p>
           <a class="button button-primary button-large" href={inviteAppLink(token)}>
             In der App öffnen
           </a>

@@ -246,7 +246,7 @@ private fun EmailDialog(busy: Boolean, onSend: (String) -> Unit, onDismiss: () -
         title = { Text("Per E-Mail hinzufügen") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Gib die Google-E-Mail-Adresse deines Freundes ein. Die Person muss Drink With Me nutzen und angemeldet sein.")
+                Text("Gib die Google-E-Mail-Adresse deines Freundes ein. Die Person muss DrinkWithMe nutzen und angemeldet sein.")
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },

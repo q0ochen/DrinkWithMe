@@ -115,7 +115,7 @@ test("Sicherung: speichern, in einem frischen Browser beim ersten Start einlesen
   const fresh = await browser.newContext({ serviceWorkers: "block", locale: "de-DE", timezoneId: "Europe/Berlin" });
   const other = await fresh.newPage();
   await other.goto(new URL(".", page.url()).href);
-  await expect(other.getByRole("heading", { level: 1, name: "Willkommen bei Drink With Me" })).toBeVisible();
+  await expect(other.getByRole("heading", { level: 1, name: "Willkommen bei DrinkWithMe" })).toBeVisible();
   await other.getByTestId("sicherung-datei").setInputFiles(file);
   await expect(other.getByRole("heading", { level: 1, name: "Bar" })).toBeVisible();
   await expect(other.getByText(/Heute:\s*1 Getränk\b/)).toBeVisible();
@@ -131,7 +131,7 @@ test("Sicherung: speichern, in einem frischen Browser beim ersten Start einlesen
   // Eine fremde Datei wird abgewiesen.
   await other.goto(new URL("einstellungen", other.url()).href);
   await other.getByTestId("sicherung-datei").setInputFiles({ name: "falsch.json", mimeType: "application/json", buffer: Buffer.from('{"hallo":1}') });
-  await expect(other.getByRole("alert").filter({ hasText: "Die Datei ist keine Sicherung von Drink With Me." })).toBeVisible();
+  await expect(other.getByRole("alert").filter({ hasText: "Die Datei ist keine Sicherung von DrinkWithMe." })).toBeVisible();
   await fresh.close();
 });
 

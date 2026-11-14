@@ -188,7 +188,7 @@ class ContactSheet:
             self._banner(),
         ]
         body = "<br>".join(sections)
-        return (f'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Drink With Me – Icons</title>'
+        return (f'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>DrinkWithMe – Icons</title>'
                 f'<style>{_STYLE}</style></head><body>{body}</body></html>')
 
 

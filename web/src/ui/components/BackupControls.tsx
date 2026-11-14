@@ -35,7 +35,7 @@ export function ExportBackupButton() {
     const file = new File([blob], name, { type: "application/json" });
     if (services.platform.isIos && services.imageSharer.canShareFiles(file)) {
       try {
-        if (!(await services.imageSharer.share(file, "Drink With Me – Sicherung", "Bar und Verlauf aus Drink With Me"))) return;
+        if (!(await services.imageSharer.share(file, "DrinkWithMe – Sicherung", "Bar und Verlauf aus DrinkWithMe"))) return;
         setStatus("Sicherung geteilt. Bewahre die Datei gut auf – sie enthält deinen ganzen Verlauf.");
         return;
       } catch {
