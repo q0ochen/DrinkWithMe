@@ -23,8 +23,9 @@ Die aktuelle Testversion lässt sich **ohne Anmeldung** herunterladen. Sie wird 
 `main` (bzw. dem Entwicklungszweig) automatisch ersetzt:
 **https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk**
 
-0. **Schon einmal „DrinkWithMe“ installiert**, z. B. selbst in Android Studio gebaut oder eine Version vom
-   9. November? Dann erst **deinstallieren**: Einstellungen → Apps → DrinkWithMe → Deinstallieren. Sonst meldet
+0. **Schon einmal „DrinkWithMe“ installiert** (ältere Versionen heißen noch „Drink With Me“), z. B. selbst in
+   Android Studio gebaut oder eine Version vom 9. November? Dann erst **deinstallieren**: Einstellungen → Apps →
+   DrinkWithMe bzw. Drink With Me → Deinstallieren. Sonst meldet
    Android „… da das Paket in Konflikt mit einem bestehenden Paket steht“.
 1. Den Link **in Chrome** öffnen (nicht im Browser von WhatsApp, Telegram oder Gmail). Fragt Chrome, ob die Datei
    schädlich sein könnte: **Trotzdem herunterladen**. Dann **Öffnen** tippen.
@@ -43,7 +44,7 @@ installiert die Testversion direkt aus GitHub und meldet jede neue Testversion.
 
 1. Obtainium installieren, z. B. die APK von [github.com/ImranR98/Obtainium/releases](https://github.com/ImranR98/Obtainium/releases).
 2. Auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
-   **[DrinkWithMe in Obtainium hinzufügen](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D)**.
+   **[DrinkWithMe in Obtainium hinzufügen](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22DrinkWithMe%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D)**.
 3. In Obtainium „DrinkWithMe“ antippen und **Installieren** wählen. Ist die App schon installiert, steht dort
    **Aktualisieren** – das antippen.
 

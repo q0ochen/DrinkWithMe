@@ -8,6 +8,7 @@ import { koelnerPhonetik } from "../voice/koelnerPhonetik";
 import { jaro, jaroWinkler, PhoneticTextSimilarity } from "../voice/textSimilarity";
 import {
   defaultVoiceMatcher,
+  EXACT_SCORE,
   MINIMUM_GAP,
   MINIMUM_SIMILARITY,
   VoiceCommandMatcher,
@@ -174,10 +175,13 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(match("ein alkoholfreies Bier")).toEqual(ambiguous(CatalogIds.ALKOHOLFREIES_BIER, CatalogIds.ALKOHOLFREIES_BIER_0_0));
     expect(match("ein alkoholfreies Pils")).toEqual(drink(CatalogIds.ALKOHOLFREIES_BIER_0_0));
     expect(match("alkoholfreies Weizen")).toEqual(drink(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0));
+    expect(match("ein alkoholfreies Weißbier")).toEqual(drink(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0));
     expect(match("ein Radler")).toEqual(drink(CatalogIds.RADLER));
     expect(match("ein alkoholfreies Radler")).toEqual(drink(CatalogIds.ALKOHOLFREIES_RADLER_0_0));
     expect(match("ein Spezi")).toEqual(drink(CatalogIds.SPEZI));
     expect(match("Cola Mix")).toEqual(drink(CatalogIds.SPEZI));
+    expect(match("eine Cola")).toEqual(drink(CatalogIds.COLA));
+    expect(match("Orange")).toEqual(drink(CatalogIds.ORANGENSAFT));
     expect(match("einen Espresso")).toEqual(drink(CatalogIds.ESPRESSO));
     expect(match("Cappuccino")).toEqual(drink(CatalogIds.CAPPUCCINO));
     expect(match("Latte Macchiato")).toEqual(drink(CatalogIds.LATTE_MACCHIATO));
@@ -194,6 +198,33 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(matcher.match(["ein Bier"], bar)).toEqual({ kind: "Drink", item: bar[0] });
     const wine = barItem("Rotwein trocken");
     expect(matcher.match(["Wein"], [wine, barItem("Kaffee")])).toEqual({ kind: "Drink", item: wine });
+  });
+
+  it("exactNameOrAliasWinsOverCloseNames", () => {
+    const beer = catalogItem(CatalogIds.ALKOHOLFREIES_BIER);
+    const beer00 = catalogItem(CatalogIds.ALKOHOLFREIES_BIER_0_0);
+    const wheat00 = catalogItem(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0);
+    // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,95 – ohne die Regel wäre das nur ein Abstand von 0,05.
+    expect(matcher.match(["ein alkoholfreies Weißbier"], [beer, wheat00])).toEqual({ kind: "Drink", item: wheat00 });
+    expect(matcher.match(["ein alkoholfreies Bier"], [beer, wheat00])).toEqual({ kind: "Drink", item: beer });
+    expect(matcher.match(["alkoholfreies Bier"], [beer00, wheat00])).toEqual({ kind: "Drink", item: beer00 });
+    expect(matcher.match(["alkoholfreies Weißbier"], [beer00, wheat00])).toEqual({ kind: "Drink", item: wheat00 });
+    // Passen beide genau (Zahlen zählen nicht), wird weiter nachgefragt.
+    expect(matcher.match(["alkoholfreies Bier"], [beer, beer00])).toEqual({ kind: "Ambiguous", first: beer, second: beer00 });
+  });
+
+  it("newDrinksDoNotTakeOverExistingWords", () => {
+    const red = catalogItem(CatalogIds.ROTWEIN);
+    const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
+    expect(matcher.match(["ein Glas Wein"], [red, spritzer])).toEqual({ kind: "Drink", item: red });
+    expect(matcher.match(["Weinschorle"], [red, spritzer])).toEqual({ kind: "Drink", item: spritzer });
+    const cola = catalogItem(CatalogIds.COLA);
+    const zero = catalogItem(CatalogIds.COLA_ZERO);
+    const spezi = catalogItem(CatalogIds.SPEZI);
+    expect(matcher.match(["eine Cola"], [cola, zero, spezi])).toEqual({ kind: "Drink", item: cola });
+    expect(matcher.match(["Cola Mix"], [cola, zero, spezi])).toEqual({ kind: "Drink", item: spezi });
+    // Ohne normale Cola ist „eine Cola“ wirklich offen: Cola zero oder Cola-Mix? Dann nachfragen.
+    expect(matcher.match(["eine Cola"], [zero, spezi])).toEqual({ kind: "Ambiguous", first: zero, second: spezi });
   });
 
   it("commands", () => {
@@ -231,6 +262,14 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(stub.match(["xyz"], [b, a])).toEqual({ kind: "Drink", item: a });
     expect(stub.match(["xyz"], [a, c])).toEqual({ kind: "Ambiguous", first: a, second: c });
     expect(stub.match(["xyz"], [d])).toEqual({ kind: "NoMatch" });
+    const exactScores: Record<string, number> = { eee: 1.0, fff: 0.97 };
+    const exactStub = new VoiceCommandMatcher({ similarity: { similarity: (_spoken, label) => exactScores[label] ?? 0.0 } });
+    const e = barItem("eee");
+    const e2 = barItem("eee", { id: "zweites-eee" });
+    const f = barItem("fff");
+    expect(exactStub.match(["xyz"], [f, e])).toEqual({ kind: "Drink", item: e }); // genau vor 0,97
+    expect(exactStub.match(["xyz"], [e, e2])).toEqual({ kind: "Ambiguous", first: e, second: e2 }); // zweimal genau
+    expect(EXACT_SCORE).toBe(1.0);
     expect(MINIMUM_SIMILARITY).toBe(0.88);
     expect(MINIMUM_GAP).toBe(0.05);
   });

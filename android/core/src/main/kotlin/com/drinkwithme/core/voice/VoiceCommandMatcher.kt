@@ -23,7 +23,8 @@ fun interface VoiceMatcher {
  *    vergleichen ([similarity], Standard: Jaro-Winkler + Kölner Phonetik). Ein einzelnes gesprochenes Wort,
  *    das ein Wortende eines Namens ist („Wein“ in „Rotwein“, „Bier“ in „Weizenbier“), zählt [COMPOUND_PART_SCORE].
  * 4. Eindeutig ab [minimumSimilarity] (0,88) mit Abstand ≥ [minimumGap] (0,05) zum Zweitbesten, sonst
- *    [VoiceMatch.Ambiguous].
+ *    [VoiceMatch.Ambiguous]. Ausnahme: Stimmt das Gesprochene genau mit einem Namen oder Alias überein ([EXACT_SCORE])
+ *    und beim Zweitbesten nicht, gilt der genaue Treffer („alkoholfreies Weißbier“ vor „Alkoholfreies Bier“).
  *
  * `VoiceCommandMatcher.match(…)` nutzt die Standardwerte; für andere Werte eine Instanz erzeugen.
  */
@@ -52,12 +53,15 @@ class VoiceCommandMatcher(
             .sortedByDescending { it.score }
         val best = ranked.firstOrNull() ?: return VoiceMatch.NoMatch
         if (best.score < minimumSimilarity - EPSILON) return VoiceMatch.NoMatch
-        val runnerUp = ranked.getOrNull(1)
-        if (runnerUp != null && best.score - runnerUp.score < minimumGap - EPSILON) {
+        val runnerUp = ranked.getOrNull(1) ?: return VoiceMatch.Drink(best.item)
+        val onlyExact = isExact(best.score) && !isExact(runnerUp.score)
+        if (!onlyExact && best.score - runnerUp.score < minimumGap - EPSILON) {
             return VoiceMatch.Ambiguous(best.item, runnerUp.item)
         }
         return VoiceMatch.Drink(best.item)
     }
+
+    private fun isExact(score: Double): Boolean = score >= EXACT_SCORE - EPSILON
 
     private fun score(spoken: Phrase, label: Phrase): Double {
         val direct = similarity.similarity(spoken.compact, label.compact)
@@ -120,6 +124,9 @@ class VoiceCommandMatcher(
          * bloßen Anfangsähnlichkeiten („Wein“ ~ „Weizen“ ≈ 0,92).
          */
         const val COMPOUND_PART_SCORE = 0.94
+
+        /** Wert einer genauen Übereinstimmung mit einem Namen oder Alias; schlägt jeden nicht genauen Treffer. */
+        const val EXACT_SCORE = 1.0
 
         /** Kürzere gesprochene Wörter zählen nicht als Wortende („Tee“ ja, „ee“ nein). */
         const val MIN_COMPOUND_PART_LENGTH = 3

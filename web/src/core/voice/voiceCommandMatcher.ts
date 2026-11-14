@@ -27,6 +27,8 @@ export const MINIMUM_SIMILARITY = 0.88;
 export const MINIMUM_GAP = 0.05;
 /** Wert für ein gesprochenes Wort, das ein Wortende eines Namens ist („Wein“ in „Rotwein“). */
 export const COMPOUND_PART_SCORE = 0.94;
+/** Wert einer genauen Übereinstimmung mit einem Namen oder Alias; schlägt jeden nicht genauen Treffer. */
+export const EXACT_SCORE = 1.0;
 /** Kürzere gesprochene Wörter zählen nicht als Wortende. */
 export const MIN_COMPOUND_PART_LENGTH = 3;
 const EPSILON = 1e-9;
@@ -52,7 +54,8 @@ export interface VoiceMatcherOptions {
  *
  * Je Kandidat (in der gelieferten Reihenfolge; das erste Ergebnis außer `NoMatch` gilt): normalisieren;
  * Befehle prüfen; Füll- und Zahlwörter entfernen und gegen Name **und** Aliase vergleichen
- * (Jaro-Winkler + Kölner Phonetik); eindeutig ab 0,88 mit Abstand ≥ 0,05, sonst `Ambiguous`.
+ * (Jaro-Winkler + Kölner Phonetik); eindeutig ab 0,88 mit Abstand ≥ 0,05, sonst `Ambiguous`. Eine genaue
+ * Übereinstimmung mit Name oder Alias gilt immer, wenn der Zweitbeste nicht ebenfalls genau passt.
  */
 export class VoiceCommandMatcher implements VoiceMatcher {
   private readonly similarity: TextSimilarity;
@@ -90,7 +93,9 @@ export class VoiceCommandMatcher implements VoiceMatcher {
     const best = ranked[0];
     if (best === undefined || best.score < this.minimumSimilarity - EPSILON) return NO_MATCH;
     const runnerUp = ranked[1];
-    if (runnerUp !== undefined && best.score - runnerUp.score < this.minimumGap - EPSILON) {
+    if (runnerUp === undefined) return { kind: "Drink", item: best.item };
+    const onlyExact = isExact(best.score) && !isExact(runnerUp.score);
+    if (!onlyExact && best.score - runnerUp.score < this.minimumGap - EPSILON) {
       return { kind: "Ambiguous", first: best.item, second: runnerUp.item };
     }
     return { kind: "Drink", item: best.item };
@@ -101,6 +106,10 @@ export class VoiceCommandMatcher implements VoiceMatcher {
     const part = isWordEnding(spoken, label) ? COMPOUND_PART_SCORE : 0.0;
     return Math.max(direct, part);
   }
+}
+
+function isExact(score: number): boolean {
+  return score >= EXACT_SCORE - EPSILON;
 }
 
 /** „wein“ ist Wortende von „rotwein“; „cola“ ist ein Wort von „cola zero“. */

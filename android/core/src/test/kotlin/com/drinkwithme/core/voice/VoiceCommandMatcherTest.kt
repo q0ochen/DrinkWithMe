@@ -85,10 +85,13 @@ class VoiceCommandMatcherTest {
         )
         assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_BIER_0_0), match("ein alkoholfreies Pils"))
         assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_WEISSBIER_0_0), match("alkoholfreies Weizen"))
+        assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_WEISSBIER_0_0), match("ein alkoholfreies Weißbier"))
         assertEquals(drink(DefaultBarCatalog.RADLER), match("ein Radler"))
         assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_RADLER_0_0), match("ein alkoholfreies Radler"))
         assertEquals(drink(DefaultBarCatalog.SPEZI), match("ein Spezi"))
         assertEquals(drink(DefaultBarCatalog.SPEZI), match("Cola Mix"))
+        assertEquals(drink(DefaultBarCatalog.COLA), match("eine Cola"))
+        assertEquals(drink(DefaultBarCatalog.ORANGENSAFT), match("Orange"))
         assertEquals(drink(DefaultBarCatalog.ESPRESSO), match("einen Espresso"))
         assertEquals(drink(DefaultBarCatalog.CAPPUCCINO), match("Cappuccino"))
         assertEquals(drink(DefaultBarCatalog.LATTE_MACCHIATO), match("Latte Macchiato"))
@@ -106,6 +109,35 @@ class VoiceCommandMatcherTest {
         assertEquals(VoiceMatch.Drink(bar[0]), matcher.match(listOf("ein Bier"), bar))
         val wine = barItem("Rotwein trocken")
         assertEquals(VoiceMatch.Drink(wine), matcher.match(listOf("Wein"), listOf(wine, barItem("Kaffee"))))
+    }
+
+    @Test
+    fun exactNameOrAliasWinsOverCloseNames() {
+        val beer = catalogItem(DefaultBarCatalog.ALKOHOLFREIES_BIER)
+        val beer00 = catalogItem(DefaultBarCatalog.ALKOHOLFREIES_BIER_0_0)
+        val wheat00 = catalogItem(DefaultBarCatalog.ALKOHOLFREIES_WEISSBIER_0_0)
+        // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,95 – ohne die Regel wäre das nur ein Abstand von 0,05.
+        assertEquals(VoiceMatch.Drink(wheat00), matcher.match(listOf("ein alkoholfreies Weißbier"), listOf(beer, wheat00)))
+        assertEquals(VoiceMatch.Drink(beer), matcher.match(listOf("ein alkoholfreies Bier"), listOf(beer, wheat00)))
+        assertEquals(VoiceMatch.Drink(beer00), matcher.match(listOf("alkoholfreies Bier"), listOf(beer00, wheat00)))
+        assertEquals(VoiceMatch.Drink(wheat00), matcher.match(listOf("alkoholfreies Weißbier"), listOf(beer00, wheat00)))
+        // Passen beide genau (Zahlen zählen nicht), wird weiter nachgefragt.
+        assertEquals(VoiceMatch.Ambiguous(beer, beer00), matcher.match(listOf("alkoholfreies Bier"), listOf(beer, beer00)))
+    }
+
+    @Test
+    fun newDrinksDoNotTakeOverExistingWords() {
+        val red = catalogItem(DefaultBarCatalog.ROTWEIN)
+        val spritzer = catalogItem(DefaultBarCatalog.WEINSCHORLE)
+        assertEquals(VoiceMatch.Drink(red), matcher.match(listOf("ein Glas Wein"), listOf(red, spritzer)))
+        assertEquals(VoiceMatch.Drink(spritzer), matcher.match(listOf("Weinschorle"), listOf(red, spritzer)))
+        val cola = catalogItem(DefaultBarCatalog.COLA)
+        val zero = catalogItem(DefaultBarCatalog.COLA_ZERO)
+        val spezi = catalogItem(DefaultBarCatalog.SPEZI)
+        assertEquals(VoiceMatch.Drink(cola), matcher.match(listOf("eine Cola"), listOf(cola, zero, spezi)))
+        assertEquals(VoiceMatch.Drink(spezi), matcher.match(listOf("Cola Mix"), listOf(cola, zero, spezi)))
+        // Ohne normale Cola ist „eine Cola“ wirklich offen: Cola zero oder Cola-Mix? Dann nachfragen.
+        assertEquals(VoiceMatch.Ambiguous(zero, spezi), matcher.match(listOf("eine Cola"), listOf(zero, spezi)))
     }
 
     @Test
@@ -157,6 +189,14 @@ class VoiceCommandMatcherTest {
         assertEquals(VoiceMatch.Drink(a), stub.match(listOf("xyz"), listOf(b, a))) // 0,88 mit Abstand 0,05
         assertEquals(VoiceMatch.Ambiguous(a, c), stub.match(listOf("xyz"), listOf(a, c))) // Abstand 0,04
         assertEquals(VoiceMatch.NoMatch, stub.match(listOf("xyz"), listOf(d))) // unter 0,88
+        val exactScores = mapOf("eee" to 1.0, "fff" to 0.97)
+        val exactStub = VoiceCommandMatcher(similarity = { _, label -> exactScores[label] ?: 0.0 })
+        val e = barItem("eee")
+        val e2 = barItem("eee", id = "zweites-eee")
+        val f = barItem("fff")
+        assertEquals(VoiceMatch.Drink(e), exactStub.match(listOf("xyz"), listOf(f, e))) // genau vor 0,97
+        assertEquals(VoiceMatch.Ambiguous(e, e2), exactStub.match(listOf("xyz"), listOf(e, e2))) // zweimal genau
+        assertEquals(1.0, VoiceCommandMatcher.EXACT_SCORE)
         assertEquals(0.88, VoiceCommandMatcher.MINIMUM_SIMILARITY)
         assertEquals(0.05, VoiceCommandMatcher.MINIMUM_GAP)
     }

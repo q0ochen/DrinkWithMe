@@ -468,10 +468,11 @@ ZIP-Datei) → in der Dateien-App **entpacken** → darin liegt `app-debug.apk` 
 
 ### 8.2 Installieren
 
-0. **War schon einmal eine „DrinkWithMe“ auf dem Gerät** – selbst in Android Studio gebaut, aus einem anderen
-   Projekt mit demselben Paketnamen oder eine Testversion vom 9. November? Dann zuerst **deinstallieren**
-   (Einstellungen → Apps → DrinkWithMe → Deinstallieren; auch im Privaten Bereich und im Arbeitsprofil
-   nachsehen). Sie hat eine andere Signatur, und Android verweigert sonst die Installation.
+0. **War schon einmal eine „DrinkWithMe“ auf dem Gerät** (ältere Versionen heißen noch „Drink With Me“) – selbst
+   in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine Testversion vom
+   9. November? Dann zuerst **deinstallieren** (Einstellungen → Apps → DrinkWithMe bzw. Drink With Me →
+   Deinstallieren; auch im Privaten Bereich und im Arbeitsprofil nachsehen). Sie hat eine andere Signatur, und
+   Android verweigert sonst die Installation.
 1. `DrinkWithMe.apk` (bzw. `app-debug.apk` aus der ZIP-Datei) antippen – am besten direkt in Chrome über
    **Öffnen**. Fragt Chrome vorher „Datei könnte schädlich sein“: **Trotzdem herunterladen**.
 2. Android fragt, ob die App, mit der du die Datei öffnest (Chrome bzw. Dateien), **unbekannte Apps installieren**
@@ -709,7 +710,7 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Benachrichtigungen sind schon auf fünf Geräten eingerichtet“ | Höchstens 5 Benachrichtigungs-Abos pro Konto | Auf einem alten Gerät abmelden |
 | Android: keine Benachrichtigungen | ntfy nicht in DrinkWithMe ausgewählt, Benachrichtigungen für DrinkWithMe oder ntfy verboten, Akku-Optimierung, VAPID-Secrets fehlen, oder ein eigener ntfy-Server läuft nicht auf Port 443 | Schritt 9 komplett; Android-Einstellungen → Apps → DrinkWithMe / ntfy → Benachrichtigungen an; Deploy-Lauf auf Warnung „VAPID-Secrets fehlen“ prüfen (4.2); eigenen ntfy-Server über https auf Port 443 erreichbar machen oder `ntfy.sh` nehmen |
 | Web-App: „Benachrichtigungen sind auf dem Server noch nicht eingerichtet.“ | Die GitHub-Variable `VAPID_PUBLIC_KEY` fehlte beim Bauen oder ist kein gültiger Schlüssel | 5.3 prüfen, dann die Web-App neu veröffentlichen (wie bei „Server noch nicht eingerichtet“ oben) |
-| iPhone: keine Benachrichtigungen | Nicht über den Home-Bildschirm geöffnet, iOS älter als 16.4, Mitteilungen verboten oder Fokus aktiv | Schritt 10; iPhone-Einstellungen → Mitteilungen → DrinkWithMe → Mitteilungen erlauben |
+| iPhone: keine Benachrichtigungen | Nicht über den Home-Bildschirm geöffnet, iOS älter als 16.4, Mitteilungen verboten oder Fokus aktiv | Schritt 10; iPhone-Einstellungen → Mitteilungen → DrinkWithMe (vor der Umbenennung hinzugefügt: „Drink With Me“) → Mitteilungen erlauben |
 | Benachrichtigungen fehlen bei allen | `VAPID_PUBLIC_KEY` ist nicht überall gleich (Supabase-Secret, GitHub-Variable, `supabase.properties`) oder `VAPID_SUBJECT` beginnt nicht mit `mailto:` | Werte vergleichen; nach einer Korrektur Web-App neu veröffentlichen, neue APK bauen und Benachrichtigungen in den Apps aus- und wieder einschalten |
 | Benachrichtigungen kommen ohne ntfy erst viel später | So gewollt: Abfrage etwa alle 15 Minuten; Android verzögert im Stromsparmodus | ntfy einrichten (Schritt 9) |
 | Apps: „Keine Verbindung zum Server“ / „Der Server ist gerade nicht erreichbar“, obwohl Internet da ist | Supabase-Projekt **pausiert** (nach etwa 7 Tagen ohne Nutzung) | Supabase-Dashboard → Projekt → **Restore project**; ein paar Minuten warten |
@@ -718,7 +719,7 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Supabase Deploy“ bricht bei „Einstellungen prüfen“ ab | Secret oder Variable fehlt, oder `SUPABASE_PROJECT_REF` ist der Projektname statt der 20-stelligen Referenz | Meldung lesen, Schritt 5.2/5.3 korrigieren |
 | „Supabase Deploy“ bricht bei „Mit dem Projekt verbinden“ ab | Datenbank-Passwort falsch | Supabase → **Project Settings → Database → Reset database password**, neues Passwort ins Secret `SUPABASE_DB_PASSWORD`. Sonst die Fehlermeldung kopieren und Claude schicken (ohne Passwörter!) |
 | Android: „App nicht installiert“ beim Update | Die alte App ist mit einem anderen Schlüssel signiert (z. B. selbst in Android Studio gebaut) | Alte App deinstallieren (lokaler Verlauf geht dabei verloren), dann neu installieren |
-| Android: „App wurde nicht installiert, da das Paket in Konflikt mit einem bestehenden Paket steht“ beim **ersten** Installieren | Auf dem Gerät ist schon eine „DrinkWithMe“ mit anderer Signatur: selbst in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine frühe Testversion (vor dem festen Test-Schlüssel) – evtl. im Privaten Bereich oder Arbeitsprofil | Alte „DrinkWithMe“ deinstallieren (überall nachsehen), dann neu installieren |
+| Android: „App wurde nicht installiert, da das Paket in Konflikt mit einem bestehenden Paket steht“ beim **ersten** Installieren | Auf dem Gerät ist schon eine „DrinkWithMe“ mit anderer Signatur: selbst in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine frühe Testversion (vor dem festen Test-Schlüssel) – evtl. im Privaten Bereich oder Arbeitsprofil | Alte „DrinkWithMe“ deinstallieren – ältere Versionen heißen noch „Drink With Me“ (überall nachsehen), dann neu installieren |
 | Android: „Die App wurde nicht installiert, da das Paket offenbar ungültig ist“ | Kaputter Download – **oder** eine installierte „DrinkWithMe“ mit höherer Versionsnummer (z. B. selbst gebaut) | Neu herunterladen (Größe etwa 13 MB, Prüfsumme in den Release-Hinweisen); hilft das nicht: alte App deinstallieren |
 | Android: „Beim Parsen des Pakets ist ein Problem aufgetreten“ | Download unvollständig, oder Android älter als 8.0 | Alle alten `DrinkWithMe*.apk` in „Downloads“ löschen, über WLAN neu herunterladen; Android-Version prüfen |
 | Android: Play Protect meldet „blockiert“ oder „kennt diese App noch nicht“, danach passiert nichts | Der Hinweis wurde mit „OK“ bzw. „Verstanden“ geschlossen – das bricht die Installation ab | Erneut öffnen, dann **Weitere Details → Trotzdem installieren** (oder **App scannen**) |

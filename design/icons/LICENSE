@@ -1,4 +1,4 @@
-Drink With Me – Grafiken (design/icons/)
+DrinkWithMe – Grafiken (design/icons/)
 =========================================
 
 Alle Grafiken in diesem Verzeichnis – die Getränke-Icons (<key>.svg), das App-Symbol
@@ -6,7 +6,7 @@ Alle Grafiken in diesem Verzeichnis – die Getränke-Icons (<key>.svg), das App
 (notification.svg) – sowie die daraus erzeugten Android-Grafiken
 (android/app/src/main/res/drawable/drink_*.xml, ic_launcher_*.xml, tv_banner.xml,
 mipmap-anydpi-v26/ic_launcher*.xml) sind EIGENE WERKE: von Hand als SVG gezeichnet für
-„Drink With Me“, ohne Vorlagen, ohne Nachzeichnen und ohne Übernahmen aus Icon-Sammlungen,
+„DrinkWithMe“, ohne Vorlagen, ohne Nachzeichnen und ohne Übernahmen aus Icon-Sammlungen,
 Schriftarten, Marken oder Logos. Die Schrift im TV-Banner ist aus einfachen Linien selbst
 gezeichnet.
 
@@ -15,7 +15,7 @@ Urheber- und verwandten Schutzrechte. Die Grafiken dürfen ohne Erlaubnis und oh
 Namensnennung kopiert, verändert, verbreitet und – auch kommerziell – genutzt werden.
 
 English summary: All graphics in this directory and the Android drawables generated from
-them are original works, drawn by hand as SVG for "Drink With Me" (no tracing, no copying
+them are original works, drawn by hand as SVG for "DrinkWithMe" (no tracing, no copying
 of existing icon sets, fonts, brands or logos). They are dedicated to the public domain
 under CC0 1.0 Universal; the full legal code follows.
 

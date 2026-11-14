@@ -141,7 +141,8 @@ data class DrinkEntry(
   `enum class VoiceCommand { UNDO, READ_ALOUD, TODAY }` („rückgängig“/„nein“, „vorlesen“, „wie viel heute“).
   Normalisierung: Kleinschreibung, ä→ae, ö→oe, ü→ue, ß→ss, Füllwörter entfernen („ich trinke/nehme/hatte“,
   „ein/eine/einen“, „glas/flasche/tasse“, „bitte“), Zahlwörter. Abgleich gegen Name **und** Aliase mit
-  Kölner Phonetik + Jaro-Winkler; eindeutiger Treffer ab Ähnlichkeit 0,88 und Abstand ≥ 0,05 zum Zweiten.
+  Kölner Phonetik + Jaro-Winkler; eindeutiger Treffer ab Ähnlichkeit 0,88 und Abstand ≥ 0,05 zum Zweiten;
+  eine genaue Übereinstimmung mit Name oder Alias gilt immer, wenn der Zweite nicht ebenfalls genau passt.
 - `SpeechTexts`: erzeugt **Vorlese-Sätze** getrennt von Anzeige-Texten: ganze deutsche Sätze, Zahlen und Einheiten
   ausgeschrieben („zweihundertfünfzig Milliliter“, „siebenundzwanzig Gramm“), keine Emojis/Abkürzungen. Beispiele:
   „Anna trinkt eine Apfelschorle.“ · „Apfelschorle eingetragen.“ · „Heute aus Getränken: fünfunddreißig Gramm Zucker.“

@@ -56,11 +56,14 @@ async function copySvgs() {
   // TV-Banner und die Einzelebenen des adaptiven Android-Symbols braucht die Web-App nicht.
   const files = (await readdir(sourceDir)).filter((name) => name.endsWith(".svg") && !name.startsWith("tv_") && !name.startsWith("app_icon_"));
   if (files.length === 0) throw new Error(`Keine SVGs in ${sourceDir} gefunden.`);
+  // Der Ausschnitt von app_icon.svg steht in diesem Skript: Ändert es sich, muss auch diese Kopie neu entstehen.
+  const scriptTime = await mtime(fileURLToPath(import.meta.url));
   let copied = 0;
   for (const name of files) {
     const from = path.join(sourceDir, name);
     const to = path.join(iconDir, name);
-    if (force || (await mtime(to)) < (await mtime(from))) {
+    const sourceTime = name === "app_icon.svg" ? Math.max(await mtime(from), scriptTime) : await mtime(from);
+    if (force || (await mtime(to)) < sourceTime) {
       if (name === "app_icon.svg") {
         // Favicon und Manifest („any“) zeigen das Symbol ohne Maske: gleicher Ausschnitt wie die PNGs.
         await writeFile(to, withViewBox(await readFile(from, "utf8"), SQUARE_CROP));
