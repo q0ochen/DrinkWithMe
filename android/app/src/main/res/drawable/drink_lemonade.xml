@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/lemonade.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M15,10 L16.6,6.5 H31.4 L33,10 Z"
+        android:fillColor="#CFD8DC"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M22.7,3.6 H25.3 A1.2,1.2,0,0,1,26.5,4.8 V5.3 A1.2,1.2,0,0,1,25.3,6.5 H22.7 A1.2,1.2,0,0,1,21.5,5.3 V4.8 A1.2,1.2,0,0,1,22.7,3.6 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.5" />
+    <path
+        android:pathData="M17,10 H31 A3,3,0,0,1,34,13 V39 A3,3,0,0,1,31,42 H17 A3,3,0,0,1,14,39 V13 A3,3,0,0,1,17,10 Z"
+        android:fillColor="#FFF2B8" />
+    <path
+        android:pathData="M14,37.5 H34 V39 Q34,42,31,42 H17 Q14,42,14,39 Z"
+        android:fillColor="#CFD8DC" />
+    <path
+        android:pathData="M14,13 Q14,10,17,10 H31 Q34,10,34,13 V14 H14 Z"
+        android:fillColor="#CFD8DC" />
+    <group
+        android:rotation="-25"
+        android:pivotX="24"
+        android:pivotY="26">
+        <path
+            android:pathData="M15,26 A1.4,1.4,0,1,1,17.8,26 A1.4,1.4,0,1,1,15,26 Z"
+            android:fillColor="#FFD43B"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.5" />
+        <path
+            android:pathData="M30.2,26 A1.4,1.4,0,1,1,33,26 A1.4,1.4,0,1,1,30.2,26 Z"
+            android:fillColor="#FFD43B"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.5" />
+        <path
+            android:pathData="M16.8,26 A7.2,5.4,0,1,1,31.2,26 A7.2,5.4,0,1,1,16.8,26 Z"
+            android:fillColor="#FFD43B"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.8" />
+        <path
+            android:pathData="M20,23.6 Q22,22.2,24.5,22.3"
+            android:strokeColor="#D9FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round" />
+    </group>
+    <path
+        android:pathData="M27.6,20.2 C28.4,17.6,31,16.8,33,17.6 C32.2,20,30,21.1,27.6,20.2 Z"
+        android:fillColor="#7CB342"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.4"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M17.3,33.5 A1.2,1.2,0,1,1,19.7,33.5 A1.2,1.2,0,1,1,17.3,33.5 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.2" />
+    <path
+        android:pathData="M28.6,32 A0.9,0.9,0,1,1,30.4,32 A0.9,0.9,0,1,1,28.6,32 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.2" />
+    <path
+        android:pathData="M18.1,18.5 A0.9,0.9,0,1,1,19.9,18.5 A0.9,0.9,0,1,1,18.1,18.5 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.2" />
+    <path
+        android:pathData="M17,10 H31 A3,3,0,0,1,34,13 V39 A3,3,0,0,1,31,42 H17 A3,3,0,0,1,14,39 V13 A3,3,0,0,1,17,10 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2" />
+</vector>

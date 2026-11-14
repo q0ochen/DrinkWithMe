@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/app_icon_background.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M0,0 H108 V108 H0 Z"
+        android:fillColor="#12707F" />
+    <path
+        android:pathData="M24,56 A30,30,0,1,1,84,56 A30,30,0,1,1,24,56 Z"
+        android:fillColor="#1A8191" />
+</vector>

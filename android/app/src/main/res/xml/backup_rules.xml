@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 6–11: Die Anmeldung (verschlüsseltes Refresh-Token) wird nicht gesichert – ihr Schlüssel liegt im
+     Android-Keystore und ließe sich auf einem anderen Gerät ohnehin nicht entschlüsseln. -->
+<full-backup-content>
+    <exclude
+        domain="sharedpref"
+        path="drinkwithme_session.xml" />
+</full-backup-content>

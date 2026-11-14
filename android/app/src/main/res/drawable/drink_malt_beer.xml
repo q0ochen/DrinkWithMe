@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/malt_beer.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M13.5,43 C13.5,40.6,17,39.6,21,39.6 C25,39.6,28.5,40.6,28.5,43 Z"
+        android:fillColor="#E4F2F9"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M21,32 V40"
+        android:strokeColor="#263238"
+        android:strokeWidth="2.4" />
+    <path
+        android:pathData="M12,11 H30 C31.5,17,31.5,22.5,29,27.5 C27.5,30.8,24.6,33,21,33 C17.4,33,14.5,30.8,13,27.5 C10.5,22.5,10.5,17,12,11 Z"
+        android:fillColor="#E4F2F9" />
+    <path
+        android:pathData="M13.4,12.5 H28.6 C30,17.5,29.9,22.5,27.7,26.9 C26.4,29.7,24,31.6,21,31.6 C18,31.6,15.6,29.7,14.3,26.9 C12.1,22.5,12,17.5,13.4,12.5 Z"
+        android:fillColor="#5B3518" />
+    <path
+        android:pathData="M15.4,18 C15.2,21,15.8,23.8,17.2,26.2"
+        android:strokeColor="#99FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M12,11 H30 C31.5,17,31.5,22.5,29,27.5 C27.5,30.8,24.6,33,21,33 C17.4,33,14.5,30.8,13,27.5 C10.5,22.5,10.5,17,12,11 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M11.5,13.4 C9.8,12.4,10.4,9.4,12.6,9.3 C12.8,6.8,15.8,5.6,17.8,7 C19.2,5,23,5,24.2,7.2 C26.2,6,29,7,29.2,9.4 C31.4,9.8,32,12.4,30.4,13.6 C29,14.6,27,14.4,26.2,13.4 C24.6,14.6,22,14.6,20.8,13.4 C19.2,14.6,16.6,14.6,15.6,13.4 C14.4,14.4,12.4,14.3,11.5,13.4 Z"
+        android:fillColor="#F2DFC0"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M38.5,43 C38.8,37,38.6,31,37.8,25"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M35.5,15.6 A1.7,3,0,1,1,38.9,15.6 A1.7,3,0,1,1,35.5,15.6 Z"
+        android:fillColor="#E9B949"
+        android:strokeColor="#263238"
+        android:strokeWidth="1.3" />
+    <group
+        android:rotation="-32"
+        android:pivotX="35.1"
+        android:pivotY="20.4">
+        <path
+            android:pathData="M33.5,20.4 A1.6,2.8,0,1,1,36.7,20.4 A1.6,2.8,0,1,1,33.5,20.4 Z"
+            android:fillColor="#E9B949"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.3" />
+    </group>
+    <group
+        android:rotation="32"
+        android:pivotX="39.5"
+        android:pivotY="19.9">
+        <path
+            android:pathData="M37.9,19.9 A1.6,2.8,0,1,1,41.1,19.9 A1.6,2.8,0,1,1,37.9,19.9 Z"
+            android:fillColor="#E9B949"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.3" />
+    </group>
+    <group
+        android:rotation="-32"
+        android:pivotX="35.5"
+        android:pivotY="25.6">
+        <path
+            android:pathData="M33.9,25.6 A1.6,2.8,0,1,1,37.1,25.6 A1.6,2.8,0,1,1,33.9,25.6 Z"
+            android:fillColor="#E9B949"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.3" />
+    </group>
+    <group
+        android:rotation="32"
+        android:pivotX="40"
+        android:pivotY="25.1">
+        <path
+            android:pathData="M38.4,25.1 A1.6,2.8,0,1,1,41.6,25.1 A1.6,2.8,0,1,1,38.4,25.1 Z"
+            android:fillColor="#E9B949"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.3" />
+    </group>
+    <group
+        android:rotation="-32"
+        android:pivotX="36.1"
+        android:pivotY="30.8">
+        <path
+            android:pathData="M34.6,30.8 A1.5,2.6,0,1,1,37.6,30.8 A1.5,2.6,0,1,1,34.6,30.8 Z"
+            android:fillColor="#E9B949"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.3" />
+    </group>
+    <group
+        android:rotation="32"
+        android:pivotX="40.4"
+        android:pivotY="30.4">
+        <path
+            android:pathData="M38.9,30.4 A1.5,2.6,0,1,1,41.9,30.4 A1.5,2.6,0,1,1,38.9,30.4 Z"
+            android:fillColor="#E9B949"
+            android:strokeColor="#263238"
+            android:strokeWidth="1.3" />
+    </group>
+</vector>

@@ -1,0 +1,393 @@
+# Baut die Android-App bei jedem Push und stellt die APK zum Herunterladen bereit.
+# Download mit GitHub-Anmeldung: GitHub → Actions → „Android“ → letzter Lauf → Artifacts → DrinkWithMe-android-apk
+# Download OHNE Anmeldung (öffentliche Testversion, wird nach jedem erfolgreichen Build aktualisiert):
+#   https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk
+name: Android
+
+on:
+  push:
+    paths:
+      - "android/**"
+      - "design/**"
+      - "fastlane/**"
+      - "fdroid/**"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "design/**"
+      - "fastlane/**"
+      - "fdroid/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Selbst gezeichnete Icons: Android-Drawables müssen zu design/icons/*.svg passen (nur Python-Standardbibliothek).
+      - name: Grafiken prüfen (SVG → VectorDrawable aktuell und gültig)
+        working-directory: .
+        run: python3 design/tools/svg2vector.py check
+
+      - name: Tests der Grafik-Werkzeuge
+        working-directory: .
+        run: python3 -m unittest discover -s design/tools -p 'test_*.py'
+
+      - name: Tests der Geschäftslogik
+        run: ./gradlew :core:test --no-daemon
+
+      - name: Tests des App-Moduls
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      # Laufnummer → steigende versionCode (1000 + Nummer) und versionName „2.0.0-test.<Nummer>“, damit Android,
+      # F-Droid und Obtainium jede Testversion als Update erkennen (siehe android/app/build.gradle.kts).
+      - name: Debug-APK bauen
+        run: ./gradlew :app:assembleDebug --no-daemon -PciBuildNumber=${{ github.run_number }}
+
+      # Stellt sicher, dass die APK mit dem festen Schlüssel aus app/debug.keystore signiert ist.
+      # Nur dann lassen sich neue Versionen über alte installieren, ohne Daten zu verlieren.
+      - name: Signatur prüfen (fester Debug-Schlüssel)
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          EXPECTED="$(keytool -list -v -keystore app/debug.keystore -storepass android -alias androiddebugkey \
+            | grep 'SHA256:' | awk '{print $2}' | tr -d ':' | tr 'A-F' 'a-f')"
+          ACTUAL="$("$APKSIGNER" verify --print-certs app/build/outputs/apk/debug/app-debug.apk \
+            | grep 'SHA-256 digest' | head -1 | awk '{print $NF}')"
+          echo "Erwartet:    $EXPECTED"
+          echo "Tatsächlich: $ACTUAL"
+          test -n "$EXPECTED" && test "$EXPECTED" = "$ACTUAL"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DrinkWithMe-android-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  # Installationstest: Die gebaute APK wird im Emulator mit dem neuesten verfügbaren Android installiert und
+  # gestartet – einmal normal, einmal mit 16-KB-Speicherseiten (wie auf neuen Pixel-Handys). So ist belegt, dass die
+  # APK selbst auf aktuellen Geräten installierbar ist; Sperren durch Geräte-Einstellungen prüft das nicht.
+  # Läuft parallel zur Testversion und hält sie nicht auf.
+  installtest:
+    name: Installationstest (${{ matrix.name }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: neuestes Android
+            variant: google_apis
+          - name: neuestes Android, 16-KB-Speicherseiten
+            variant: google_apis_ps16k
+    env:
+      VARIANT: ${{ matrix.variant }}
+      # avdmanager und emulator sollen sicher denselben AVD-Ordner verwenden.
+      ANDROID_AVD_HOME: /home/runner/.android/avd
+    steps:
+      - name: KVM freischalten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: DrinkWithMe-android-apk
+          path: apk
+
+      - name: Neuestes System-Image installieren
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          IMG="$("$SDKM" --list 2>/dev/null \
+            | grep -oE "system-images;android-[0-9]+(\.[0-9]+)?;${VARIANT};x86_64" \
+            | sort -u -t';' -k2,2V | tail -1)"
+          if [ -z "$IMG" ]; then echo "::error::Kein System-Image für ${VARIANT} (x86_64) gefunden"; exit 1; fi
+          echo "System-Image: $IMG"
+          echo "IMG=$IMG" >> "$GITHUB_ENV"
+          yes | "$SDKM" --licenses >/dev/null || true
+          "$SDKM" --install "$IMG" emulator platform-tools >/dev/null
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n test -k "$IMG" --force
+          "$ANDROID_HOME/emulator/emulator" -list-avds
+
+      - name: Emulator starten
+        run: |
+          ls -l /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -accel-check || true
+          "$ANDROID_HOME/emulator/emulator" -avd test -no-window -no-audio -no-boot-anim -no-snapshot \
+            -gpu swiftshader_indirect -camera-back none -camera-front none > emulator.log 2>&1 &
+          EMU_PID=$!
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" start-server
+          BOOTED=""
+          for _ in $(seq 1 180); do   # höchstens 15 Minuten
+            if ! kill -0 "$EMU_PID" 2>/dev/null; then
+              echo "::error::Der Emulator hat sich beendet"; tail -60 emulator.log; exit 1
+            fi
+            if [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then BOOTED=1; break; fi
+            sleep 5
+          done
+          if [ -z "$BOOTED" ]; then echo "::error::Der Emulator ist nicht hochgefahren"; tail -60 emulator.log; exit 1; fi
+          echo "Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r')" \
+            "(API $("$ADB" shell getprop ro.build.version.sdk | tr -d '\r')," \
+            "Speicherseite $("$ADB" shell getconf PAGESIZE | tr -d '\r') Byte)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: APK installieren und starten
+        run: |
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          "$ADB" install apk/app-debug.apk
+          "$ADB" logcat -c
+          "$ADB" shell am start -W -n com.drinkwithme.app/.MainActivity
+          sleep 20
+          "$ADB" exec-out screencap -p > screenshot.png
+          "$ADB" logcat -d > logcat.txt
+          if grep -A3 "FATAL EXCEPTION" logcat.txt | grep -q "com.drinkwithme.app"; then
+            grep -A30 "FATAL EXCEPTION" logcat.txt; echo "::error::Die App ist beim Start abgestürzt"; exit 1
+          fi
+          PID="$("$ADB" shell pidof com.drinkwithme.app | tr -d '\r')"
+          if [ -z "$PID" ]; then echo "::error::Die App läuft nach dem Start nicht"; exit 1; fi
+          echo "Installiert und gestartet: $IMG" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installtest-${{ matrix.variant }}
+          path: |
+            screenshot.png
+            logcat.txt
+            emulator.log
+          if-no-files-found: ignore
+
+  # Öffentliche Testversion: Nach einem erfolgreichen Build (alle Tests grün, Signatur geprüft) wird die APK
+  # als Release „testversion“ veröffentlicht – ohne GitHub-Anmeldung und ohne ZIP herunterladbar, mit festem Link.
+  # Es gibt immer nur EINE Testversion; sie wird bei jedem Build ersetzt – erst nach dem Installationstest und nie
+  # durch einen älteren Lauf (die versionCode steigt mit der Laufnummer; Android verweigert Rückschritte).
+  testversion:
+    name: Öffentliche Testversion aktualisieren
+    needs: [build, installtest]
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: android-testversion
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: testversion
+    steps:
+      # Ein langsamer älterer Lauf darf eine neuere Testversion nicht überschreiben. Die Concurrency-Gruppe sorgt
+      # dafür, dass Prüfen und Veröffentlichen nicht zwischen zwei Läufen verzahnt werden.
+      - name: Ist schon eine neuere Testversion veröffentlicht?
+        id: newer
+        run: |
+          PUB="$(gh release view "$TAG" --json body --jq .body 2>/dev/null | grep -oP '2\.0\.0-test\.\K[0-9]+' | head -1 || true)"
+          echo "Veröffentlicht: ${PUB:-keine}, dieser Lauf: ${GITHUB_RUN_NUMBER}"
+          if [ -n "$PUB" ] && [ "$PUB" -gt "$GITHUB_RUN_NUMBER" ]; then
+            echo "::warning::Veröffentlicht ist schon Testversion ${PUB} (neuer als ${GITHUB_RUN_NUMBER}) – übersprungen. Wurde android.yml umbenannt, beginnt die Laufnummer neu: dann in android/app/build.gradle.kts den Versatz 1000 erhöhen."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.newer.outputs.skip != 'true'
+        with:
+          name: DrinkWithMe-android-apk
+          path: apk
+
+      - name: APK benennen und Prüfsumme bilden
+        if: steps.newer.outputs.skip != 'true'
+        run: |
+          cp apk/app-debug.apk DrinkWithMe.apk
+          sha256sum DrinkWithMe.apk | tee DrinkWithMe.apk.sha256
+
+      - name: Beschreibung der Testversion
+        if: steps.newer.outputs.skip != 'true'
+        env:
+          # Ein-Tipp-Import für Obtainium (gleicher Link wie in der README): Vorabversionen einbeziehen und das Datum
+          # des letzten APK-Uploads als Version verwenden – nötig, weil Tag und versionCode der Testversion gleich bleiben.
+          OBTAINIUM_LINK: "https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D"
+        run: |
+          STAND="$(date -u '+%d.%m.%Y, %H:%M UTC')"
+          KURZ="${GITHUB_SHA::7}"
+          cat > notes.md <<EOF
+          **Testversion von Drink With Me für Android** – Version \`2.0.0-test.${GITHUB_RUN_NUMBER}\`, Stand ${STAND}, Code-Stand \`${KURZ}\`.
+
+          **Herunterladen (ohne Anmeldung):** https://github.com/${GH_REPO}/releases/download/${TAG}/DrinkWithMe.apk
+
+          ### Installieren
+          0. Schon einmal „Drink With Me“ installiert (z. B. selbst gebaut)? Erst **deinstallieren**, sonst meldet Android einen Paket-Konflikt.
+          1. Den Link oben **in Chrome** auf dem Android-Handy öffnen. Fragt Chrome nach: **Trotzdem herunterladen**, dann **Öffnen**.
+          2. Die Erlaubnis für diese Quelle **zulassen** (Pixel: „Dieser Quelle vertrauen“ bzw. „Nur dieses Mal“ / „Immer zulassen“), dann **Installieren**.
+          3. Meldet sich Play Protect: **nicht** auf „OK“, sondern **Weitere Details → Trotzdem installieren** (oder **App scannen**).
+
+          Klappt es nicht: bitte den genauen Fehlertext oder einen Screenshot schicken.
+
+          Fire TV Stick (Fire OS 7/8): in der App „Downloader“ den Link oben eingeben.
+
+          ### Automatisch aktuell bleiben (optional)
+          Die freie App [Obtainium](https://github.com/ImranR98/Obtainium/releases) installieren, dann auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
+          [Drink With Me in Obtainium hinzufügen](${OBTAINIUM_LINK}). Obtainium meldet dann jede neue Testversion.
+
+          ### Hinweise
+          - Testversion, mit dem öffentlichen Test-Schlüssel signiert. Neue Testversionen lassen sich einfach drüber installieren.
+          - **Bar, Verlauf, Sprache und Vorlesen** funktionieren sofort. **Freunde** zeigt „Server noch nicht eingerichtet“,
+            bis der Supabase-Server eingerichtet ist (siehe docs/EINRICHTUNG.md).
+          - Prüfsumme (SHA-256) der APK: siehe \`DrinkWithMe.apk.sha256\`.
+          EOF
+
+      - name: Testversion veröffentlichen oder ersetzen
+        if: steps.newer.outputs.skip != 'true'
+        run: |
+          TITEL="Testversion (Android)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Tag auf den aktuellen Stand verschieben, Text erneuern.
+            gh api -X PATCH "repos/$GH_REPO/git/refs/tags/$TAG" -f sha="$GITHUB_SHA" -F force=true
+            gh release edit "$TAG" --title "$TITEL" --notes-file notes.md --prerelease
+          else
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TITEL" --notes-file notes.md --prerelease
+          fi
+          gh release upload "$TAG" DrinkWithMe.apk DrinkWithMe.apk.sha256 --clobber
+          echo "Öffentlicher Link: https://github.com/$GH_REPO/releases/download/$TAG/DrinkWithMe.apk"
+
+  # Eigene F-Droid-Paketquelle (nicht das offizielle F-Droid): signierter Index + die aktuelle und die vorige
+  # Testversion auf dem Zweig „fdroid-repo“, abrufbar über raw.githubusercontent.com. Tester fügen sie einmal in der
+  # F-Droid-App hinzu und bekommen Updates über F-Droid. Braucht das Secret FDROID_REPO_KEYSTORE (docs/EINRICHTUNG.md,
+  # Schritt 5.5); fehlt es, wird der Job übersprungen. Erklärung: docs/F-DROID.md, Abschnitt 11.3.
+  # Sicherheit: Der geheime Schlüssel ist nur im Schritt „Paketquelle bauen“ sichtbar, das Schreib-Token nur in den
+  # Schritten, die es brauchen; fdroidserver wird mit festen Prüfsummen installiert (fdroid/requirements.txt).
+  fdroid:
+    name: Eigene F-Droid-Paketquelle aktualisieren
+    needs: [build, installtest]
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/drink-with-me-app-s7ifqu')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: android-fdroid
+      cancel-in-progress: false
+    env:
+      # SHA-256 des Zertifikats der Paketquelle – derselbe Wert steht im Link in README.md, im QR-Code und in
+      # docs/F-DROID.md (build-repo.sh prüft das).
+      FDROID_REPO_FINGERPRINT: d358dcffd3b82c09460943df4513e5f7951f2c0c6a6fd7ebab8e0741becd7523
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Schlüssel vorhanden?
+        id: key
+        env:
+          HAS_KEY: ${{ secrets.FDROID_REPO_KEYSTORE != '' }}
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::notice::Das Secret FDROID_REPO_KEYSTORE fehlt – die F-Droid-Paketquelle wird nicht aktualisiert (docs/EINRICHTUNG.md, Schritt 5.5)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Bisherige Paketquelle holen (öffentlich, ohne Token): für die vorige APK und die bisherige Laufnummer.
+      - name: Bisherige Paketquelle holen
+        id: previous
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          PREV="$RUNNER_TEMP/fdroid-previous"
+          rm -rf "$PREV" && git init -q "$PREV"
+          PUB=""
+          if git -C "$PREV" fetch -q --depth=1 "https://github.com/${GH_REPO}.git" fdroid-repo 2>/dev/null; then
+            git -C "$PREV" checkout -q FETCH_HEAD
+            PUB="$(git -C "$PREV" log -1 --format=%s | grep -oP '2\.0\.0-test\.\K[0-9]+' | head -1 || true)"
+          fi
+          echo "Veröffentlicht: ${PUB:-keine}, dieser Lauf: ${GITHUB_RUN_NUMBER}"
+          if [ -n "$PUB" ] && [ "$PUB" -gt "$GITHUB_RUN_NUMBER" ]; then
+            echo "::warning::In der F-Droid-Paketquelle liegt schon Testversion ${PUB} (neuer als ${GITHUB_RUN_NUMBER}) – übersprungen. Wurde android.yml umbenannt, beginnt die Laufnummer neu: dann in android/app/build.gradle.kts den Versatz 1000 erhöhen."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "dir=$PREV/fdroid/repo" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        with:
+          name: DrinkWithMe-android-apk
+          path: apk
+
+      - uses: actions/setup-python@v5
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+
+      - name: fdroidserver installieren (feste Prüfsummen)
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        run: |
+          python -m pip install --quiet --require-hashes -r fdroid/requirements.txt
+          # apksigner (für die Signatur des Index) aus den neuesten Android-Build-Tools.
+          ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1 >> "$GITHUB_PATH"
+
+      - name: Paketquelle bauen
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        env:
+          FDROID_REPO_KEYSTORE: ${{ secrets.FDROID_REPO_KEYSTORE }}
+        run: >-
+          fdroid/build-repo.sh apk/app-debug.apk "$((1000 + GITHUB_RUN_NUMBER))" "$RUNNER_TEMP/fdroidwork"
+          "${{ steps.previous.outputs.dir }}"
+
+      - name: Auf dem Zweig „fdroid-repo“ veröffentlichen
+        if: steps.key.outputs.ready == 'true' && steps.previous.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PUB="$RUNNER_TEMP/fdroid-publish"
+          rm -rf "$PUB" && mkdir -p "$PUB/fdroid"
+          cp -R "$RUNNER_TEMP/fdroidwork/repo" "$PUB/fdroid/repo"
+          LINK="https://fdroid.link/#https://raw.githubusercontent.com/${GH_REPO}/fdroid-repo/fdroid/repo?fingerprint=${FDROID_REPO_FINGERPRINT^^}"
+          cat > "$PUB/README.md" <<EOF
+          # F-Droid-Paketquelle für die Testversionen von Drink With Me
+
+          Dieser Zweig wird automatisch von \`.github/workflows/android.yml\` erzeugt und bei jedem Build ersetzt –
+          bitte nicht von Hand ändern. Er enthält die aktuelle Testversion (2.0.0-test.${GITHUB_RUN_NUMBER}) und die
+          vorige.
+
+          In der F-Droid-App hinzufügen: ${LINK}
+
+          Fingerabdruck: \`${FDROID_REPO_FINGERPRINT}\`
+          EOF
+          cd "$PUB"
+          git init -q -b fdroid-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "F-Droid-Paketquelle: Testversion 2.0.0-test.${GITHUB_RUN_NUMBER} (${GITHUB_SHA::7})"
+          # Nur ein einziger Commit: Alte APKs sollen den Zweig nicht wachsen lassen.
+          AUTH="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic ${AUTH}" \
+            push --force "https://github.com/${GH_REPO}.git" HEAD:refs/heads/fdroid-repo
+          echo "Veröffentlicht: ${LINK}" | tee -a "$GITHUB_STEP_SUMMARY"

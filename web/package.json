@@ -1,0 +1,44 @@
+{
+  "name": "drink-with-me-web",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Drink With Me als Web-App (PWA) für iPhone und Browser – Bar, Verlauf, Freunde, Vorlesen.",
+  "license": "CC0-1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "icons": "node scripts/generate-icons.mjs",
+    "predev": "npm run icons",
+    "dev": "vite",
+    "prebuild": "npm run icons",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pretest:e2e": "npm run icons",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build && npm run test:e2e"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
+    "idb": "8.0.4",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.5",
+    "eslint": "10.13.0",
+    "fake-indexeddb": "6.2.6",
+    "globals": "17.13.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  }
+}

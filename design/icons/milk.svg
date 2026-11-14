@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Milch</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <rect x="16" y="5" width="16" height="4.5" rx="0.8" fill="#FFFFFF" stroke="#263238" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="13,19.5 17,9.5 31,9.5 35,19.5" fill="#E3EEF7" stroke="#263238" stroke-width="2" stroke-linejoin="round"/>
+  <path fill="#FFFFFF" d="M13 19.5 H35 V41.5 Q35 43 33.5 43 H14.5 Q13 43 13 41.5 Z"/>
+  <path fill="#4A9FE0" d="M13 28 H35 V41.5 Q35 43 33.5 43 H14.5 Q13 43 13 41.5 Z"/>
+  <path fill="#FFFFFF" d="M24 29.8 C24 29.8 20.4 33.8 20.4 36.2 A3.6 3.6 0 0 0 27.6 36.2 C27.6 33.8 24 29.8 24 29.8 Z"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M13 19.5 H35 V41.5 Q35 43 33.5 43 H14.5 Q13 43 13 41.5 Z"/>
+</svg>

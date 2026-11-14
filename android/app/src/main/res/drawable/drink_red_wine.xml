@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt aus design/icons/red_wine.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, Lizenz CC0 1.0 (design/icons/LICENSE). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M15,43 C15,40.4,19,39.4,24,39.4 C29,39.4,33,40.4,33,43 Z"
+        android:fillColor="#E4F2F9"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M24,26.5 V40"
+        android:strokeColor="#263238"
+        android:strokeWidth="2.4" />
+    <path
+        android:pathData="M15.5,5 L13,16 A11,11,0,0,0,35,16 L32.5,5 Z"
+        android:fillColor="#E4F2F9" />
+    <path
+        android:pathData="M13.05,17 A11,11,0,0,0,34.95,17 Z"
+        android:fillColor="#9E1C3F" />
+    <path
+        android:pathData="M17.6,8.5 L16.4,14"
+        android:strokeColor="#E6FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M16.6,19.5 C17.2,21.8,18.4,23.4,20,24.4"
+        android:strokeColor="#8CFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M15.5,5 L13,16 A11,11,0,0,0,35,16 L32.5,5 Z"
+        android:strokeColor="#263238"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round" />
+</vector>

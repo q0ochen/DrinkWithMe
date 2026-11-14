@@ -1,0 +1,22 @@
+{
+  "name": "Drink With Me",
+  "short_name": "Drink With Me",
+  "description": "Persönliches Getränketagebuch: eigene Bar, Verlauf mit Zucker und Alkohol, Freunde und Vorlesen.",
+  "lang": "de-DE",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F8F9",
+  "theme_color": "#12707F",
+  "categories": ["health", "lifestyle", "social"],
+  "icons": [
+    { "src": "icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/app-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/app_icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

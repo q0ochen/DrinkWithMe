@@ -1,0 +1,14 @@
+# Angaben für die eigene F-Droid-Paketquelle. Name, Kurz- und Langbeschreibung sowie Bilder kommen aus
+# fastlane/metadata/android/ (dieselben Texte nutzt später auch das offizielle F-Droid).
+Categories:
+  - Sports & Health
+License: CC0-1.0
+AuthorName: Drink With Me
+WebSite: https://q0ochen.github.io/DrinkWithMe/
+SourceCode: https://github.com/q0ochen/DrinkWithMe
+IssueTracker: https://github.com/q0ochen/DrinkWithMe/issues
+
+AntiFeatures:
+  NonFreeNet:
+    de-DE: Freunde und Benachrichtigungen erfordern eine Anmeldung mit einem Google-Konto. Bar, Verlauf, Sprache und Vorlesen funktionieren ohne Konto.
+    en-US: Friends and notifications require signing in with a Google account. Bar, history, voice and read-aloud work without an account.

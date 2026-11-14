@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Bier</title>
+  <!-- Drink With Me · eigenes Werk · CC0 1.0 -->
+  <path fill="none" stroke="#263238" stroke-width="7" stroke-linejoin="round" d="M31 19 H35 Q39 19 39 23 V30 Q39 34 35 34 H31"/>
+  <path fill="none" stroke="#E4F2F9" stroke-width="3" stroke-linejoin="round" d="M31 19 H35 Q39 19 39 23 V30 Q39 34 35 34 H31"/>
+  <path fill="#E4F2F9" d="M10 13 H32 V38.5 Q32 43 27.5 43 H14.5 Q10 43 10 38.5 Z"/>
+  <path fill="#F6B92B" d="M10 16 H32 V38.5 Q32 43 27.5 43 H14.5 Q10 43 10 38.5 Z"/>
+  <g fill="none" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round">
+    <path d="M15.5 22 V38"/>
+    <path d="M21 22 V38"/>
+    <path d="M26.5 22 V38"/>
+  </g>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M10 13 H32 V38.5 Q32 43 27.5 43 H14.5 Q10 43 10 38.5 Z"/>
+  <path fill="#FFFFFF" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M9 16 C7.2 15 7.5 11.5 10 11 C10 7.8 13.6 6.2 16 8 C17.5 5.4 22 5 23.8 7.6 C25.8 5.8 30 6.4 30.6 9.8 C33.2 10 34.4 13 33 15 C33.6 17 31.6 18.6 29.8 17.8 V21 Q29.8 22.8 28.4 22.8 Q27 22.8 27 21 V18 C25 18.8 22.5 18.6 21 17.2 C19 18.6 16 18.6 14.6 17.2 C13 18.2 10.5 17.8 9 16 Z"/>
+</svg>
