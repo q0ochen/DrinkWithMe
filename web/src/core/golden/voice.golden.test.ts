@@ -170,7 +170,21 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(match("Kräutertee")).toEqual(drink(CatalogIds.TEE));
     expect(match("Eistee")).toEqual(drink(CatalogIds.EISTEE));
     expect(match("ein Weißbier")).toEqual(drink(CatalogIds.WEIZENBIER));
-    expect(match("ein alkoholfreies Bier")).toEqual(drink(CatalogIds.ALKOHOLFREIES_BIER));
+    // Zahlen wie „0,0“ zählen beim Abgleich nicht: Beide alkoholfreien Biere klingen gleich, also nachfragen.
+    expect(match("ein alkoholfreies Bier")).toEqual(ambiguous(CatalogIds.ALKOHOLFREIES_BIER, CatalogIds.ALKOHOLFREIES_BIER_0_0));
+    expect(match("ein alkoholfreies Pils")).toEqual(drink(CatalogIds.ALKOHOLFREIES_BIER_0_0));
+    expect(match("alkoholfreies Weizen")).toEqual(drink(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0));
+    expect(match("ein Radler")).toEqual(drink(CatalogIds.RADLER));
+    expect(match("ein alkoholfreies Radler")).toEqual(drink(CatalogIds.ALKOHOLFREIES_RADLER_0_0));
+    expect(match("ein Spezi")).toEqual(drink(CatalogIds.SPEZI));
+    expect(match("Cola Mix")).toEqual(drink(CatalogIds.SPEZI));
+    expect(match("einen Espresso")).toEqual(drink(CatalogIds.ESPRESSO));
+    expect(match("Cappuccino")).toEqual(drink(CatalogIds.CAPPUCCINO));
+    expect(match("Latte Macchiato")).toEqual(drink(CatalogIds.LATTE_MACCHIATO));
+    expect(match("Milchkaffee")).toEqual(drink(CatalogIds.MILCHKAFFEE));
+    expect(match("Eiskaffee")).toEqual(drink(CatalogIds.EISKAFFEE));
+    expect(match("heiße Schokolade")).toEqual(drink(CatalogIds.KAKAO));
+    expect(match("eine Weinschorle")).toEqual(drink(CatalogIds.WEINSCHORLE));
     expect(match("Malzbier")).toEqual(drink(CatalogIds.MALZBIER));
     expect(match("Ich hatte eine Tasse Kaffee")).toEqual(drink(CatalogIds.KAFFEE));
   });

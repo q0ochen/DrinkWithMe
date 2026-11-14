@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Latte macchiato</title>
+  <!-- DrinkWithMe · eigenes Werk · CC0 1.0 -->
+  <ellipse cx="24" cy="40" rx="13.5" ry="3" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <path fill="#E4F2F9" d="M15.5 4.5 H32.5 L31.5 38 Q31.4 40.5 29 40.5 H19 Q16.6 40.5 16.5 38 Z"/>
+  <!-- Schichten: Kaffee in der Mitte, darunter Milch, oben Milchschaum -->
+  <path fill="#A86B45" d="M15.85 16.5 H32.15 L31.56 36.5 H16.44 Z"/>
+  <path fill="#F5E6D0" d="M16.12 25.6 C19 24.4 21.8 26.6 24.3 25.6 C26.8 24.6 29.4 26.2 31.88 25.6 L31.56 36.5 H16.44 Z"/>
+  <path fill="#FFFFFF" d="M15.6 8 C18.6 7 21.4 8.6 24 8 C26.6 7.4 29.4 8.8 32.4 8 L32.15 16.4 C29.4 17.4 26.6 15.6 24 16.6 C21.4 17.6 18.6 16 15.85 17 Z"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.7" stroke-width="2" stroke-linecap="round" d="M18.6 19.5 L18.7 23"/>
+  <path fill="none" stroke="#263238" stroke-opacity="0.35" stroke-width="1.5" stroke-linecap="round" d="M19.5 38.2 H28.5"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M15.5 4.5 H32.5 L31.5 38 Q31.4 40.5 29 40.5 H19 Q16.6 40.5 16.5 38 Z"/>
+</svg>

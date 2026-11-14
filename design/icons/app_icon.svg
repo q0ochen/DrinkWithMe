@@ -3,25 +3,25 @@
   <!-- Erzeugt aus app_icon_background.svg + app_icon_foreground.svg mit design/tools/svg2vector.py – nicht von Hand bearbeiten. Eigenes Werk, CC0 1.0 -->
   <g>
     <rect x="0" y="0" width="108" height="108" fill="#12707F" />
-    <circle cx="54" cy="56" r="30" fill="#1A8191" />
+    <circle cx="54" cy="54" r="34" fill="#1A8191" />
   </g>
   <g>
-    <g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round">
-      <path d="M54 37.5 V31" />
-      <path d="M47.4 39 L44.2 34.4" />
-      <path d="M60.6 39 L63.8 34.4" />
+    <g fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round">
+      <path d="M54 31 V24" />
+      <path d="M46.4 32.4 L42.6 27" />
+      <path d="M61.6 32.4 L65.4 27" />
     </g>
-    <g transform="rotate(14 41 57)">
-      <path fill="#E4F2F9" d="M30 42 H52 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z" />
-      <path fill="#4FB4E8" d="M30.9 51 C34 49.6 37.6 52.4 41 51 C44.4 49.6 48 52.4 51.1 51 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z" />
-      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round" d="M35.4 55 L36.2 66" />
-      <path fill="none" stroke="#263238" stroke-width="2.4" stroke-linejoin="round" d="M30 42 H52 L49.24 69.6 Q49 72 46.6 72 H35.4 Q33 72 32.76 69.6 Z" />
+    <g transform="rotate(14 39.6 54)">
+      <path fill="#E4F2F9" d="M26.4 36 H52.8 L49.5 69 Q49.2 72 46.2 72 H33 Q30 72 29.7 69 Z" />
+      <path fill="#4FB4E8" d="M27.5 47 C31.2 45.3 35.5 48.7 39.6 47 C43.7 45.3 48 48.7 51.7 47 L49.5 69 Q49.2 72 46.2 72 H33 Q30 72 29.7 69 Z" />
+      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.6" stroke-linecap="round" d="M32.9 52 L33.8 65" />
+      <path fill="none" stroke="#263238" stroke-width="2.8" stroke-linejoin="round" d="M26.4 36 H52.8 L49.5 69 Q49.2 72 46.2 72 H33 Q30 72 29.7 69 Z" />
     </g>
-    <g transform="rotate(-14 67 57)">
-      <path fill="#E4F2F9" d="M56 42 H78 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z" />
-      <path fill="#FFA21F" d="M57 52 H77 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z" />
-      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.2" stroke-linecap="round" d="M61.4 56 L62.2 66" />
-      <path fill="none" stroke="#263238" stroke-width="2.4" stroke-linejoin="round" d="M56 42 H78 L75.24 69.6 Q75 72 72.6 72 H61.4 Q59 72 58.76 69.6 Z" />
+    <g transform="rotate(-14 68.4 54)">
+      <path fill="#E4F2F9" d="M55.2 36 H81.6 L78.3 69 Q78 72 75 72 H61.8 Q58.8 72 58.5 69 Z" />
+      <path fill="#FFA21F" d="M56.4 48 H80.4 L78.3 69 Q78 72 75 72 H61.8 Q58.8 72 58.5 69 Z" />
+      <path fill="none" stroke="#FFFFFF" stroke-opacity="0.8" stroke-width="2.6" stroke-linecap="round" d="M61.7 52.8 L62.6 65" />
+      <path fill="none" stroke="#263238" stroke-width="2.8" stroke-linejoin="round" d="M55.2 36 H81.6 L78.3 69 Q78 72 75 72 H61.8 Q58.8 72 58.5 69 Z" />
     </g>
   </g>
 </svg>

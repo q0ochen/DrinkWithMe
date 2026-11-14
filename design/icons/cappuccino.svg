@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Cappuccino</title>
+  <!-- DrinkWithMe · eigenes Werk · CC0 1.0 -->
+  <g fill="none" stroke="#90A4AE" stroke-width="2" stroke-linecap="round">
+    <path d="M18.5 11.5 C17 10 20 8.5 18.5 6.6 C17.7 5.6 18.2 4.8 18.8 4.3"/>
+    <path d="M26.5 11.5 C25 10 28 8.5 26.5 6.6 C25.7 5.6 26.2 4.8 26.8 4.3"/>
+  </g>
+  <ellipse cx="24" cy="39.5" rx="17" ry="3.5" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <path fill="none" stroke="#263238" stroke-width="7" stroke-linejoin="round" d="M34.5 25.5 Q40 25 39.5 29.8 Q39 34 33.4 33.6"/>
+  <path fill="none" stroke="#FFF7EA" stroke-width="3" stroke-linejoin="round" d="M34.5 25.5 Q40 25 39.5 29.8 Q39 34 33.4 33.6"/>
+  <path fill="#FFF7EA" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M9 23 H36 C36 31 31.5 37.4 22.5 37.4 C13.5 37.4 9 31 9 23 Z"/>
+  <ellipse cx="22.5" cy="23" rx="13.5" ry="3.4" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <!-- Crema am Rand, darüber die Milchschaumhaube mit Herz -->
+  <ellipse cx="22.5" cy="23.2" rx="11.6" ry="2.3" fill="#A86B45"/>
+  <path fill="#FFFFFF" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M12.4 23 C12.4 17.4 16.6 14.4 22.5 14.4 C28.4 14.4 32.6 17.4 32.6 23 C28.2 24.2 16.8 24.2 12.4 23 Z"/>
+  <path fill="#A86B45" d="M22.5 22.2 C19.3 20.2 18.9 18 20.5 17.4 C21.4 17.1 22.1 17.6 22.5 18.3 C22.9 17.6 23.6 17.1 24.5 17.4 C26.1 18 25.7 20.2 22.5 22.2 Z"/>
+</svg>

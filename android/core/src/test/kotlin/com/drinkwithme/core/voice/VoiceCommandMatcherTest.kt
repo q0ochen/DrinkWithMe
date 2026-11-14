@@ -78,7 +78,24 @@ class VoiceCommandMatcherTest {
         assertEquals(drink(DefaultBarCatalog.TEE), match("Kräutertee"))
         assertEquals(drink(DefaultBarCatalog.EISTEE), match("Eistee"))
         assertEquals(drink(DefaultBarCatalog.WEIZENBIER), match("ein Weißbier"))
-        assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_BIER), match("ein alkoholfreies Bier"))
+        // Zahlen wie „0,0“ zählen beim Abgleich nicht: Beide alkoholfreien Biere klingen gleich, also nachfragen.
+        assertEquals(
+            VoiceMatch.Ambiguous(catalogItem(DefaultBarCatalog.ALKOHOLFREIES_BIER), catalogItem(DefaultBarCatalog.ALKOHOLFREIES_BIER_0_0)),
+            match("ein alkoholfreies Bier"),
+        )
+        assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_BIER_0_0), match("ein alkoholfreies Pils"))
+        assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_WEISSBIER_0_0), match("alkoholfreies Weizen"))
+        assertEquals(drink(DefaultBarCatalog.RADLER), match("ein Radler"))
+        assertEquals(drink(DefaultBarCatalog.ALKOHOLFREIES_RADLER_0_0), match("ein alkoholfreies Radler"))
+        assertEquals(drink(DefaultBarCatalog.SPEZI), match("ein Spezi"))
+        assertEquals(drink(DefaultBarCatalog.SPEZI), match("Cola Mix"))
+        assertEquals(drink(DefaultBarCatalog.ESPRESSO), match("einen Espresso"))
+        assertEquals(drink(DefaultBarCatalog.CAPPUCCINO), match("Cappuccino"))
+        assertEquals(drink(DefaultBarCatalog.LATTE_MACCHIATO), match("Latte Macchiato"))
+        assertEquals(drink(DefaultBarCatalog.MILCHKAFFEE), match("Milchkaffee"))
+        assertEquals(drink(DefaultBarCatalog.EISKAFFEE), match("Eiskaffee"))
+        assertEquals(drink(DefaultBarCatalog.KAKAO), match("heiße Schokolade"))
+        assertEquals(drink(DefaultBarCatalog.WEINSCHORLE), match("eine Weinschorle"))
         assertEquals(drink(DefaultBarCatalog.MALZBIER), match("Malzbier"))
         assertEquals(drink(DefaultBarCatalog.KAFFEE), match("Ich hatte eine Tasse Kaffee"))
     }

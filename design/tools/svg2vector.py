@@ -39,7 +39,8 @@ ANDROID_NS = "http://schemas.android.com/apk/res/android"
 DRINK_ICON_KEYS: tuple[str, ...] = (
     "water", "sparkling_water", "coffee", "tea", "juice", "apple_spritzer", "cola", "lemonade",
     "iced_tea", "energy_drink", "milk", "malt_beer", "beer", "wheat_beer", "radler", "red_wine", "white_wine",
-    "sparkling_wine", "shot", "longdrink", "cocktail", "other",
+    "sparkling_wine", "shot", "longdrink", "cocktail", "espresso", "cappuccino", "latte_macchiato", "iced_coffee",
+    "hot_chocolate", "cola_mix", "alcohol_free_beer", "wine_spritzer", "other",
 )
 
 

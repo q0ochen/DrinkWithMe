@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Espresso</title>
+  <!-- DrinkWithMe · eigenes Werk · CC0 1.0 -->
+  <g fill="none" stroke="#90A4AE" stroke-width="2" stroke-linecap="round">
+    <path d="M21 21.5 C19.6 20.1 22.4 18.7 21 16.9 C20.2 15.9 20.7 15.1 21.3 14.6"/>
+    <path d="M27 21.5 C25.6 20.1 28.4 18.7 27 16.9 C26.2 15.9 26.7 15.1 27.3 14.6"/>
+  </g>
+  <ellipse cx="24" cy="39.4" rx="14" ry="3.6" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <path fill="none" stroke="#263238" stroke-width="6" stroke-linejoin="round" d="M31 28.6 Q35.4 28.2 35.1 31.6 Q34.8 34.6 30.4 34.4"/>
+  <path fill="none" stroke="#FFF7EA" stroke-width="2.2" stroke-linejoin="round" d="M31 28.6 Q35.4 28.2 35.1 31.6 Q34.8 34.6 30.4 34.4"/>
+  <path fill="#FFF7EA" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M16 26.5 H32 L31 34.5 Q30.6 38 27 38 H21 Q17.4 38 17 34.5 Z"/>
+  <ellipse cx="24" cy="26.5" rx="8" ry="2.8" fill="#FFF7EA" stroke="#263238" stroke-width="2"/>
+  <ellipse cx="24" cy="26.8" rx="6.2" ry="1.8" fill="#D39B5F"/>
+  <ellipse cx="24" cy="26.9" rx="3.8" ry="1.05" fill="#6B4434"/>
+</svg>

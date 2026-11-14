@@ -7,7 +7,7 @@ Die SVGs sind die einzige Quelle: Die Android-Grafiken werden daraus **erzeugt**
 ```
 design/
 ├── icons/
-│   ├── <key>.svg                 22 Getränke-Icons, ein SVG je DrinkIcon-Schlüssel (viewBox 0 0 48 48)
+│   ├── <key>.svg                 30 Getränke-Icons, ein SVG je DrinkIcon-Schlüssel (viewBox 0 0 48 48)
 │   ├── app_icon_background.svg   App-Symbol, Hintergrundebene (108 × 108)
 │   ├── app_icon_foreground.svg   App-Symbol, Vordergrundebene (Inhalt in der Schutzzone)
 │   ├── app_icon.svg              beide Ebenen zusammen (erzeugt) – für Web-App/PWA und Store-Einträge
@@ -105,6 +105,14 @@ Der Schlüssel `<key>` ist `DrinkIcon.key` aus dem Kotlin-Kern (`docs/ARCHITEKTU
 | `shot` | kleines Schnapsglas | dicker Boden |
 | `longdrink` | hohes, gerades Glas | Eis, Limettenschnitz, Trinkhalm |
 | `cocktail` | Cocktailschale (V-Form) | Schirmchen |
+| `espresso` | kleines Tässchen mit Untertasse | dunkler Espresso mit Crema-Ring, Dampf |
+| `cappuccino` | breite Tasse mit Untertasse | Milchschaumhaube mit Herz, Dampf (auch Milchkaffee) |
+| `latte_macchiato` | hohes Glas mit dickem Boden auf Untertasse | drei Schichten: Milch, Kaffee, Schaum |
+| `iced_coffee` | konisches Fußglas | Sahnehaube mit Streuseln, Trinkhalm, kein Dampf |
+| `hot_chocolate` | blauer Henkelbecher | Sahnehaube, Schokolade läuft über den Rand, Dampf |
+| `cola_mix` | Becherglas mit gewölbten Seiten | oben Orange, unten Cola, Orangenscheibe links, Trinkhalm |
+| `alcohol_free_beer` | schlankes Pilsglas mit dickem Fuß | Schaumkrone, grüne Plakette mit Haken (0,0 %) |
+| `wine_spritzer` | Dubbeglas (Schoppenglas) | Mulden (Dubbe), helle Schorle mit Perlen |
 | `other` | Becher mit Kuppeldeckel | Trinkhalm |
 
 ### Farben
@@ -132,6 +140,11 @@ Der Schlüssel `<key>` ist `DrinkIcon.key` aus dem Kotlin-Kern (`docs/ARCHITEKTU
 | Longdrink, Limette | `#8A4B2A`, `#7CB342`, `#D4E9A8` |
 | Cocktail, Schirmchen | `#EC4F86`, `#33B5F0` |
 | Sonstiges, Trinkhalm | `#9C7BD6`, `#5BC0A8` |
+| Espresso, Cappuccino, Latte Macchiato, Eiskaffee | Espresso `#6B4434`, Crema `#D39B5F`, Milchkaffee `#A86B45`, Milch `#F5E6D0`, Eiskaffee `#8D5A3B`, Porzellan `#FFF7EA` |
+| Kakao | Schokolade `#7A4529`, Becher `#5BA4D9` |
+| Spezi (Cola-Mix) | Cola `#6E3820`, Orange `#F28C28` |
+| Alkoholfreies Bier, Plakette | `#F8C537`, Grün `#43A047` |
+| Weinschorle | `#F4DE86` |
 | App-Symbol / Banner | Grund `#12707F`, Kreis `#1A8191`, Schrift `#FFFFFF` |
 
 ## Erlaubte SVG-Teilmenge
@@ -161,8 +174,15 @@ Schutzzone liegt.
 - **App-Symbol (adaptiv):** zwei Ebenen mit 108 × 108 dp. Sichtbar ist je nach Launcher-Maske (Kreis, Squircle,
   abgerundetes Quadrat …) nur die Mitte; der **Vordergrund muss im Kreis mit 66 dp Durchmesser um die Mitte
   (54/54) liegen** – `check` misst das nach. Motiv: zwei anstoßende Gläser (Wasser und Saft), bewusst ohne
-  Alkohol. `app_icon.svg` (beide Ebenen übereinander) wird von `sync` erzeugt.
-- **TV-Banner:** 320 × 180, Schrift „DrinkWithMe“ als selbst gezeichnete Linien (VectorDrawable kann keinen Text).
+  Alkohol. Das Motiv nutzt die Schutzzone fast ganz aus (Reichweite ≈ 32,3 von 33 dp), damit die Gläser groß
+  wirken; der hellere Kreis im Hintergrund hat Radius 34 um die Mitte. `app_icon.svg` (beide Ebenen übereinander)
+  wird von `sync` erzeugt.
+- **Quadratische Symbole ohne Maske** (iPhone-Home-Bildschirm, Favicon, Web-Manifest „any“, F-Droid-Symbol
+  `fastlane/…/images/icon.png`) zeigen nur den Ausschnitt `14 14 80 80` – ungefähr das, was Android-Launcher
+  zeigen. Mit dem ganzen 108er-Quadrat wirkt das Motiv sonst wegen des breiten Rands zu klein. „Maskable“-Symbole
+  nutzen `12 12 84 84` (Motiv im inneren Kreis mit 80 % Durchmesser). Festgelegt in `web/scripts/generate-icons.mjs`.
+- **TV-Banner:** 320 × 180, Schriftzug „DrinkWithMe“ in einem Wort als selbst gezeichnete Linien (VectorDrawable kann
+  keinen Text).
   Wichtiges im mittleren Bereich lassen, Launcher runden die Ecken ab.
 - **Benachrichtigung:** `notification.svg` ist einfarbig weiß auf transparent, wie Android es verlangt. Die
   bisherige `res/drawable/ic_notification.xml` wurde nicht mit diesem Werkzeug erzeugt; `sync` überschreibt

@@ -15,14 +15,20 @@ class GermanArticlesAndEventTextsTest {
     fun articlesForTheWholeCatalog() {
         val expected = mapOf(
             "Wasser" to "ein Wasser", "Mineralwasser" to "ein Mineralwasser", "Kaffee" to "einen Kaffee",
-            "Tee" to "einen Tee", "Cola" to "eine Cola", "Cola zero" to "eine Cola zero", "Limonade" to "eine Limonade",
+            "Espresso" to "einen Espresso", "Cappuccino" to "einen Cappuccino",
+            "Latte Macchiato" to "einen Latte Macchiato", "Milchkaffee" to "einen Milchkaffee",
+            "Eiskaffee" to "einen Eiskaffee", "Tee" to "einen Tee", "Cola" to "eine Cola",
+            "Cola zero" to "eine Cola zero", "Spezi" to "ein Spezi", "Limonade" to "eine Limonade",
             "Eistee" to "einen Eistee", "Energydrink" to "einen Energydrink", "Orangensaft" to "einen Orangensaft",
             "Apfelsaft" to "einen Apfelsaft", "Apfelschorle" to "eine Apfelschorle", "Malzbier" to "ein Malzbier",
-            "Milch" to "eine Milch", "Pils" to "ein Pils", "Weizenbier" to "ein Weizenbier",
-            "Alkoholfreies Bier" to "ein Alkoholfreies Bier", "Radler" to "ein Radler",
+            "Milch" to "eine Milch", "Kakao" to "einen Kakao", "Pils" to "ein Pils", "Weizenbier" to "ein Weizenbier",
+            "Alkoholfreies Bier" to "ein Alkoholfreies Bier",
+            "Alkoholfreies Bier 0,0 %" to "ein Alkoholfreies Bier 0,0 %",
+            "Alkoholfreies Weißbier 0,0 %" to "ein Alkoholfreies Weißbier 0,0 %", "Radler" to "ein Radler",
+            "Alkoholfreies Radler 0,0 %" to "ein Alkoholfreies Radler 0,0 %",
             "Rotwein trocken" to "einen Rotwein trocken", "Weißwein trocken" to "einen Weißwein trocken",
-            "Sekt trocken" to "einen Sekt trocken", "Schnaps" to "einen Schnaps", "Longdrink" to "einen Longdrink",
-            "Cocktail" to "einen Cocktail",
+            "Weinschorle" to "eine Weinschorle", "Sekt trocken" to "einen Sekt trocken", "Schnaps" to "einen Schnaps",
+            "Longdrink" to "einen Longdrink", "Cocktail" to "einen Cocktail",
         )
         assertEquals(expected.keys.toList(), DefaultBarCatalog.items.map { it.name })
         expected.forEach { (name, withArticle) -> assertEquals(withArticle, GermanArticles.withIndefiniteArticle(name)) }

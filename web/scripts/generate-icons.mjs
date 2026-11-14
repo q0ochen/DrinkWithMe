@@ -21,7 +21,7 @@ const force = process.argv.includes("--force");
  *   den auch Android-Launcher zeigen – sonst wirkt das Motiv mit dem breiten Rand des adaptiven Symbols zu klein.
  * - MASKABLE_CROP für „maskable“-Symbole: Das Motiv muss im inneren Kreis mit 80 % Durchmesser liegen.
  */
-export const SQUARE_CROP = "16 16 76 76";
+export const SQUARE_CROP = "14 14 80 80";
 export const MASKABLE_CROP = "12 12 84 84";
 
 /** PNG-Ausgaben: Größe, Quelle, Form („rund“ = abgerundete Ecken mit Transparenz, „voll“ = randlos), Ausschnitt. */

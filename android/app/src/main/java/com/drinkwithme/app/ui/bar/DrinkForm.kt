@@ -129,6 +129,14 @@ object DrinkIconLabels {
         DrinkIcon.SHOT -> "Schnaps"
         DrinkIcon.LONGDRINK -> "Longdrink"
         DrinkIcon.COCKTAIL -> "Cocktail"
+        DrinkIcon.ESPRESSO -> "Espresso"
+        DrinkIcon.CAPPUCCINO -> "Cappuccino"
+        DrinkIcon.LATTE_MACCHIATO -> "Latte Macchiato"
+        DrinkIcon.ICED_COFFEE -> "Eiskaffee"
+        DrinkIcon.HOT_CHOCOLATE -> "Kakao"
+        DrinkIcon.COLA_MIX -> "Spezi (Cola-Mix)"
+        DrinkIcon.ALCOHOL_FREE_BEER -> "Alkoholfreies Bier"
+        DrinkIcon.WINE_SPRITZER -> "Weinschorle"
         DrinkIcon.OTHER -> "Sonstiges"
     }
 }

@@ -22,8 +22,8 @@ class RepositoryIconsTest(unittest.TestCase):
     def test_ein_svg_je_drinkicon_schluessel(self):
         missing = [key for key in DRINK_ICON_KEYS if not (self.project.icons_dir / f"{key}.svg").exists()]
         self.assertEqual(missing, [])
-        self.assertEqual(len(DRINK_ICON_KEYS), 22)
-        self.assertEqual(len(set(DRINK_ICON_KEYS)), 22)
+        self.assertEqual(len(DRINK_ICON_KEYS), 30)
+        self.assertEqual(len(set(DRINK_ICON_KEYS)), 30)
 
     def test_schluessel_wie_im_kotlin_kern(self):
         keys = kotlin_icon_keys(self.project.kotlin_icon_file)

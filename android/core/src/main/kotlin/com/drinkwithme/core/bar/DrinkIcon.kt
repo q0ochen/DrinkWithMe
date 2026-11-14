@@ -6,7 +6,10 @@ enum class DrinkIcon(val key: String) {
     JUICE("juice"), APPLE_SPRITZER("apple_spritzer"), COLA("cola"), LEMONADE("lemonade"),
     ICED_TEA("iced_tea"), ENERGY_DRINK("energy_drink"), MILK("milk"), MALT_BEER("malt_beer"),
     BEER("beer"), WHEAT_BEER("wheat_beer"), RADLER("radler"), RED_WINE("red_wine"), WHITE_WINE("white_wine"),
-    SPARKLING_WINE("sparkling_wine"), SHOT("shot"), LONGDRINK("longdrink"), COCKTAIL("cocktail"), OTHER("other"),
+    SPARKLING_WINE("sparkling_wine"), SHOT("shot"), LONGDRINK("longdrink"), COCKTAIL("cocktail"),
+    ESPRESSO("espresso"), CAPPUCCINO("cappuccino"), LATTE_MACCHIATO("latte_macchiato"), ICED_COFFEE("iced_coffee"),
+    HOT_CHOCOLATE("hot_chocolate"), COLA_MIX("cola_mix"), ALCOHOL_FREE_BEER("alcohol_free_beer"),
+    WINE_SPRITZER("wine_spritzer"), OTHER("other"),
     ;
 
     companion object {

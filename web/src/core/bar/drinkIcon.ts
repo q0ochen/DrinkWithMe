@@ -26,6 +26,14 @@ export const DRINK_ICON_KEYS = [
   "shot",
   "longdrink",
   "cocktail",
+  "espresso",
+  "cappuccino",
+  "latte_macchiato",
+  "iced_coffee",
+  "hot_chocolate",
+  "cola_mix",
+  "alcohol_free_beer",
+  "wine_spritzer",
   "other",
 ] as const;
 
@@ -87,6 +95,14 @@ const ICON_LABELS: Record<DrinkIcon, string> = {
   shot: "Schnaps",
   longdrink: "Longdrink",
   cocktail: "Cocktail",
+  espresso: "Espresso",
+  cappuccino: "Cappuccino",
+  latte_macchiato: "Latte Macchiato",
+  iced_coffee: "Eiskaffee",
+  hot_chocolate: "Kakao",
+  cola_mix: "Spezi (Cola-Mix)",
+  alcohol_free_beer: "Alkoholfreies Bier",
+  wine_spritzer: "Weinschorle",
   other: "Sonstiges",
 };
 

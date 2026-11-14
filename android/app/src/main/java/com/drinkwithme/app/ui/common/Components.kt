@@ -184,6 +184,14 @@ object DrinkIconResources {
         DrinkIcon.SHOT -> R.drawable.drink_shot
         DrinkIcon.LONGDRINK -> R.drawable.drink_longdrink
         DrinkIcon.COCKTAIL -> R.drawable.drink_cocktail
+        DrinkIcon.ESPRESSO -> R.drawable.drink_espresso
+        DrinkIcon.CAPPUCCINO -> R.drawable.drink_cappuccino
+        DrinkIcon.LATTE_MACCHIATO -> R.drawable.drink_latte_macchiato
+        DrinkIcon.ICED_COFFEE -> R.drawable.drink_iced_coffee
+        DrinkIcon.HOT_CHOCOLATE -> R.drawable.drink_hot_chocolate
+        DrinkIcon.COLA_MIX -> R.drawable.drink_cola_mix
+        DrinkIcon.ALCOHOL_FREE_BEER -> R.drawable.drink_alcohol_free_beer
+        DrinkIcon.WINE_SPRITZER -> R.drawable.drink_wine_spritzer
         DrinkIcon.OTHER -> R.drawable.drink_other
     }
 }

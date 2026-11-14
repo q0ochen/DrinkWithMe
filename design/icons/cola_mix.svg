@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Cola-Mix</title>
+  <!-- DrinkWithMe · eigenes Werk · CC0 1.0 -->
+  <path fill="#E4F2F9" d="M13 10 H35 C35 20 32 30 31.6 39 Q31.4 43 28 43 H20 Q16.6 43 16.4 39 C16 30 13 20 13 10 Z"/>
+  <path fill="#6E3820" d="M14.6 15 H33.4 C33.2 23 30.4 31 30.1 39 Q30 41.5 27.8 41.5 H20.2 Q18 41.5 17.9 39 C17.6 31 14.8 23 14.6 15 Z"/>
+  <path fill="#F28C28" d="M14.6 15 H33.4 C33.4 17.6 33.1 20.2 32.7 22.6 C29.8 24.2 27 21.4 24 22.8 C21 24.2 18.2 21.6 15.4 22.8 C15 20.2 14.6 17.6 14.6 15 Z"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2" stroke-linecap="round" d="M18.6 27 C19.2 30 19.5 33 19.6 36"/>
+  <path fill="none" stroke="#263238" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M27 22 L30.8 6.2 L35.6 4"/>
+  <path fill="none" stroke="#FFC069" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M27 22 L30.8 6.2 L35.6 4"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M13 10 H35 C35 20 32 30 31.6 39 Q31.4 43 28 43 H20 Q16.6 43 16.4 39 C16 30 13 20 13 10 Z"/>
+  <!-- Orangenscheibe am Rand -->
+  <circle cx="13" cy="10" r="6.5" fill="#F57C00" stroke="#263238" stroke-width="2"/>
+  <circle cx="13" cy="10" r="4.6" fill="#FFC069"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round">
+    <path d="M13 5.9 V14.1"/>
+    <path d="M9.45 7.95 L16.55 12.05"/>
+    <path d="M9.45 12.05 L16.55 7.95"/>
+  </g>
+</svg>

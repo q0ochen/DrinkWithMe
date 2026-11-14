@@ -97,7 +97,8 @@ Gut zu wissen:
 
 ## Funktionen
 
-- **Bar:** Du stellst dir deine eigene Bar aus über 20 Getränken zusammen (Wasser, Kaffee, Apfelschorle, Cola,
+- **Bar:** Du stellst dir deine eigene Bar aus über 30 Getränken zusammen (Wasser, Kaffee, Espresso, Cappuccino,
+  Apfelschorle, Cola, Spezi, alkoholfreies Bier 0,0 %, Weinschorle,
   Pils, Rotwein …) oder legst eigene an. **Ein Tipp = jetzt getrunken** – der Zeitpunkt ist immer „jetzt“.
   Danach 10 Sekunden lang ein großer „Rückgängig“-Knopf. Alle Getränke-Icons sind selbst gezeichnet.
 - **Verlauf:** Zucker pro Tag (mit Linien bei 50 g und 25 g), Alkohol pro Woche (mit den Bezugswerten der DGE
