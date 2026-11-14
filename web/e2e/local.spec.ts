@@ -107,7 +107,7 @@ test("Sicherung: speichern, in einem frischen Browser beim ersten Start einlesen
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Sicherung speichern" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^drink-with-me-sicherung-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(download.suggestedFilename()).toMatch(/^drinkwithme-sicherung-\d{4}-\d{2}-\d{2}\.json$/);
   const file = await download.path();
   await expect(page.getByRole("status").filter({ hasText: "gespeichert" }).first()).toBeAttached();
 

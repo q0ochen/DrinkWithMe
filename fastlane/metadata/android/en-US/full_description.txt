@@ -3,7 +3,7 @@
 <p><b>The app is currently available in German only.</b></p>
 
 <ul>
-<li><b>Bar:</b> build your own bar from more than 30 hand-drawn drinks or add your own. One tap = drunk now.</li>
+<li><b>Bar:</b> build your own bar from more than 30 drinks (all pictures hand-drawn) or add your own. One tap = drunk now.</li>
 <li><b>History:</b> sugar per day, alcohol per week (with the 2024 reference values of the German Nutrition Society), alcohol-free days in a row, comparison with the previous month. All values also as text; share your statistics as an image.</li>
 <li><b>Friends (optional):</b> sign in with a Google account, add friends via invite link or e-mail address, get a notification when a friend drinks something. Single drinks can be logged privately.</li>
 <li><b>Voice and read-aloud:</b> log drinks by voice, have events read aloud – also meant for people with low vision.</li>

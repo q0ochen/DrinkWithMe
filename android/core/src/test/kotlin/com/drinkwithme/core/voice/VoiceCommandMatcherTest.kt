@@ -101,6 +101,7 @@ class VoiceCommandMatcherTest {
         assertEquals(drink(DefaultBarCatalog.WEINSCHORLE), match("eine Weinschorle"))
         assertEquals(drink(DefaultBarCatalog.MALZBIER), match("Malzbier"))
         assertEquals(drink(DefaultBarCatalog.KAFFEE), match("Ich hatte eine Tasse Kaffee"))
+        assertEquals(drink(DefaultBarCatalog.KAFFEE), match("einen Café"))
     }
 
     @Test
@@ -116,7 +117,7 @@ class VoiceCommandMatcherTest {
         val beer = catalogItem(DefaultBarCatalog.ALKOHOLFREIES_BIER)
         val beer00 = catalogItem(DefaultBarCatalog.ALKOHOLFREIES_BIER_0_0)
         val wheat00 = catalogItem(DefaultBarCatalog.ALKOHOLFREIES_WEISSBIER_0_0)
-        // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,95 – ohne die Regel wäre das nur ein Abstand von 0,05.
+        // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,953 – ohne die Regel wäre der Abstand nur ≈ 0,047 (< 0,05).
         assertEquals(VoiceMatch.Drink(wheat00), matcher.match(listOf("ein alkoholfreies Weißbier"), listOf(beer, wheat00)))
         assertEquals(VoiceMatch.Drink(beer), matcher.match(listOf("ein alkoholfreies Bier"), listOf(beer, wheat00)))
         assertEquals(VoiceMatch.Drink(beer00), matcher.match(listOf("alkoholfreies Bier"), listOf(beer00, wheat00)))
@@ -126,16 +127,55 @@ class VoiceCommandMatcherTest {
     }
 
     @Test
+    fun anExactAliasDoesNotOverruleACloseOwnDrink() {
+        // Ein Alias ist unsichtbar: „Caffè Latte“ (Alias von Latte Macchiato) und das eigene „Café Latte“ sind
+        // dasselbe Getränk in anderer Schreibweise – welches gemeint ist, hängt nur an der Spracherkennung.
+        val latte = catalogItem(DefaultBarCatalog.LATTE_MACCHIATO)
+        val own = barItem("Café Latte")
+        assertEquals(VoiceMatch.Ambiguous(latte, own), matcher.match(listOf("Caffè Latte"), listOf(latte, own)))
+        assertEquals(VoiceMatch.Drink(own), matcher.match(listOf("Café Latte"), listOf(latte, own)))
+        val pils = catalogItem(DefaultBarCatalog.PILS)
+        val beers = barItem("Biere")
+        assertEquals(VoiceMatch.Ambiguous(pils, beers), matcher.match(listOf("Bier"), listOf(pils, beers)))
+    }
+
+    @Test
+    fun aliasesCountOnlyAsAWhole() {
+        // Ein einzelnes Wort zählt als Wortende nur beim Namen – nicht bei Aliasen wie „Schorle mit Wein“.
+        val spritzer = catalogItem(DefaultBarCatalog.WEINSCHORLE)
+        val spezi = catalogItem(DefaultBarCatalog.SPEZI)
+        val zero = catalogItem(DefaultBarCatalog.COLA_ZERO)
+        assertEquals(VoiceMatch.NoMatch, matcher.match(listOf("Wein"), listOf(spritzer)))
+        assertEquals(VoiceMatch.Drink(spritzer), matcher.match(listOf("eine Schorle mit Wein"), listOf(spritzer)))
+        assertEquals(VoiceMatch.NoMatch, matcher.match(listOf("Orange"), listOf(spezi)))
+        assertEquals(VoiceMatch.NoMatch, matcher.match(listOf("Mix"), listOf(spezi)))
+        // „Rum Cola“ ist ein Alias von Longdrink – „Cola“ meint trotzdem die Cola zero.
+        val longdrink = catalogItem(DefaultBarCatalog.LONGDRINK)
+        assertEquals(VoiceMatch.Drink(zero), matcher.match(listOf("eine Cola"), listOf(longdrink, zero)))
+        // Der Name zählt weiter: „Cola“ ist ein Wort von „Cola zero“.
+        assertEquals(VoiceMatch.Drink(zero), matcher.match(listOf("Cola"), listOf(zero)))
+        val cocoa = catalogItem(DefaultBarCatalog.KAKAO)
+        val defaultBarWithCocoa = DefaultBarCatalog.defaultSelection() + cocoa
+        val spritzerInBar = defaultBarWithCocoa.first { it.id == DefaultBarCatalog.APFELSCHORLE }
+        assertEquals(VoiceMatch.Drink(spritzerInBar), matcher.match(listOf("Schorle"), defaultBarWithCocoa))
+        assertEquals(VoiceMatch.Drink(cocoa), matcher.match(listOf("eine heiße Schokolade"), defaultBarWithCocoa))
+    }
+
+    @Test
     fun newDrinksDoNotTakeOverExistingWords() {
         val red = catalogItem(DefaultBarCatalog.ROTWEIN)
         val spritzer = catalogItem(DefaultBarCatalog.WEINSCHORLE)
         assertEquals(VoiceMatch.Drink(red), matcher.match(listOf("ein Glas Wein"), listOf(red, spritzer)))
         assertEquals(VoiceMatch.Drink(spritzer), matcher.match(listOf("Weinschorle"), listOf(red, spritzer)))
+        val defaultBarWithSpritzer = DefaultBarCatalog.defaultSelection() + spritzer
+        assertEquals(VoiceMatch.Drink(spritzer), matcher.match(listOf("eine Schorle mit Wein"), defaultBarWithSpritzer))
         val cola = catalogItem(DefaultBarCatalog.COLA)
         val zero = catalogItem(DefaultBarCatalog.COLA_ZERO)
         val spezi = catalogItem(DefaultBarCatalog.SPEZI)
         assertEquals(VoiceMatch.Drink(cola), matcher.match(listOf("eine Cola"), listOf(cola, zero, spezi)))
         assertEquals(VoiceMatch.Drink(spezi), matcher.match(listOf("Cola Mix"), listOf(cola, zero, spezi)))
+        // „Cola zero“ ohne Cola zero in der Bar ist nicht die süße Spezi.
+        assertEquals(VoiceMatch.NoMatch, matcher.match(listOf("Cola zero"), listOf(spezi)))
         // Ohne normale Cola ist „eine Cola“ wirklich offen: Cola zero oder Cola-Mix? Dann nachfragen.
         assertEquals(VoiceMatch.Ambiguous(zero, spezi), matcher.match(listOf("eine Cola"), listOf(zero, spezi)))
     }

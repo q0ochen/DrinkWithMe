@@ -72,7 +72,7 @@ class ShareImageFilesTest {
 
     @Test
     fun namesFilesByDateAndKeepsOnlyTheNewest() {
-        assertEquals("drink-with-me-statistik-2026-11-10.png", ShareImageFiles.fileName(LocalDate.of(2026, 11, 10)))
+        assertEquals("drinkwithme-statistik-2026-11-10.png", ShareImageFiles.fileName(LocalDate.of(2026, 11, 10)))
         val files = ShareImageFiles(folder.root)
         files.newImageFile(LocalDate.of(2026, 11, 9)).writeText("alt")
         val newest = files.newImageFile(LocalDate.of(2026, 11, 10))

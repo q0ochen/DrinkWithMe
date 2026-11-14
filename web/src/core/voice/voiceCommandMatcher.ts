@@ -27,7 +27,7 @@ export const MINIMUM_SIMILARITY = 0.88;
 export const MINIMUM_GAP = 0.05;
 /** Wert für ein gesprochenes Wort, das ein Wortende eines Namens ist („Wein“ in „Rotwein“). */
 export const COMPOUND_PART_SCORE = 0.94;
-/** Wert einer genauen Übereinstimmung mit einem Namen oder Alias; schlägt jeden nicht genauen Treffer. */
+/** Wert einer genauen Übereinstimmung; genau beim Namen schlägt sie jeden nicht genauen Treffer. */
 export const EXACT_SCORE = 1.0;
 /** Kürzere gesprochene Wörter zählen nicht als Wortende. */
 export const MIN_COMPOUND_PART_LENGTH = 3;
@@ -54,8 +54,9 @@ export interface VoiceMatcherOptions {
  *
  * Je Kandidat (in der gelieferten Reihenfolge; das erste Ergebnis außer `NoMatch` gilt): normalisieren;
  * Befehle prüfen; Füll- und Zahlwörter entfernen und gegen Name **und** Aliase vergleichen
- * (Jaro-Winkler + Kölner Phonetik); eindeutig ab 0,88 mit Abstand ≥ 0,05, sonst `Ambiguous`. Eine genaue
- * Übereinstimmung mit Name oder Alias gilt immer, wenn der Zweitbeste nicht ebenfalls genau passt.
+ * (Jaro-Winkler + Kölner Phonetik; ein einzelnes Wort zählt als Wortende nur beim Namen, Aliase nur als Ganzes);
+ * eindeutig ab 0,88 mit Abstand ≥ 0,05, sonst `Ambiguous`. Eine genaue Übereinstimmung mit dem **Namen** gilt
+ * immer, wenn beim Zweitbesten nichts genau passt; ein genauer Alias reicht dafür nicht.
  */
 export class VoiceCommandMatcher implements VoiceMatcher {
   private readonly similarity: TextSimilarity;
@@ -69,7 +70,7 @@ export class VoiceCommandMatcher implements VoiceMatcher {
   }
 
   match(candidates: readonly string[], bar: readonly BarItem[]): VoiceMatch {
-    const labelled = bar.map((item) => ({ item, labels: labelsOf(item) }));
+    const labelled = bar.map((item) => ({ item, name: phraseOfLabel(item.name), aliases: aliasPhrases(item) }));
     for (const candidate of candidates) {
       const result = this.matchCandidate(candidate, labelled);
       if (result.kind !== "NoMatch") return result;
@@ -77,35 +78,43 @@ export class VoiceCommandMatcher implements VoiceMatcher {
     return NO_MATCH;
   }
 
-  private matchCandidate(candidate: string, labelled: ReadonlyArray<{ item: BarItem; labels: Phrase[] }>): VoiceMatch {
+  private matchCandidate(candidate: string, labelled: readonly Labelled[]): VoiceMatch {
     const tokens = germanTokens(candidate);
     const command = commandOf(tokens);
     if (command !== null) return { kind: "Command", cmd: command };
     const spoken = phraseOf(tokens.filter((token) => !isIgnorable(token)));
     if (spoken === null) return NO_MATCH;
 
-    const ranked = labelled
-      .map(({ item, labels }) => ({
-        item,
-        score: labels.length === 0 ? 0.0 : Math.max(...labels.map((label) => this.score(spoken, label))),
-      }))
-      .sort((a, b) => b.score - a.score);
+    const ranked = labelled.map((entry) => this.scored(spoken, entry)).sort((a, b) => b.score - a.score);
     const best = ranked[0];
     if (best === undefined || best.score < this.minimumSimilarity - EPSILON) return NO_MATCH;
     const runnerUp = ranked[1];
     if (runnerUp === undefined) return { kind: "Drink", item: best.item };
-    const onlyExact = isExact(best.score) && !isExact(runnerUp.score);
+    const onlyExact = isExact(best.nameScore) && !isExact(runnerUp.score);
     if (!onlyExact && best.score - runnerUp.score < this.minimumGap - EPSILON) {
       return { kind: "Ambiguous", first: best.item, second: runnerUp.item };
     }
     return { kind: "Drink", item: best.item };
   }
 
-  private score(spoken: Phrase, label: Phrase): number {
-    const direct = this.similarity.similarity(spoken.compact, label.compact);
-    const part = isWordEnding(spoken, label) ? COMPOUND_PART_SCORE : 0.0;
-    return Math.max(direct, part);
+  /** `score`: bester Wert über Name und Aliase; `nameScore`: Wert des Namens allein. */
+  private scored(spoken: Phrase, entry: Labelled): { item: BarItem; score: number; nameScore: number } {
+    const name = entry.name;
+    const nameScore =
+      name === null ? 0.0 : Math.max(this.direct(spoken, name), isWordEnding(spoken, name) ? COMPOUND_PART_SCORE : 0.0);
+    const aliasScore = entry.aliases.length === 0 ? 0.0 : Math.max(...entry.aliases.map((alias) => this.direct(spoken, alias)));
+    return { item: entry.item, score: Math.max(nameScore, aliasScore), nameScore };
   }
+
+  private direct(spoken: Phrase, label: Phrase): number {
+    return this.similarity.similarity(spoken.compact, label.compact);
+  }
+}
+
+interface Labelled {
+  readonly item: BarItem;
+  readonly name: Phrase | null;
+  readonly aliases: readonly Phrase[];
 }
 
 function isExact(score: number): boolean {
@@ -120,15 +129,19 @@ function isWordEnding(spoken: Phrase, label: Phrase): boolean {
   return label.tokens.some((token) => token.endsWith(word) && (token.length > word.length || label.tokens.length > 1));
 }
 
-function labelsOf(item: BarItem): Phrase[] {
-  const labels: Phrase[] = [];
-  for (const label of [item.name, ...item.aliases]) {
-    const tokens = germanTokens(label);
-    const meaningful = tokens.filter((token) => !isIgnorable(token));
-    const phrase = phraseOf(meaningful.length > 0 ? meaningful : tokens);
-    if (phrase !== null) labels.push(phrase);
+function phraseOfLabel(label: string): Phrase | null {
+  const tokens = germanTokens(label);
+  const meaningful = tokens.filter((token) => !isIgnorable(token));
+  return phraseOf(meaningful.length > 0 ? meaningful : tokens);
+}
+
+function aliasPhrases(item: BarItem): Phrase[] {
+  const phrases: Phrase[] = [];
+  for (const alias of item.aliases) {
+    const phrase = phraseOfLabel(alias);
+    if (phrase !== null) phrases.push(phrase);
   }
-  return labels;
+  return phrases;
 }
 
 function commandOf(tokens: readonly string[]): VoiceCommand | null {

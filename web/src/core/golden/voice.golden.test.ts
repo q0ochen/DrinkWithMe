@@ -1,7 +1,7 @@
 // Golden-Tests: dieselben Eingaben und Erwartungen wie in den Kotlin-Tests PhoneticAndSimilarityTest und
 // VoiceCommandMatcherTest.
 import { describe, expect, it } from "vitest";
-import { CATALOG_ITEMS, CatalogIds } from "../bar/defaultBarCatalog";
+import { CATALOG_ITEMS, CatalogIds, defaultSelection } from "../bar/defaultBarCatalog";
 import { barItem, catalogItem } from "../testing/fixtures";
 import { germanTokens, normalizeGerman } from "../voice/germanTextNormalizer";
 import { koelnerPhonetik } from "../voice/koelnerPhonetik";
@@ -191,6 +191,7 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(match("eine Weinschorle")).toEqual(drink(CatalogIds.WEINSCHORLE));
     expect(match("Malzbier")).toEqual(drink(CatalogIds.MALZBIER));
     expect(match("Ich hatte eine Tasse Kaffee")).toEqual(drink(CatalogIds.KAFFEE));
+    expect(match("einen Café")).toEqual(drink(CatalogIds.KAFFEE));
   });
 
   it("wordEndingMatchesAnUnambiguousCompound", () => {
@@ -204,7 +205,7 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     const beer = catalogItem(CatalogIds.ALKOHOLFREIES_BIER);
     const beer00 = catalogItem(CatalogIds.ALKOHOLFREIES_BIER_0_0);
     const wheat00 = catalogItem(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0);
-    // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,95 – ohne die Regel wäre das nur ein Abstand von 0,05.
+    // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,953 – ohne die Regel wäre der Abstand nur ≈ 0,047 (< 0,05).
     expect(matcher.match(["ein alkoholfreies Weißbier"], [beer, wheat00])).toEqual({ kind: "Drink", item: wheat00 });
     expect(matcher.match(["ein alkoholfreies Bier"], [beer, wheat00])).toEqual({ kind: "Drink", item: beer });
     expect(matcher.match(["alkoholfreies Bier"], [beer00, wheat00])).toEqual({ kind: "Drink", item: beer00 });
@@ -213,16 +214,53 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(matcher.match(["alkoholfreies Bier"], [beer, beer00])).toEqual({ kind: "Ambiguous", first: beer, second: beer00 });
   });
 
+  it("anExactAliasDoesNotOverruleACloseOwnDrink", () => {
+    // Ein Alias ist unsichtbar: „Caffè Latte“ (Alias von Latte Macchiato) und das eigene „Café Latte“ sind
+    // dasselbe Getränk in anderer Schreibweise – welches gemeint ist, hängt nur an der Spracherkennung.
+    const latte = catalogItem(CatalogIds.LATTE_MACCHIATO);
+    const own = barItem("Café Latte");
+    expect(matcher.match(["Caffè Latte"], [latte, own])).toEqual({ kind: "Ambiguous", first: latte, second: own });
+    expect(matcher.match(["Café Latte"], [latte, own])).toEqual({ kind: "Drink", item: own });
+    const pils = catalogItem(CatalogIds.PILS);
+    const beers = barItem("Biere");
+    expect(matcher.match(["Bier"], [pils, beers])).toEqual({ kind: "Ambiguous", first: pils, second: beers });
+  });
+
+  it("aliasesCountOnlyAsAWhole", () => {
+    // Ein einzelnes Wort zählt als Wortende nur beim Namen – nicht bei Aliasen wie „Schorle mit Wein“.
+    const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
+    const spezi = catalogItem(CatalogIds.SPEZI);
+    const zero = catalogItem(CatalogIds.COLA_ZERO);
+    expect(matcher.match(["Wein"], [spritzer])).toEqual({ kind: "NoMatch" });
+    expect(matcher.match(["eine Schorle mit Wein"], [spritzer])).toEqual({ kind: "Drink", item: spritzer });
+    expect(matcher.match(["Orange"], [spezi])).toEqual({ kind: "NoMatch" });
+    expect(matcher.match(["Mix"], [spezi])).toEqual({ kind: "NoMatch" });
+    // „Rum Cola“ ist ein Alias von Longdrink – „Cola“ meint trotzdem die Cola zero.
+    const longdrink = catalogItem(CatalogIds.LONGDRINK);
+    expect(matcher.match(["eine Cola"], [longdrink, zero])).toEqual({ kind: "Drink", item: zero });
+    // Der Name zählt weiter: „Cola“ ist ein Wort von „Cola zero“.
+    expect(matcher.match(["Cola"], [zero])).toEqual({ kind: "Drink", item: zero });
+    const cocoa = catalogItem(CatalogIds.KAKAO);
+    const defaultBarWithCocoa = [...defaultSelection(), cocoa];
+    const spritzerInBar = defaultBarWithCocoa.find((item) => item.id === CatalogIds.APFELSCHORLE);
+    expect(matcher.match(["Schorle"], defaultBarWithCocoa)).toEqual({ kind: "Drink", item: spritzerInBar });
+    expect(matcher.match(["eine heiße Schokolade"], defaultBarWithCocoa)).toEqual({ kind: "Drink", item: cocoa });
+  });
+
   it("newDrinksDoNotTakeOverExistingWords", () => {
     const red = catalogItem(CatalogIds.ROTWEIN);
     const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
     expect(matcher.match(["ein Glas Wein"], [red, spritzer])).toEqual({ kind: "Drink", item: red });
     expect(matcher.match(["Weinschorle"], [red, spritzer])).toEqual({ kind: "Drink", item: spritzer });
+    const defaultBarWithSpritzer = [...defaultSelection(), spritzer];
+    expect(matcher.match(["eine Schorle mit Wein"], defaultBarWithSpritzer)).toEqual({ kind: "Drink", item: spritzer });
     const cola = catalogItem(CatalogIds.COLA);
     const zero = catalogItem(CatalogIds.COLA_ZERO);
     const spezi = catalogItem(CatalogIds.SPEZI);
     expect(matcher.match(["eine Cola"], [cola, zero, spezi])).toEqual({ kind: "Drink", item: cola });
     expect(matcher.match(["Cola Mix"], [cola, zero, spezi])).toEqual({ kind: "Drink", item: spezi });
+    // „Cola zero“ ohne Cola zero in der Bar ist nicht die süße Spezi.
+    expect(matcher.match(["Cola zero"], [spezi])).toEqual({ kind: "NoMatch" });
     // Ohne normale Cola ist „eine Cola“ wirklich offen: Cola zero oder Cola-Mix? Dann nachfragen.
     expect(matcher.match(["eine Cola"], [zero, spezi])).toEqual({ kind: "Ambiguous", first: zero, second: spezi });
   });

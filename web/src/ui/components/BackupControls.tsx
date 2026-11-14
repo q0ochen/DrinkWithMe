@@ -17,9 +17,9 @@ export function importSummaryText(summary: ImportSummary): string {
   return parts.join(" ");
 }
 
-/** Dateiname mit dem heutigen Datum, z. B. drink-with-me-sicherung-2026-11-10.json. */
+/** Dateiname mit dem heutigen Datum, z. B. drinkwithme-sicherung-2026-11-10.json. */
 export function backupFileName(isoDate: string): string {
-  return `drink-with-me-sicherung-${isoDate}.json`;
+  return `drinkwithme-sicherung-${isoDate}.json`;
 }
 
 /** „Sicherung speichern“: JSON-Datei mit Bar und Verlauf – iPhone über „Teilen“ (In Dateien sichern), sonst Download. */

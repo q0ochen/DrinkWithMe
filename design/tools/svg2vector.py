@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: CC0-1.0
-"""svg2vector – wandelt die Drink-With-Me-Icons (SVG) in Android-VectorDrawable-XML um.
+"""svg2vector – wandelt die DrinkWithMe-Icons (SVG) in Android-VectorDrawable-XML um.
 
 Unterstützte SVG-Teilmenge (alles andere bricht mit einer verständlichen Fehlermeldung ab, damit SVG und
 Android-Grafik nie unbemerkt voneinander abweichen):
