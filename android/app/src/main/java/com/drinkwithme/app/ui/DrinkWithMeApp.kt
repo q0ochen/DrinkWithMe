@@ -219,7 +219,7 @@ private fun SectionContent(
                 signingIn = signingIn,
                 onSignIn = onSignIn,
                 onShareInvite = { link ->
-                    val text = "Trink mit mir! Öffne den Link, um dich mit mir in Drink With Me zu verbinden: $link"
+                    val text = "Trink mit mir! Öffne den Link, um dich mit mir in DrinkWithMe zu verbinden: $link"
                     if (!container.sharing.shareText(context, text, "Freund einladen")) container.messageQueue.show(NOTHING_TO_SHARE_WITH)
                 },
                 onOpenEvent = onOpenEvent,

@@ -81,6 +81,6 @@ class UnifiedPushDistributors(
     }
 
     private companion object {
-        const val MESSAGE_FOR_DISTRIBUTOR = "Drink With Me: Getränke von Freunden"
+        const val MESSAGE_FOR_DISTRIBUTOR = "DrinkWithMe: Getränke von Freunden"
     }
 }

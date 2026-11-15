@@ -23,7 +23,7 @@ data class StatisticsCard(
 
 object StatisticsCardFactory {
     const val TITLE = "Mein Getränke-Verlauf"
-    const val FOOTER = "Erstellt mit Drink With Me – persönliches Getränketagebuch"
+    const val FOOTER = "Erstellt mit DrinkWithMe – persönliches Getränketagebuch"
 
     fun create(overview: HistoryOverview, showAlcoholBands: Boolean): StatisticsCard {
         val keyFigures = buildList {

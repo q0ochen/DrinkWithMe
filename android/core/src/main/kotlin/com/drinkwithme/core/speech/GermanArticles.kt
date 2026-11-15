@@ -39,7 +39,7 @@ object GermanArticles {
         ) + endings(
             GrammaticalGender.NEUTER,
             "wasser", "bier", "pils", "pilsener", "pilsner", "weizen", "kölsch", "helles", "dunkles", "radler",
-            "getränk", "tonic", "export",
+            "getränk", "tonic", "export", "spezi",
         )
     ).sortedByDescending { it.first.length }
 

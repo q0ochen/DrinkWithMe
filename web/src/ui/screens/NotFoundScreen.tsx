@@ -6,7 +6,7 @@ export function NotFoundScreen() {
   return (
     <div class="screen narrow">
       <PageHeader title="Seite nicht gefunden">
-        <p class="lead">Diese Adresse gibt es in Drink With Me nicht – oder der Link ist unvollständig.</p>
+        <p class="lead">Diese Adresse gibt es in DrinkWithMe nicht – oder der Link ist unvollständig.</p>
       </PageHeader>
       <Link to="/" class="button button-primary">
         Zur Bar

@@ -1,6 +1,6 @@
-# Drink With Me
+# DrinkWithMe
 
-**Dein Getränketagebuch – für dich und mit deinen Freunden.** Drink With Me zeigt dir anschaulich, wie viel
+**Dein Getränketagebuch – für dich und mit deinen Freunden.** DrinkWithMe zeigt dir anschaulich, wie viel
 Alkohol und Zucker du über Getränke zu dir nimmst, und hilft dir, weniger davon zu trinken. Wenn du möchtest,
 sehen deine Freunde, was du gerade trinkst – und du bekommst eine Nachricht, wenn sie etwas trinken.
 
@@ -9,7 +9,7 @@ Belohnungen für Alkohol, und deine Statistik verlässt nie dein Gerät.
 
 ## Plattformen
 
-| Gerät | So bekommst du Drink With Me |
+| Gerät | So bekommst du DrinkWithMe |
 |---|---|
 | **Android-Handy und -Tablet** (ab Android 8) | Android-App: APK aus GitHub oder über unsere eigene F-Droid-Paketquelle; später im offiziellen F-Droid |
 | **Android TV / Fire TV** (Fire OS 7/8) | dieselbe APK – Bar, Verlauf und Vorlesen; Anmeldung auf dem Fernseher ist nicht eigens gebaut |
@@ -23,8 +23,9 @@ Die aktuelle Testversion lässt sich **ohne Anmeldung** herunterladen. Sie wird 
 `main` (bzw. dem Entwicklungszweig) automatisch ersetzt:
 **https://github.com/q0ochen/DrinkWithMe/releases/download/testversion/DrinkWithMe.apk**
 
-0. **Schon einmal „Drink With Me“ installiert**, z. B. selbst in Android Studio gebaut oder eine Version vom
-   9. November? Dann erst **deinstallieren**: Einstellungen → Apps → Drink With Me → Deinstallieren. Sonst meldet
+0. **Schon einmal „DrinkWithMe“ installiert** (ältere Versionen heißen noch „Drink With Me“), z. B. selbst in
+   Android Studio gebaut oder eine Version vom 9. November? Dann erst **deinstallieren**: Einstellungen → Apps →
+   DrinkWithMe bzw. Drink With Me → Deinstallieren. Sonst meldet
    Android „… da das Paket in Konflikt mit einem bestehenden Paket steht“.
 1. Den Link **in Chrome** öffnen (nicht im Browser von WhatsApp, Telegram oder Gmail). Fragt Chrome, ob die Datei
    schädlich sein könnte: **Trotzdem herunterladen**. Dann **Öffnen** tippen.
@@ -43,8 +44,8 @@ installiert die Testversion direkt aus GitHub und meldet jede neue Testversion.
 
 1. Obtainium installieren, z. B. die APK von [github.com/ImranR98/Obtainium/releases](https://github.com/ImranR98/Obtainium/releases).
 2. Auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
-   **[Drink With Me in Obtainium hinzufügen](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D)**.
-3. In Obtainium „Drink With Me“ antippen und **Installieren** wählen. Ist die App schon installiert, steht dort
+   **[DrinkWithMe in Obtainium hinzufügen](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22DrinkWithMe%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D)**.
+3. In Obtainium „DrinkWithMe“ antippen und **Installieren** wählen. Ist die App schon installiert, steht dort
    **Aktualisieren** – das antippen.
 
 Der Link setzt die drei Einstellungen, die für die Testversion nötig sind: „Vorabversionen einbeziehen“,
@@ -55,7 +56,7 @@ deshalb erkennt Obtainium neue Builds am Datum. Wer die App von Hand in Obtainiu
 
 ### In F-Droid (eigene Paketquelle)
 
-Wer [F-Droid](https://f-droid.org) nutzt, kann Drink With Me über F-Droid installieren und aktualisieren – aus
+Wer [F-Droid](https://f-droid.org) nutzt, kann DrinkWithMe über F-Droid installieren und aktualisieren – aus
 unserer eigenen Paketquelle. In das offizielle F-Droid-Verzeichnis kommt die App frühestens ab Februar 2027 (siehe
 [`docs/F-DROID.md`](docs/F-DROID.md)). Die Paketquelle ist erreichbar, sobald der Betreiber den Schlüssel
 hinterlegt hat ([`docs/EINRICHTUNG.md`](docs/EINRICHTUNG.md), Schritt 5.5).
@@ -64,15 +65,15 @@ hinterlegt hat ([`docs/EINRICHTUNG.md`](docs/EINRICHTUNG.md), Schritt 5.5).
    öffnen – mit denselben Schritten wie oben (Erlaubnis zulassen, bei Play Protect „Weitere Details → Trotzdem
    installieren“).
 2. **Paketquelle hinzufügen:** auf dem Android-Gerät diesen Link öffnen:
-   **[„Drink With Me – Testversionen“ in F-Droid hinzufügen](https://fdroid.link/#https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo?fingerprint=D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523)**.
+   **[„DrinkWithMe – Testversionen“ in F-Droid hinzufügen](https://fdroid.link/#https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo?fingerprint=D358DCFFD3B82C09460943DF4513E5F7951F2C0C6A6FD7EBAB8E0741BECD7523)**.
    F-Droid öffnet sich und fragt, ob die Paketquelle hinzugefügt werden soll → **bestätigen**. (Öffnet sich
    stattdessen eine englische Webseite: dort „Android Deep Link“ antippen.) Oder den QR-Code unten mit dem Handy
    scannen, z. B. vom Computer-Bildschirm.
-3. In F-Droid nach **„Drink With Me“** suchen → **Installieren**. Beim ersten Mal fragt Android, ob **F-Droid**
+3. In F-Droid nach **„DrinkWithMe“** suchen → **Installieren**. Beim ersten Mal fragt Android, ob **F-Droid**
    Apps installieren darf → **zulassen**; warnt Play Protect: **Weitere Details → Trotzdem installieren**. Neue
    Testversionen erscheinen danach als normale Updates in F-Droid.
 
-<img src="docs/fdroid-paketquelle-qr.svg" alt="QR-Code: Paketquelle „Drink With Me – Testversionen“ in F-Droid hinzufügen" width="200">
+<img src="docs/fdroid-paketquelle-qr.svg" alt="QR-Code: Paketquelle „DrinkWithMe – Testversionen“ in F-Droid hinzufügen" width="200">
 
 Von Hand: F-Droid → **Entdecken** → oben das Symbol **Paketquellen** (neben dem Zahnrad; in F-Droid 1.x:
 Einstellungen → Paketquellen) → **+** → „Repository-URL manuell eingeben“ → diese **eine** Zeile einfügen
@@ -97,7 +98,8 @@ Gut zu wissen:
 
 ## Funktionen
 
-- **Bar:** Du stellst dir deine eigene Bar aus über 20 Getränken zusammen (Wasser, Kaffee, Apfelschorle, Cola,
+- **Bar:** Du stellst dir deine eigene Bar aus über 30 Getränken zusammen (Wasser, Kaffee, Espresso, Cappuccino,
+  Apfelschorle, Cola, Spezi, alkoholfreies Bier 0,0 %, Weinschorle,
   Pils, Rotwein …) oder legst eigene an. **Ein Tipp = jetzt getrunken** – der Zeitpunkt ist immer „jetzt“.
   Danach 10 Sekunden lang ein großer „Rückgängig“-Knopf. Alle Getränke-Icons sind selbst gezeichnet.
 - **Verlauf:** Zucker pro Tag (mit Linien bei 50 g und 25 g), Alkohol pro Woche (mit den Bezugswerten der DGE

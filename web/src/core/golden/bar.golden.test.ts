@@ -25,9 +25,15 @@ describe("Kotlin-Kern: DefaultBarCatalogTest", () => {
     ["Wasser", 0.0, 0.0, 250, "water", "WATER"],
     ["Mineralwasser", 0.0, 0.0, 250, "sparkling_water", "WATER"],
     ["Kaffee", 0.0, 0.0, 200, "coffee", "COFFEE"],
+    ["Espresso", 0.0, 0.0, 30, "espresso", "COFFEE"],
+    ["Cappuccino", 3.4, 0.0, 200, "cappuccino", "COFFEE"],
+    ["Latte Macchiato", 3.8, 0.0, 300, "latte_macchiato", "COFFEE"],
+    ["Milchkaffee", 2.4, 0.0, 300, "cappuccino", "COFFEE"],
+    ["Eiskaffee", 9.0, 0.0, 300, "iced_coffee", "COFFEE"],
     ["Tee", 0.0, 0.0, 250, "tea", "TEA"],
     ["Cola", 10.6, 0.0, 330, "cola", "SOFT_DRINK"],
     ["Cola zero", 0.0, 0.0, 330, "cola", "SOFT_DRINK"],
+    ["Spezi", 9.0, 0.0, 500, "cola_mix", "SOFT_DRINK"],
     ["Limonade", 8.0, 0.0, 330, "lemonade", "SOFT_DRINK"],
     ["Eistee", 7.5, 0.0, 500, "iced_tea", "SOFT_DRINK"],
     ["Energydrink", 11.0, 0.0, 250, "energy_drink", "ENERGY_DRINK"],
@@ -36,12 +42,17 @@ describe("Kotlin-Kern: DefaultBarCatalogTest", () => {
     ["Apfelschorle", 5.5, 0.0, 500, "apple_spritzer", "JUICE"],
     ["Malzbier", 9.0, 0.0, 330, "malt_beer", "SOFT_DRINK"],
     ["Milch", 4.8, 0.0, 200, "milk", "MILK"],
+    ["Kakao", 10.0, 0.0, 250, "hot_chocolate", "MILK"],
     ["Pils", 0.3, 4.9, 500, "beer", "BEER"],
     ["Weizenbier", 0.3, 5.4, 500, "wheat_beer", "BEER"],
     ["Alkoholfreies Bier", 2.5, 0.4, 500, "beer", "BEER"],
+    ["Alkoholfreies Bier 0,0 %", 3.5, 0.0, 500, "alcohol_free_beer", "BEER"],
+    ["Alkoholfreies Weißbier 0,0 %", 3.0, 0.0, 500, "alcohol_free_beer", "BEER"],
     ["Radler", 5.0, 2.5, 500, "radler", "BEER"],
+    ["Alkoholfreies Radler 0,0 %", 4.5, 0.0, 500, "radler", "BEER"],
     ["Rotwein trocken", 0.3, 12.0, 125, "red_wine", "WINE"],
     ["Weißwein trocken", 0.3, 11.5, 125, "white_wine", "WINE"],
+    ["Weinschorle", 0.2, 5.8, 250, "wine_spritzer", "WINE"],
     ["Sekt trocken", 2.5, 11.0, 100, "sparkling_wine", "SPARKLING_WINE"],
     ["Schnaps", 0.0, 40.0, 20, "shot", "SPIRIT"],
     ["Longdrink", 8.7, 5.3, 240, "longdrink", "SPIRIT"],
@@ -60,8 +71,10 @@ describe("Kotlin-Kern: DefaultBarCatalogTest", () => {
     expect(actual).toEqual(expected);
   });
 
-  it("onlyMilkAndCocktailAreMarkedAsEstimates", () => {
-    expect(CATALOG_ENTRIES.filter((it) => it.isEstimate).map((it) => it.item.name)).toEqual(["Milch", "Cocktail"]);
+  it("estimatedValuesAreMarked", () => {
+    expect(CATALOG_ENTRIES.filter((it) => it.isEstimate).map((it) => it.item.name)).toEqual(["Cappuccino", "Latte Macchiato", "Milchkaffee", "Eiskaffee", "Milch", "Kakao", "Weinschorle", "Cocktail"]);
+    expect(catalogEntry(CatalogIds.CAPPUCCINO)?.note).toBe("Zucker = Milchzucker (Schätzwert)");
+    expect(catalogEntry(CatalogIds.SPEZI)?.note).toBe("Cola-Mix");
     expect(catalogEntry(CatalogIds.MILCH)?.note).toBe("Zucker = Milchzucker (Schätzwert)");
     expect(catalogEntry(CatalogIds.COCKTAIL)?.note).toBe("Schätzwert");
     expect(catalogEntry(CatalogIds.LONGDRINK)?.note).toBe("Spirituose + Cola");
@@ -110,7 +123,8 @@ describe("Kotlin-Kern: DrinkIconAndCategoryTest", () => {
     expect([...DRINK_ICON_KEYS]).toEqual([
       "water", "sparkling_water", "coffee", "tea", "juice", "apple_spritzer", "cola", "lemonade", "iced_tea",
       "energy_drink", "milk", "malt_beer", "beer", "wheat_beer", "radler", "red_wine", "white_wine",
-      "sparkling_wine", "shot", "longdrink", "cocktail", "other",
+      "sparkling_wine", "shot", "longdrink", "cocktail", "espresso", "cappuccino", "latte_macchiato", "iced_coffee",
+      "hot_chocolate", "cola_mix", "alcohol_free_beer", "wine_spritzer", "other",
     ]);
   });
 

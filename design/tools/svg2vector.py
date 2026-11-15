@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: CC0-1.0
-"""svg2vector – wandelt die Drink-With-Me-Icons (SVG) in Android-VectorDrawable-XML um.
+"""svg2vector – wandelt die DrinkWithMe-Icons (SVG) in Android-VectorDrawable-XML um.
 
 Unterstützte SVG-Teilmenge (alles andere bricht mit einer verständlichen Fehlermeldung ab, damit SVG und
 Android-Grafik nie unbemerkt voneinander abweichen):
@@ -39,7 +39,8 @@ ANDROID_NS = "http://schemas.android.com/apk/res/android"
 DRINK_ICON_KEYS: tuple[str, ...] = (
     "water", "sparkling_water", "coffee", "tea", "juice", "apple_spritzer", "cola", "lemonade",
     "iced_tea", "energy_drink", "milk", "malt_beer", "beer", "wheat_beer", "radler", "red_wine", "white_wine",
-    "sparkling_wine", "shot", "longdrink", "cocktail", "other",
+    "sparkling_wine", "shot", "longdrink", "cocktail", "espresso", "cappuccino", "latte_macchiato", "iced_coffee",
+    "hot_chocolate", "cola_mix", "alcohol_free_beer", "wine_spritzer", "other",
 )
 
 
@@ -672,7 +673,7 @@ class Project:
 
     def render_app_icon(self) -> str:
         layers = [(self.icons_dir / name).read_text(encoding="utf-8") for name in self.app_icon_layers]
-        return compose_svg(layers, "Drink With Me – App-Symbol",
+        return compose_svg(layers, "DrinkWithMe – App-Symbol",
                            f"Erzeugt aus {' + '.join(self.app_icon_layers)} {GENERATED_MARKER} – nicht von Hand "
                            "bearbeiten. Eigenes Werk, CC0 1.0")
 
@@ -728,7 +729,7 @@ def _cmd_check(args: argparse.Namespace, project: Project) -> int:
 
 
 def main(argv: Sequence[str] | None = None, project_factory: Callable[[], Project] = Project.from_repository) -> int:
-    parser = argparse.ArgumentParser(description="Wandelt Drink-With-Me-SVGs in Android-VectorDrawables um.")
+    parser = argparse.ArgumentParser(description="Wandelt DrinkWithMe-SVGs in Android-VectorDrawables um.")
     sub = parser.add_subparsers(dest="command", required=True)
     convert = sub.add_parser("convert", help="eine SVG-Datei umwandeln")
     convert.add_argument("input")

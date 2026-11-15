@@ -1,13 +1,14 @@
 // Golden-Tests: dieselben Eingaben und Erwartungen wie in den Kotlin-Tests PhoneticAndSimilarityTest und
 // VoiceCommandMatcherTest.
 import { describe, expect, it } from "vitest";
-import { CATALOG_ITEMS, CatalogIds } from "../bar/defaultBarCatalog";
+import { CATALOG_ITEMS, CatalogIds, defaultSelection } from "../bar/defaultBarCatalog";
 import { barItem, catalogItem } from "../testing/fixtures";
 import { germanTokens, normalizeGerman } from "../voice/germanTextNormalizer";
 import { koelnerPhonetik } from "../voice/koelnerPhonetik";
 import { jaro, jaroWinkler, PhoneticTextSimilarity } from "../voice/textSimilarity";
 import {
   defaultVoiceMatcher,
+  EXACT_SCORE,
   MINIMUM_GAP,
   MINIMUM_SIMILARITY,
   VoiceCommandMatcher,
@@ -170,9 +171,28 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(match("Kräutertee")).toEqual(drink(CatalogIds.TEE));
     expect(match("Eistee")).toEqual(drink(CatalogIds.EISTEE));
     expect(match("ein Weißbier")).toEqual(drink(CatalogIds.WEIZENBIER));
-    expect(match("ein alkoholfreies Bier")).toEqual(drink(CatalogIds.ALKOHOLFREIES_BIER));
+    // Zahlen wie „0,0“ zählen beim Abgleich nicht: Beide alkoholfreien Biere klingen gleich, also nachfragen.
+    expect(match("ein alkoholfreies Bier")).toEqual(ambiguous(CatalogIds.ALKOHOLFREIES_BIER, CatalogIds.ALKOHOLFREIES_BIER_0_0));
+    expect(match("ein alkoholfreies Pils")).toEqual(drink(CatalogIds.ALKOHOLFREIES_BIER_0_0));
+    expect(match("alkoholfreies Weizen")).toEqual(drink(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0));
+    expect(match("ein alkoholfreies Weißbier")).toEqual(drink(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0));
+    expect(match("ein Radler")).toEqual(drink(CatalogIds.RADLER));
+    expect(match("ein alkoholfreies Radler")).toEqual(drink(CatalogIds.ALKOHOLFREIES_RADLER_0_0));
+    expect(match("ein Spezi")).toEqual(drink(CatalogIds.SPEZI));
+    expect(match("Cola Mix")).toEqual(drink(CatalogIds.SPEZI));
+    expect(match("eine Cola")).toEqual(drink(CatalogIds.COLA));
+    expect(match("Orange")).toEqual(drink(CatalogIds.ORANGENSAFT));
+    expect(match("einen Espresso")).toEqual(drink(CatalogIds.ESPRESSO));
+    expect(match("Cappuccino")).toEqual(drink(CatalogIds.CAPPUCCINO));
+    expect(match("Latte Macchiato")).toEqual(drink(CatalogIds.LATTE_MACCHIATO));
+    expect(match("Milchkaffee")).toEqual(drink(CatalogIds.MILCHKAFFEE));
+    expect(match("Eiskaffee")).toEqual(drink(CatalogIds.EISKAFFEE));
+    expect(match("heiße Schokolade")).toEqual(drink(CatalogIds.KAKAO));
+    expect(match("eine Weinschorle")).toEqual(drink(CatalogIds.WEINSCHORLE));
     expect(match("Malzbier")).toEqual(drink(CatalogIds.MALZBIER));
     expect(match("Ich hatte eine Tasse Kaffee")).toEqual(drink(CatalogIds.KAFFEE));
+    expect(match("einen Café")).toEqual(drink(CatalogIds.KAFFEE));
+    expect(match("ein Glas Secco")).toEqual(drink(CatalogIds.SEKT));
   });
 
   it("wordEndingMatchesAnUnambiguousCompound", () => {
@@ -180,6 +200,80 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(matcher.match(["ein Bier"], bar)).toEqual({ kind: "Drink", item: bar[0] });
     const wine = barItem("Rotwein trocken");
     expect(matcher.match(["Wein"], [wine, barItem("Kaffee")])).toEqual({ kind: "Drink", item: wine });
+  });
+
+  it("exactNameOrAliasWinsOverCloseNames", () => {
+    const beer = catalogItem(CatalogIds.ALKOHOLFREIES_BIER);
+    const beer00 = catalogItem(CatalogIds.ALKOHOLFREIES_BIER_0_0);
+    const wheat00 = catalogItem(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0);
+    // „alkoholfreiesbier“ ~ „alkoholfreiesweissbier“ ≈ 0,953 – ohne die Regel wäre der Abstand nur ≈ 0,047 (< 0,05).
+    expect(matcher.match(["ein alkoholfreies Weißbier"], [beer, wheat00])).toEqual({ kind: "Drink", item: wheat00 });
+    expect(matcher.match(["ein alkoholfreies Bier"], [beer, wheat00])).toEqual({ kind: "Drink", item: beer });
+    expect(matcher.match(["alkoholfreies Bier"], [beer00, wheat00])).toEqual({ kind: "Drink", item: beer00 });
+    expect(matcher.match(["alkoholfreies Weißbier"], [beer00, wheat00])).toEqual({ kind: "Drink", item: wheat00 });
+    // Passen beide genau (Zahlen zählen nicht), wird weiter nachgefragt.
+    expect(matcher.match(["alkoholfreies Bier"], [beer, beer00])).toEqual({ kind: "Ambiguous", first: beer, second: beer00 });
+  });
+
+  it("anExactAliasDoesNotOverruleACloseOwnDrink", () => {
+    // Ein Alias ist unsichtbar: „Caffè Latte“ (Alias von Latte Macchiato) und das eigene „Café Latte“ sind
+    // dasselbe Getränk in anderer Schreibweise – welches gemeint ist, hängt nur an der Spracherkennung.
+    const latte = catalogItem(CatalogIds.LATTE_MACCHIATO);
+    const own = barItem("Café Latte");
+    expect(matcher.match(["Caffè Latte"], [latte, own])).toEqual({ kind: "Ambiguous", first: latte, second: own });
+    expect(matcher.match(["Café Latte"], [latte, own])).toEqual({ kind: "Drink", item: own });
+    const pils = catalogItem(CatalogIds.PILS);
+    const beers = barItem("Biere");
+    expect(matcher.match(["Bier"], [pils, beers])).toEqual({ kind: "Ambiguous", first: pils, second: beers });
+  });
+
+  it("aliasWordEndingsAskButNeverDecide", () => {
+    // Ein Wortende eines Alias („Eis“ in „Kaffee mit Eis“) trägt allein nichts ein …
+    const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
+    const spezi = catalogItem(CatalogIds.SPEZI);
+    const zero = catalogItem(CatalogIds.COLA_ZERO);
+    const noMatch: VoiceMatch = { kind: "NoMatch" };
+    expect(matcher.match(["Eis"], [catalogItem(CatalogIds.EISKAFFEE)])).toEqual(noMatch);
+    expect(matcher.match(["Wein"], [spritzer])).toEqual(noMatch);
+    expect(matcher.match(["Orange"], [spezi])).toEqual(noMatch);
+    expect(matcher.match(["Mix"], [spezi])).toEqual(noMatch);
+    // … und keine Schorle mit etwas anderem wird zur Weinschorle.
+    expect(matcher.match(["eine Schorle mit Apfel"], [spritzer])).toEqual(noMatch);
+    expect(matcher.match(["Schorle ohne Wein"], [spritzer])).toEqual(noMatch);
+    // … löst aber eine Rückfrage aus, statt ein knapp ähnliches Getränk still zu nehmen.
+    const wheat00 = catalogItem(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0);
+    const white = catalogItem(CatalogIds.WEISSWEIN);
+    expect(matcher.match(["ein Weizen"], [wheat00, white])).toEqual({ kind: "Ambiguous", first: white, second: wheat00 });
+    const ownHelles = barItem("Helles", { aliases: ["Helles Bier"] });
+    const alcoholFree = catalogItem(CatalogIds.ALKOHOLFREIES_BIER);
+    expect(matcher.match(["ein Bier"], [ownHelles, alcoholFree])).toEqual({ kind: "Ambiguous", first: alcoholFree, second: ownHelles });
+    const milkCoffee = catalogItem(CatalogIds.MILCHKAFFEE);
+    const cocoa = catalogItem(CatalogIds.KAKAO);
+    expect(matcher.match(["Milch"], [milkCoffee, cocoa])).toEqual({ kind: "Ambiguous", first: milkCoffee, second: cocoa });
+    const longdrink = catalogItem(CatalogIds.LONGDRINK);
+    expect(matcher.match(["eine Cola"], [longdrink, zero])).toEqual({ kind: "Ambiguous", first: zero, second: longdrink });
+    // Der Name zählt weiter voll: „Cola“ ist ein Wort von „Cola zero“.
+    expect(matcher.match(["Cola"], [zero])).toEqual({ kind: "Drink", item: zero });
+    const defaultBarWithCocoa = [...defaultSelection(), cocoa];
+    const spritzerInBar = defaultBarWithCocoa.find((item) => item.id === CatalogIds.APFELSCHORLE);
+    expect(matcher.match(["Schorle"], defaultBarWithCocoa)).toEqual({ kind: "Drink", item: spritzerInBar });
+    expect(matcher.match(["eine heiße Schokolade"], defaultBarWithCocoa)).toEqual({ kind: "Drink", item: cocoa });
+  });
+
+  it("newDrinksDoNotTakeOverExistingWords", () => {
+    const red = catalogItem(CatalogIds.ROTWEIN);
+    const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
+    expect(matcher.match(["ein Glas Wein"], [red, spritzer])).toEqual({ kind: "Drink", item: red });
+    expect(matcher.match(["Weinschorle"], [red, spritzer])).toEqual({ kind: "Drink", item: spritzer });
+    const cola = catalogItem(CatalogIds.COLA);
+    const zero = catalogItem(CatalogIds.COLA_ZERO);
+    const spezi = catalogItem(CatalogIds.SPEZI);
+    expect(matcher.match(["eine Cola"], [cola, zero, spezi])).toEqual({ kind: "Drink", item: cola });
+    expect(matcher.match(["Cola Mix"], [cola, zero, spezi])).toEqual({ kind: "Drink", item: spezi });
+    // „Cola zero“ ohne Cola zero in der Bar ist nicht die süße Spezi.
+    expect(matcher.match(["Cola zero"], [spezi])).toEqual({ kind: "NoMatch" });
+    // Ohne normale Cola ist „eine Cola“ wirklich offen: Cola zero oder Cola-Mix? Dann nachfragen.
+    expect(matcher.match(["eine Cola"], [zero, spezi])).toEqual({ kind: "Ambiguous", first: zero, second: spezi });
   });
 
   it("commands", () => {
@@ -217,6 +311,14 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(stub.match(["xyz"], [b, a])).toEqual({ kind: "Drink", item: a });
     expect(stub.match(["xyz"], [a, c])).toEqual({ kind: "Ambiguous", first: a, second: c });
     expect(stub.match(["xyz"], [d])).toEqual({ kind: "NoMatch" });
+    const exactScores: Record<string, number> = { eee: 1.0, fff: 0.97 };
+    const exactStub = new VoiceCommandMatcher({ similarity: { similarity: (_spoken, label) => exactScores[label] ?? 0.0 } });
+    const e = barItem("eee");
+    const e2 = barItem("eee", { id: "zweites-eee" });
+    const f = barItem("fff");
+    expect(exactStub.match(["xyz"], [f, e])).toEqual({ kind: "Drink", item: e }); // genau vor 0,97
+    expect(exactStub.match(["xyz"], [e, e2])).toEqual({ kind: "Ambiguous", first: e, second: e2 }); // zweimal genau
+    expect(EXACT_SCORE).toBe(1.0);
     expect(MINIMUM_SIMILARITY).toBe(0.88);
     expect(MINIMUM_GAP).toBe(0.05);
   });

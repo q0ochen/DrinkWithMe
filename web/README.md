@@ -1,6 +1,6 @@
-# Drink With Me – Web-App (PWA)
+# DrinkWithMe – Web-App (PWA)
 
-Die Web-App bringt Drink With Me aufs **iPhone** (Safari, ab iOS 16.4 über „Zum Home-Bildschirm“) und in jeden
+Die Web-App bringt DrinkWithMe aufs **iPhone** (Safari, ab iOS 16.4 über „Zum Home-Bildschirm“) und in jeden
 Browser auf Desktop und Android. Vertrag: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md), Abschnitt 4.
 Adresse: **https://q0ochen.github.io/DrinkWithMe/** (GitHub Pages, kostenlos).
 
@@ -133,7 +133,7 @@ Aufträge werden nicht wiederholt.
 ## Sicherung (Export/Import)
 
 Einstellungen → „Bar und Verlauf“ → **„Sicherung speichern“** erzeugt eine JSON-Datei
-`drink-with-me-sicherung-JJJJ-MM-TT.json` (auf dem iPhone über „Teilen“ → „In Dateien sichern“, sonst Download):
+`drinkwithme-sicherung-JJJJ-MM-TT.json` (auf dem iPhone über „Teilen“ → „In Dateien sichern“, sonst Download):
 
 ```json
 { "format": "drink-with-me-backup", "version": 1, "exportedAt": "2026-11-10T18:00:00.000Z",

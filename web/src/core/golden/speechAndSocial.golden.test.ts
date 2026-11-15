@@ -221,12 +221,17 @@ describe("Kotlin-Kern: GermanArticlesAndEventTextsTest", () => {
   it("articlesForTheWholeCatalog", () => {
     const expected: Array<[string, string]> = [
       ["Wasser", "ein Wasser"], ["Mineralwasser", "ein Mineralwasser"], ["Kaffee", "einen Kaffee"],
-      ["Tee", "einen Tee"], ["Cola", "eine Cola"], ["Cola zero", "eine Cola zero"], ["Limonade", "eine Limonade"],
-      ["Eistee", "einen Eistee"], ["Energydrink", "einen Energydrink"], ["Orangensaft", "einen Orangensaft"],
-      ["Apfelsaft", "einen Apfelsaft"], ["Apfelschorle", "eine Apfelschorle"], ["Malzbier", "ein Malzbier"],
-      ["Milch", "eine Milch"], ["Pils", "ein Pils"], ["Weizenbier", "ein Weizenbier"],
-      ["Alkoholfreies Bier", "ein Alkoholfreies Bier"], ["Radler", "ein Radler"],
-      ["Rotwein trocken", "einen Rotwein trocken"], ["Weißwein trocken", "einen Weißwein trocken"],
+      ["Espresso", "einen Espresso"], ["Cappuccino", "einen Cappuccino"],
+      ["Latte Macchiato", "einen Latte Macchiato"], ["Milchkaffee", "einen Milchkaffee"],
+      ["Eiskaffee", "einen Eiskaffee"], ["Tee", "einen Tee"], ["Cola", "eine Cola"], ["Cola zero", "eine Cola zero"],
+      ["Spezi", "ein Spezi"], ["Limonade", "eine Limonade"], ["Eistee", "einen Eistee"],
+      ["Energydrink", "einen Energydrink"], ["Orangensaft", "einen Orangensaft"], ["Apfelsaft", "einen Apfelsaft"],
+      ["Apfelschorle", "eine Apfelschorle"], ["Malzbier", "ein Malzbier"], ["Milch", "eine Milch"],
+      ["Kakao", "einen Kakao"], ["Pils", "ein Pils"], ["Weizenbier", "ein Weizenbier"],
+      ["Alkoholfreies Bier", "ein Alkoholfreies Bier"], ["Alkoholfreies Bier 0,0 %", "ein Alkoholfreies Bier 0,0 %"],
+      ["Alkoholfreies Weißbier 0,0 %", "ein Alkoholfreies Weißbier 0,0 %"], ["Radler", "ein Radler"],
+      ["Alkoholfreies Radler 0,0 %", "ein Alkoholfreies Radler 0,0 %"], ["Rotwein trocken", "einen Rotwein trocken"],
+      ["Weißwein trocken", "einen Weißwein trocken"], ["Weinschorle", "eine Weinschorle"],
       ["Sekt trocken", "einen Sekt trocken"], ["Schnaps", "einen Schnaps"], ["Longdrink", "einen Longdrink"],
       ["Cocktail", "einen Cocktail"],
     ];

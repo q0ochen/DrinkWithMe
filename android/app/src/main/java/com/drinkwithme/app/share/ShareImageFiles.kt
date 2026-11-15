@@ -39,8 +39,8 @@ class ShareImageFiles(cacheDir: File) {
         const val DIRECTORY = "shared_images"
         const val SAVE_FAILED = "Das Bild konnte nicht gespeichert werden. Ist der Speicher voll?"
 
-        /** Lesbarer, eindeutiger Name ohne Leerzeichen: `drink-with-me-statistik-2026-11-10.png`. */
-        fun fileName(date: LocalDate): String = "drink-with-me-statistik-$date.png"
+        /** Lesbarer, eindeutiger Name ohne Leerzeichen: `drinkwithme-statistik-2026-11-10.png`. */
+        fun fileName(date: LocalDate): String = "drinkwithme-statistik-$date.png"
 
         const val MIME_TYPE = "image/png"
     }

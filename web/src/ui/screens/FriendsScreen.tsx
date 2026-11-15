@@ -249,7 +249,7 @@ function InviteSection({ social }: { social: SocialServices }) {
     setStatus(null);
     const url = await social.friends.createInviteLink();
     setLink(url);
-    const shared = await shareLink("Drink With Me", "Trink mit mir! Mit diesem Link sind wir in Drink With Me befreundet:", url);
+    const shared = await shareLink("DrinkWithMe", "Trink mit mir! Mit diesem Link sind wir in DrinkWithMe befreundet:", url);
     if (shared === true) setStatus("Link geteilt.");
     else if (shared === null) setStatus((await copyText(url)) ? "Link in die Zwischenablage kopiert." : "Kopiere den Link unten und schicke ihn weiter.");
   });
@@ -323,7 +323,7 @@ function EmailSection({ social, onSent }: { social: SocialServices; onSent: () =
             </p>
           ) : (
             <p id="freund-email-hinweis" class="muted">
-              Die Person muss Drink With Me mit diesem Google-Konto nutzen und deine Anfrage bestätigen.
+              Die Person muss DrinkWithMe mit diesem Google-Konto nutzen und deine Anfrage bestätigen.
             </p>
           )}
         </div>

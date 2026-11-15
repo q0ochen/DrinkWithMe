@@ -16,7 +16,11 @@ class DrinkIconAndCategoryTest {
             DrinkIcon.BEER to "beer", DrinkIcon.WHEAT_BEER to "wheat_beer", DrinkIcon.RADLER to "radler",
             DrinkIcon.RED_WINE to "red_wine", DrinkIcon.WHITE_WINE to "white_wine",
             DrinkIcon.SPARKLING_WINE to "sparkling_wine", DrinkIcon.SHOT to "shot", DrinkIcon.LONGDRINK to "longdrink",
-            DrinkIcon.COCKTAIL to "cocktail", DrinkIcon.OTHER to "other",
+            DrinkIcon.COCKTAIL to "cocktail", DrinkIcon.ESPRESSO to "espresso", DrinkIcon.CAPPUCCINO to "cappuccino",
+            DrinkIcon.LATTE_MACCHIATO to "latte_macchiato", DrinkIcon.ICED_COFFEE to "iced_coffee",
+            DrinkIcon.HOT_CHOCOLATE to "hot_chocolate", DrinkIcon.COLA_MIX to "cola_mix",
+            DrinkIcon.ALCOHOL_FREE_BEER to "alcohol_free_beer", DrinkIcon.WINE_SPRITZER to "wine_spritzer",
+            DrinkIcon.OTHER to "other",
         )
         assertEquals(expected, DrinkIcon.entries.associateWith { it.key })
     }

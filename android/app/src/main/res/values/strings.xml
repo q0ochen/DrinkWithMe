@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Drink With Me</string>
+    <string name="app_name">DrinkWithMe</string>
     <!-- Benachrichtigungskanal „drinks“; die ID muss zu push/DrinkNotificationChannel.ID passen. -->
     <string name="notification_channel_drinks_id" translatable="false">drinks</string>
     <string name="notification_channel_drinks_name">Getränke von Freunden</string>

@@ -1,4 +1,4 @@
-# Drink With Me einrichten – Schritt für Schritt
+# DrinkWithMe einrichten – Schritt für Schritt
 
 Diese Anleitung bringt den Server (Supabase), die Google-Anmeldung, die Web-App fürs iPhone und die Android-App
 zum Laufen – **kostenlos und ohne Kreditkarte**. Sie ist für Menschen geschrieben, die **nicht programmieren**.
@@ -122,7 +122,7 @@ Google. Das kostet nichts und braucht kein Rechnungskonto.
 
 1. [console.cloud.google.com](https://console.cloud.google.com/) öffnen, mit deinem Google-Konto anmelden,
    Nutzungsbedingungen bestätigen.
-2. Oben links auf die Projektauswahl → **Neues Projekt** → Name z. B. `Drink With Me` → **Erstellen**.
+2. Oben links auf die Projektauswahl → **Neues Projekt** → Name z. B. `DrinkWithMe` → **Erstellen**.
    Danach sicherstellen, dass oben dieses Projekt ausgewählt ist.
 
 ### 2.2 Zustimmungsbildschirm („Google Auth Platform“)
@@ -131,7 +131,7 @@ Menü → **APIs & Dienste → OAuth-Zustimmungsbildschirm**. Google nennt diese
 **„Google Auth Platform“**; die Unterpunkte heißen **Branding**, **Zielgruppe**, **Clients** und **Datenzugriff**.
 
 1. **Jetzt starten** (bzw. „Konfigurieren“):
-   - **App-Name:** `Drink With Me`
+   - **App-Name:** `DrinkWithMe`
    - **Nutzersupport-E-Mail:** deine Adresse
    - **Zielgruppe:** **Extern**
    - **Kontaktdaten:** deine Adresse
@@ -154,7 +154,7 @@ Menü → **APIs & Dienste → OAuth-Zustimmungsbildschirm**. Google nennt diese
 1. **Clients** → **Client erstellen** (bzw. „Anmeldedaten erstellen → OAuth-Client-ID“).
 2. **Anwendungstyp:** **Webanwendung** (auch für die Android-App – die Anmeldung läuft dort im Browser über
    Supabase, nicht über die Google-Dienste des Handys).
-3. **Name:** z. B. `Drink With Me (Supabase)`.
+3. **Name:** z. B. `DrinkWithMe (Supabase)`.
 4. **Autorisierte JavaScript-Quellen:** leer lassen.
 5. **Autorisierte Weiterleitungs-URIs** → **URI hinzufügen** → genau diese Adresse (mit deiner Referenz):
 
@@ -168,7 +168,7 @@ Menü → **APIs & Dienste → OAuth-Zustimmungsbildschirm**. Google nennt diese
    **Beide sofort kopieren und speichern** – Google zeigt das Secret seit 2025 nur noch beim Erstellen an.
    Verloren? Im Client einen neuen Schlüssel hinzufügen und den neuen in Supabase eintragen.
 
-> **Hinweis:** Beim Anmelden kann Google statt „Drink With Me“ den Namen `….supabase.co` anzeigen
+> **Hinweis:** Beim Anmelden kann Google statt „DrinkWithMe“ den Namen `….supabase.co` anzeigen
 > („weiter zu …“). Das ist normal, solange Google die Marke nicht geprüft hat – und das brauchen wir nicht.
 
 ---
@@ -338,7 +338,7 @@ Rest erledigt der Workflow „Web-App“.
 
 ### 5.5 F-Droid-Paketquelle: Schlüssel als Secret (einmalig, Handy geht)
 
-Damit Testerinnen und Tester Drink With Me **in der F-Droid-App** installieren können, baut der Workflow „Android“
+Damit Testerinnen und Tester DrinkWithMe **in der F-Droid-App** installieren können, baut der Workflow „Android“
 eine eigene F-Droid-Paketquelle (siehe README, „In F-Droid“). Sie wird mit einem **geheimen Schlüssel**
 unterschrieben; daran erkennt F-Droid, dass die Paketquelle echt ist. Unabhängig von den Schritten 1–4 und 6–7 –
 geht also auch, bevor der Server eingerichtet ist.
@@ -361,7 +361,7 @@ diesen Teil nur (Hinweis im Lauf), alles andere läuft normal.
 >
 > **Selbst erzeugen** (am Computer mit Java): `keytool -genkeypair -keystore repo.p12 -storetype PKCS12
 > -storepass drinkwithme-fdroid -keypass drinkwithme-fdroid -alias drinkwithme-fdroid -keyalg RSA -keysize 4096
-> -validity 10000 -dname "CN=Drink With Me F-Droid Repo"`, dann die Datei als Base64-Text ins Secret – Linux:
+> -validity 10000 -dname "CN=DrinkWithMe F-Droid Repo"`, dann die Datei als Base64-Text ins Secret – Linux:
 > `base64 -w0 repo.p12`, macOS: `base64 -i repo.p12`, Windows (PowerShell):
 > `[Convert]::ToBase64String([IO.File]::ReadAllBytes("repo.p12"))`. Das Passwort ist absichtlich nicht geheim –
 > geheim ist die Datei. Den neuen Fingerabdruck (`keytool -list -v -keystore repo.p12 -storepass
@@ -468,10 +468,11 @@ ZIP-Datei) → in der Dateien-App **entpacken** → darin liegt `app-debug.apk` 
 
 ### 8.2 Installieren
 
-0. **War schon einmal eine „Drink With Me“ auf dem Gerät** – selbst in Android Studio gebaut, aus einem anderen
-   Projekt mit demselben Paketnamen oder eine Testversion vom 9. November? Dann zuerst **deinstallieren**
-   (Einstellungen → Apps → Drink With Me → Deinstallieren; auch im Privaten Bereich und im Arbeitsprofil
-   nachsehen). Sie hat eine andere Signatur, und Android verweigert sonst die Installation.
+0. **War schon einmal eine „DrinkWithMe“ auf dem Gerät** (ältere Versionen heißen noch „Drink With Me“) – selbst
+   in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine Testversion vom
+   9. November? Dann zuerst **deinstallieren** (Einstellungen → Apps → DrinkWithMe bzw. Drink With Me →
+   Deinstallieren; auch im Privaten Bereich und im Arbeitsprofil nachsehen). Sie hat eine andere Signatur, und
+   Android verweigert sonst die Installation.
 1. `DrinkWithMe.apk` (bzw. `app-debug.apk` aus der ZIP-Datei) antippen – am besten direkt in Chrome über
    **Öffnen**. Fragt Chrome vorher „Datei könnte schädlich sein“: **Trotzdem herunterladen**.
 2. Android fragt, ob die App, mit der du die Datei öffnest (Chrome bzw. Dateien), **unbekannte Apps installieren**
@@ -482,7 +483,7 @@ ZIP-Datei) → in der Dateien-App **entpacken** → darin liegt `app-debug.apk` 
    **nicht** auf „OK“ oder „Verstanden“ tippen – das bricht ab –, sondern **Weitere Details → Trotzdem
    installieren** (oder **App scannen**), ggf. mit Fingerabdruck/PIN bestätigen. Die Test-APK ist neu, nicht im
    Play Store und mit einem öffentlichen Test-Schlüssel signiert – deshalb die Warnung.
-4. App öffnen → **Willkommen bei Drink With Me** → Getränke für die eigene Bar auswählen.
+4. App öffnen → **Willkommen bei DrinkWithMe** → Getränke für die eigene Bar auswählen.
 
 > **Neues Pixel (Android 17)?** Das Gerät selbst ist kein Hindernis: Die APK ist auf 16-KB-Speicherseiten
 > vorbereitet, und die Entwickler-Prüfung von Google gilt in Deutschland noch nicht (siehe Ausblick unten). Jede
@@ -499,7 +500,7 @@ und Verlauf bleiben erhalten. Getränke aus der **alten** App-Version (vor dem U
 > November 2026) noch nicht. Mehr dazu in [`F-DROID.md`](F-DROID.md).
 
 **Über F-Droid (optional):** Wer lieber F-Droid nutzt, fügt dort die eigene Paketquelle hinzu und installiert
-Drink With Me aus F-Droid – Anleitung mit Link und QR-Code in der [README](../README.md#in-f-droid-eigene-paketquelle).
+DrinkWithMe aus F-Droid – Anleitung mit Link und QR-Code in der [README](../README.md#in-f-droid-eigene-paketquelle).
 Voraussetzung: Schritt 5.5 ist erledigt. Updates kommen dann über F-Droid; die App ist dieselbe wie aus dem
 Download-Link (gleiche Signatur).
 
@@ -513,7 +514,7 @@ und zeigt deinen Namen. Ab Android 13 fragt die App danach, ob sie **Benachricht
 
 ## 9. ntfy für sofortige Benachrichtigungen (Android)
 
-Drink With Me nutzt **UnifiedPush** statt der Google-Dienste. Damit Benachrichtigungen **sofort** ankommen,
+DrinkWithMe nutzt **UnifiedPush** statt der Google-Dienste. Damit Benachrichtigungen **sofort** ankommen,
 braucht das Handy eine kleine Zusatz-App, die die Nachrichten zustellt – empfohlen ist **ntfy** (kostenlos,
 freie Software, ohne Konto).
 
@@ -528,10 +529,10 @@ beim Server noch nicht bestätigt ist – die App fragt dann vorsichtshalber wei
    oder aus dem **Play Store** (Suche „ntfy“). Beide Versionen funktionieren.
 2. ntfy einmal öffnen und ihm erlauben, Benachrichtigungen zu zeigen. Ein ntfy-Konto oder ein „Thema“ brauchst
    du **nicht**.
-3. In **Drink With Me**: Reiter **Einstellungen** → Karte **Benachrichtigungen** → **Über ntfy einrichten**.
+3. In **DrinkWithMe**: Reiter **Einstellungen** → Karte **Benachrichtigungen** → **Über ntfy einrichten**.
    (Ohne ntfy steht dort stattdessen **ntfy bei F-Droid öffnen**; nach der Installation **Erneut prüfen**.)
    Die App wählt ntfy **nicht** von selbst aus – dieser eine Tipp ist nötig.
-4. Falls ntfy nachfragt: dort bestätigen. Danach steht in Drink With Me
+4. Falls ntfy nachfragt: dort bestätigen. Danach steht in DrinkWithMe
    **„Sofortige Benachrichtigungen über ntfy sind aktiv.“**
 5. Empfehlenswert: in den Android-Einstellungen für **ntfy** die **Akku-Optimierung ausschalten**
    („Nicht eingeschränkt“) – sonst kann Android ntfy schlafen legen.
@@ -540,7 +541,7 @@ ntfy zeigt je nach Version eine dauerhafte, leise Benachrichtigung an, damit And
 Die kannst du in den Android-Einstellungen von ntfy ausblenden, falls sie stört.
 
 > Fehlt in der Karte „Benachrichtigungen“ der ntfy-Knopf ganz und steht dort nur der Satz „Ohne Push-App prüft
-> Drink With Me etwa alle 15 Minuten …“, dann fehlt in `supabase.properties` der `vapidPublicKey` (oder er ist
+> DrinkWithMe etwa alle 15 Minuten …“, dann fehlt in `supabase.properties` der `vapidPublicKey` (oder er ist
 > nicht genau 87 Zeichen lang).
 
 Die Nachrichten sind **Ende-zu-Ende verschlüsselt** (Web-Push-Verschlüsselung): ntfy sieht nur, dass eine
@@ -569,7 +570,7 @@ Benachrichtigungen. Voraussetzung: **iOS 16.4 oder neuer** (Einstellungen → Al
 2. Auf **Teilen** tippen (Quadrat mit Pfeil nach oben; je nach iOS-Version hinter den drei Punkten „…“ unten
    rechts) → **Zum Home-Bildschirm** → falls angeboten, **„Als Web-App öffnen“** eingeschaltet lassen →
    **Hinzufügen**.
-3. Safari schließen und Drink With Me **über das neue Symbol auf dem Home-Bildschirm** öffnen.
+3. Safari schließen und DrinkWithMe **über das neue Symbol auf dem Home-Bildschirm** öffnen.
    **Ab jetzt nur noch so benutzen:** Die Home-Bildschirm-App hat einen **eigenen Speicher**. Was du vorher im
    Safari-Tab eingetragen hast, ist dort nicht zu sehen. Außerdem gibt es Benachrichtigungen auf dem iPhone nur
    in der Home-Bildschirm-App.
@@ -607,7 +608,7 @@ der Fernbedienung bedienbar (Steuerkreuz + OK), und zum Eintragen ist keine Text
 
 **Einstellungen → Mein Fire TV → Info** → dort steht die Software-/Betriebssystemversion.
 
-| Anzeige | Geht Drink With Me? |
+| Anzeige | Geht DrinkWithMe? |
 |---|---|
 | **Fire OS 7.x** oder **Fire OS 8.x** | **Ja**, per „Downloader“ (unten) |
 | **Vega OS** (Versionen, die mit 1 oder 2 beginnen) | **Nein** – Vega OS kann keine Android-Apps installieren |
@@ -630,7 +631,7 @@ Fire TV Stick 4K Select haben Vega OS – deshalb bitte einmal nachsehen.
    (Der Link aus „Actions → Artifacts“ geht hier **nicht** – er verlangt eine GitHub-Anmeldung und liefert eine
    ZIP-Datei.)
 4. **Installieren** → **Fertig**. Downloader bietet an, die APK-Datei zu löschen → **Löschen** (spart Platz).
-5. Drink With Me findest du unter **Apps → Meine Apps** (mit eigenem Banner).
+5. DrinkWithMe findest du unter **Apps → Meine Apps** (mit eigenem Banner).
 
 ### 11.3 Was auf dem Fernseher geht – und was nicht
 
@@ -643,7 +644,7 @@ Fire TV Stick 4K Select haben Vega OS – deshalb bitte einmal nachsehen.
 | **Anmeldung / Freunde** | **nicht eigens für den Fernseher gebaut.** Die App öffnet zum Anmelden einen Browser. Ob das mit dem Browser des Fire TV klappt (Google-Anmeldung mit der Fernbedienung und Rückkehr in die App), ist **nicht getestet**. Gibt es keinen passenden Browser, zeigt die App „Für die Anmeldung wird ein Browser benötigt …“. Eine Anmeldung per Code oder QR-Code vom Handy aus gibt es noch nicht |
 | **Benachrichtigungen** | kein Verlass darauf – der Fernseher ist dafür nicht gedacht |
 
-Kurz: Auf dem Fernseher ist Drink With Me ein **lokales Getränketagebuch mit Vorlesen**. Für Freunde nehmt
+Kurz: Auf dem Fernseher ist DrinkWithMe ein **lokales Getränketagebuch mit Vorlesen**. Für Freunde nehmt
 ihr das Handy oder das iPhone.
 
 ---
@@ -707,9 +708,9 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Zu viele Versuche in kurzer Zeit“ / „Für heute sind keine weiteren Versuche möglich“ | Schutz-Grenzen: 20 E-Mail-Anfragen pro Tag, 30 angenommene Einladungen pro Tag, 60 Benachrichtigungs-Aufträge pro Stunde; dazu eigene Grenzen von Supabase für Anmeldungen | Warten (bis zu einem Tag). Getränke werden trotzdem geteilt und erscheinen im Feed – nur die Benachrichtigung fällt weg |
 | „Heute wurden schon sehr viele Getränke geteilt. Weitere Einträge bleiben vorerst nur auf diesem Gerät.“ | Schutz-Grenze: höchstens 200 geteilte Getränke pro Person in 24 Stunden | Nichts tun – die Einträge sind im eigenen Verlauf gespeichert, nur nicht geteilt. Nach 24 Stunden wird Neues wieder geteilt |
 | „Benachrichtigungen sind schon auf fünf Geräten eingerichtet“ | Höchstens 5 Benachrichtigungs-Abos pro Konto | Auf einem alten Gerät abmelden |
-| Android: keine Benachrichtigungen | ntfy nicht in Drink With Me ausgewählt, Benachrichtigungen für Drink With Me oder ntfy verboten, Akku-Optimierung, VAPID-Secrets fehlen, oder ein eigener ntfy-Server läuft nicht auf Port 443 | Schritt 9 komplett; Android-Einstellungen → Apps → Drink With Me / ntfy → Benachrichtigungen an; Deploy-Lauf auf Warnung „VAPID-Secrets fehlen“ prüfen (4.2); eigenen ntfy-Server über https auf Port 443 erreichbar machen oder `ntfy.sh` nehmen |
+| Android: keine Benachrichtigungen | ntfy nicht in DrinkWithMe ausgewählt, Benachrichtigungen für DrinkWithMe oder ntfy verboten, Akku-Optimierung, VAPID-Secrets fehlen, oder ein eigener ntfy-Server läuft nicht auf Port 443 | Schritt 9 komplett; Android-Einstellungen → Apps → DrinkWithMe / ntfy → Benachrichtigungen an; Deploy-Lauf auf Warnung „VAPID-Secrets fehlen“ prüfen (4.2); eigenen ntfy-Server über https auf Port 443 erreichbar machen oder `ntfy.sh` nehmen |
 | Web-App: „Benachrichtigungen sind auf dem Server noch nicht eingerichtet.“ | Die GitHub-Variable `VAPID_PUBLIC_KEY` fehlte beim Bauen oder ist kein gültiger Schlüssel | 5.3 prüfen, dann die Web-App neu veröffentlichen (wie bei „Server noch nicht eingerichtet“ oben) |
-| iPhone: keine Benachrichtigungen | Nicht über den Home-Bildschirm geöffnet, iOS älter als 16.4, Mitteilungen verboten oder Fokus aktiv | Schritt 10; iPhone-Einstellungen → Mitteilungen → Drink With Me → Mitteilungen erlauben |
+| iPhone: keine Benachrichtigungen | Nicht über den Home-Bildschirm geöffnet, iOS älter als 16.4, Mitteilungen verboten oder Fokus aktiv | Schritt 10; iPhone-Einstellungen → Mitteilungen → DrinkWithMe (vor der Umbenennung hinzugefügt: „Drink With Me“) → Mitteilungen erlauben |
 | Benachrichtigungen fehlen bei allen | `VAPID_PUBLIC_KEY` ist nicht überall gleich (Supabase-Secret, GitHub-Variable, `supabase.properties`) oder `VAPID_SUBJECT` beginnt nicht mit `mailto:` | Werte vergleichen; nach einer Korrektur Web-App neu veröffentlichen, neue APK bauen und Benachrichtigungen in den Apps aus- und wieder einschalten |
 | Benachrichtigungen kommen ohne ntfy erst viel später | So gewollt: Abfrage etwa alle 15 Minuten; Android verzögert im Stromsparmodus | ntfy einrichten (Schritt 9) |
 | Apps: „Keine Verbindung zum Server“ / „Der Server ist gerade nicht erreichbar“, obwohl Internet da ist | Supabase-Projekt **pausiert** (nach etwa 7 Tagen ohne Nutzung) | Supabase-Dashboard → Projekt → **Restore project**; ein paar Minuten warten |
@@ -718,8 +719,8 @@ genaue Meldung notieren (Bildschirmfoto).
 | „Supabase Deploy“ bricht bei „Einstellungen prüfen“ ab | Secret oder Variable fehlt, oder `SUPABASE_PROJECT_REF` ist der Projektname statt der 20-stelligen Referenz | Meldung lesen, Schritt 5.2/5.3 korrigieren |
 | „Supabase Deploy“ bricht bei „Mit dem Projekt verbinden“ ab | Datenbank-Passwort falsch | Supabase → **Project Settings → Database → Reset database password**, neues Passwort ins Secret `SUPABASE_DB_PASSWORD`. Sonst die Fehlermeldung kopieren und Claude schicken (ohne Passwörter!) |
 | Android: „App nicht installiert“ beim Update | Die alte App ist mit einem anderen Schlüssel signiert (z. B. selbst in Android Studio gebaut) | Alte App deinstallieren (lokaler Verlauf geht dabei verloren), dann neu installieren |
-| Android: „App wurde nicht installiert, da das Paket in Konflikt mit einem bestehenden Paket steht“ beim **ersten** Installieren | Auf dem Gerät ist schon eine „Drink With Me“ mit anderer Signatur: selbst in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine frühe Testversion (vor dem festen Test-Schlüssel) – evtl. im Privaten Bereich oder Arbeitsprofil | Alte „Drink With Me“ deinstallieren (überall nachsehen), dann neu installieren |
-| Android: „Die App wurde nicht installiert, da das Paket offenbar ungültig ist“ | Kaputter Download – **oder** eine installierte „Drink With Me“ mit höherer Versionsnummer (z. B. selbst gebaut) | Neu herunterladen (Größe etwa 13 MB, Prüfsumme in den Release-Hinweisen); hilft das nicht: alte App deinstallieren |
+| Android: „App wurde nicht installiert, da das Paket in Konflikt mit einem bestehenden Paket steht“ beim **ersten** Installieren | Auf dem Gerät ist schon eine „DrinkWithMe“ mit anderer Signatur: selbst in Android Studio gebaut, aus einem anderen Projekt mit demselben Paketnamen oder eine frühe Testversion (vor dem festen Test-Schlüssel) – evtl. im Privaten Bereich oder Arbeitsprofil | Alte „DrinkWithMe“ deinstallieren – ältere Versionen heißen noch „Drink With Me“ (überall nachsehen), dann neu installieren |
+| Android: „Die App wurde nicht installiert, da das Paket offenbar ungültig ist“ | Kaputter Download – **oder** eine installierte „DrinkWithMe“ mit höherer Versionsnummer (z. B. selbst gebaut) | Neu herunterladen (Größe etwa 13 MB, Prüfsumme in den Release-Hinweisen); hilft das nicht: alte App deinstallieren |
 | Android: „Beim Parsen des Pakets ist ein Problem aufgetreten“ | Download unvollständig, oder Android älter als 8.0 | Alle alten `DrinkWithMe*.apk` in „Downloads“ löschen, über WLAN neu herunterladen; Android-Version prüfen |
 | Android: Play Protect meldet „blockiert“ oder „kennt diese App noch nicht“, danach passiert nichts | Der Hinweis wurde mit „OK“ bzw. „Verstanden“ geschlossen – das bricht die Installation ab | Erneut öffnen, dann **Weitere Details → Trotzdem installieren** (oder **App scannen**) |
 | Android: Erlaubnis für unbekannte Apps fehlt, „Installieren“ erscheint nicht | Die Erlaubnis wurde einer anderen App gegeben (Chrome vs. Dateien vs. WhatsApp) oder abgelehnt | Einstellungen → Apps → Spezieller App-Zugriff → **Unbekannte Apps installieren** → die App, mit der du die Datei öffnest → **Dieser Quelle vertrauen** |

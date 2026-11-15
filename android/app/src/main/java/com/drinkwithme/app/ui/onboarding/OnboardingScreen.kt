@@ -47,7 +47,7 @@ fun OnboardingScreen(viewModel: OnboardingViewModel) {
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionTitle("Willkommen bei Drink With Me")
+                SectionTitle("Willkommen bei DrinkWithMe")
                 Text(
                     "Wähle die Getränke für deine Bar. Später reicht ein Tipp auf ein Getränk, um es einzutragen. " +
                         "Alles lässt sich jederzeit ändern, eigene Getränke sind möglich.",

@@ -1,7 +1,7 @@
-# Drink With Me in F-Droid veröffentlichen
+# DrinkWithMe in F-Droid veröffentlichen
 
 [F-Droid](https://f-droid.org) ist ein App-Katalog nur für **freie Software**. F-Droid baut jede App selbst aus
-dem öffentlichen Quellcode, prüft sie und verteilt sie kostenlos. Für Drink With Me ist das der geplante Weg auf
+dem öffentlichen Quellcode, prüft sie und verteilt sie kostenlos. Für DrinkWithMe ist das der geplante Weg auf
 Android-Handys, -Tablets und -Fernseher (siehe [`ANFORDERUNGEN.md`](ANFORDERUNGEN.md)).
 
 Dieses Dokument sagt, **was schon erfüllt ist**, **was noch fehlt** und **womit zu rechnen ist**.
@@ -92,7 +92,7 @@ ob F-Droid den Ordner im Hauptverzeichnis findet; sonst unter `android/app/` anl
 ```
 fastlane/metadata/android/
 ├── de-DE/
-│   ├── title.txt                 Drink With Me
+│   ├── title.txt                 DrinkWithMe
 │   ├── short_description.txt     Kurzbeschreibung, höchstens 80 Zeichen
 │   ├── full_description.txt      Langbeschreibung (höchstens 4000 Zeichen, einfaches HTML erlaubt)
 │   ├── changelogs/
@@ -218,7 +218,7 @@ Packaging“-Tracker – dauert meist deutlich länger).
    SourceCode: https://github.com/q0ochen/DrinkWithMe
    IssueTracker: https://github.com/q0ochen/DrinkWithMe/issues
 
-   AutoName: Drink With Me
+   AutoName: DrinkWithMe
 
    RepoType: git
    Repo: https://github.com/q0ochen/DrinkWithMe.git
@@ -245,7 +245,7 @@ Packaging“-Tracker – dauert meist deutlich länger).
    CurrentVersionCode: 2000000
    ```
 
-4. Merge Request mit dem Titel **„New app: Drink With Me“** öffnen, die Vorlage (Checkliste) ausfüllen und
+4. Merge Request mit dem Titel **„New app: DrinkWithMe“** öffnen, die Vorlage (Checkliste) ausfüllen und
    warten, bis die automatischen Prüfungen (Pipeline) grün sind.
 5. Auf Rückfragen der Prüfer antworten (Anti-Features, Binärdateien, Reproduzierbarkeit …).
 6. Nach dem Zusammenführen baut der F-Droid-Server die App; sie erscheint mit einer der nächsten
@@ -271,7 +271,7 @@ und dem [FAQ](https://developer.android.com/developer-verification/guides/faq)):
   bestätigen; danach für 7 Tage oder dauerhaft) oder per **ADB** installieren.
 - Der Fire TV ist kein von Google zertifiziertes Gerät; die Prüfung dürfte dort nicht greifen [unsicher].
 
-**Möglichkeiten für Drink With Me:**
+**Möglichkeiten für DrinkWithMe:**
 
 | Weg | Kosten | Voraussetzungen | Passt? |
 |---|---|---|---|
@@ -323,7 +323,7 @@ Auftrag der Entwickler über Googles neue Schnittstellen), ist offen [unsicher].
 - [ ] Umstieg der Testerinnen und Tester angekündigt (Deinstallation, Datenverlust) oder Export in der Android-App gebaut
 - [ ] Arbeitszweig in `main` zusammengeführt (ohne Squash), danach regelmäßig weiterentwickelt und getaggt
 - [ ] 3 Monate aktive Entwicklung erreicht (ab 9. Februar 2027; zählt automatisch ab Erstellung des Repositorys)
-- [ ] Merge Request „New app: Drink With Me“ bei `fdroiddata`
+- [ ] Merge Request „New app: DrinkWithMe“ bei `fdroiddata`
 
 ---
 
@@ -367,7 +367,7 @@ den Clients **Droid-ify** und **Neo Store** voreingestellt, in der offiziellen F
 - **KI-Richtlinie (Hauptgrund):** „We are strongly opposed to apps which are fully or in part created by generative
   AI tools.“ und „Vibe-coded apps will be rejected.“ Fehlende Offenheit kann nachträglich zur Ablehnung führen.
   Das Antragsformular (`.forgejo/issue_template/app-inclusion-request.yaml`) hat einen **Abschnitt zur KI-Nutzung**
-  (Umfang, Werkzeuge, Verantwortung) [unsicher, ob Pflichtfeld]. Drink With Me ist zum größten Teil mit
+  (Umfang, Werkzeuge, Verantwortung) [unsicher, ob Pflichtfeld]. DrinkWithMe ist zum größten Teil mit
   Claude Code geschrieben (fast alle Commits). Bei ehrlicher Angabe ist eine Ablehnung sehr wahrscheinlich;
   andere Projekte mit Claude-Code-Anteil reichen aus diesem Grund gar nicht erst ein. Der Wortlaut stammt aus
   Suchauszügen und Drittkopien der Seite [AppInclusionPolicy](https://izzyondroid.org/docs/general/AppInclusionPolicy/)
@@ -383,7 +383,7 @@ den Clients **Droid-ify** und **Neo Store** voreingestellt, in der offiziellen F
 
 Seit 12.11.2026 baut der Workflow „Android“ bei jedem Push auf `main` bzw. den Entwicklungszweig (und bei einem
 manuellen Start) eine eigene F-Droid-Paketquelle. Wer die F-Droid-App nutzt, fügt sie einmal hinzu und
-installiert und aktualisiert Drink With Me dann wie jede andere F-Droid-App. Anleitung mit Link und QR-Code:
+installiert und aktualisiert DrinkWithMe dann wie jede andere F-Droid-App. Anleitung mit Link und QR-Code:
 [README](../README.md#in-f-droid-eigene-paketquelle).
 
 | Was | Wie |
@@ -428,15 +428,15 @@ KI-erstelltem Code. Diskutiert wird an zwei Stellen, beide ohne Beschluss:
   eine eher erlaubende Übergangsregel nach dem Vorbild von Debian – ausdrücklich **nur** für Beiträge zu F-Droid
   selbst, nicht für die Aufnahme von Apps.
 - Admin-Ticket [#641](https://gitlab.com/fdroid/admin/-/issues/641) („Tag apps that use AI or LLMs with an
-  anti-feature“): Apps, die KI oder LLMs **nutzen**, mit einem Anti-Feature kennzeichnen. Drink With Me nutzt keine
+  anti-feature“): Apps, die KI oder LLMs **nutzen**, mit einem Anti-Feature kennzeichnen. DrinkWithMe nutzt keine
   KI-Dienste; ob der Vorschlag auch Apps erfassen würde, die mit KI **geschrieben** wurden, ist offen [unsicher].
 - Dazu eine Diskussion im [F-Droid-Forum](https://forum.f-droid.org/t/does-f-droid-have-a-formal-policy-on-libre-ai/33279).
 
 Stand 13.11.2026: #641 ist weiter offen und aktiv; dort wird auch vorgeschlagen, mit KI geschriebene Apps
-abzulehnen. Bei Drink With Me ist die KI-Herkunft offensichtlich (fast alle Commits stammen von „Claude“). Mit
+abzulehnen. Bei DrinkWithMe ist die KI-Herkunft offensichtlich (fast alle Commits stammen von „Claude“). Mit
 Rückfragen ist zu rechnen; wer einreicht, sollte den Code erklären und dafür einstehen können.
 
-Eine strenge Regel wie bei IzzyOnDroid würde auch Drink With Me treffen; danach sieht es bei F-Droid derzeit nicht
+Eine strenge Regel wie bei IzzyOnDroid würde auch DrinkWithMe treffen; danach sieht es bei F-Droid derzeit nicht
 aus [unsicher]. Deshalb: vor dem Antrag im Februar 2027 die Policy neu lesen und im Merge Request offen angeben, wie
 die App entstanden ist.
 

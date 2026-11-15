@@ -228,17 +228,17 @@ jobs:
         env:
           # Ein-Tipp-Import für Obtainium (gleicher Link wie in der README): Vorabversionen einbeziehen und das Datum
           # des letzten APK-Uploads als Version verwenden – nötig, weil Tag und versionCode der Testversion gleich bleiben.
-          OBTAINIUM_LINK: "https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22Drink%20With%20Me%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D"
+          OBTAINIUM_LINK: "https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.drinkwithme.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fq0ochen%2FDrinkWithMe%22%2C%22author%22%3A%22q0ochen%22%2C%22name%22%3A%22DrinkWithMe%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22versionDetection%5C%22%3Afalse%2C%5C%22releaseDateAsVersion%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Atrue%7D%22%2C%22overrideSource%22%3Anull%7D"
         run: |
           STAND="$(date -u '+%d.%m.%Y, %H:%M UTC')"
           KURZ="${GITHUB_SHA::7}"
           cat > notes.md <<EOF
-          **Testversion von Drink With Me für Android** – Version \`2.0.0-test.${GITHUB_RUN_NUMBER}\`, Stand ${STAND}, Code-Stand \`${KURZ}\`.
+          **Testversion von DrinkWithMe für Android** – Version \`2.0.0-test.${GITHUB_RUN_NUMBER}\`, Stand ${STAND}, Code-Stand \`${KURZ}\`.
 
           **Herunterladen (ohne Anmeldung):** https://github.com/${GH_REPO}/releases/download/${TAG}/DrinkWithMe.apk
 
           ### Installieren
-          0. Schon einmal „Drink With Me“ installiert (z. B. selbst gebaut)? Erst **deinstallieren**, sonst meldet Android einen Paket-Konflikt.
+          0. Schon einmal „DrinkWithMe“ installiert (ältere Versionen heißen „Drink With Me“, z. B. selbst gebaut)? Erst **deinstallieren**, sonst meldet Android einen Paket-Konflikt.
           1. Den Link oben **in Chrome** auf dem Android-Handy öffnen. Fragt Chrome nach: **Trotzdem herunterladen**, dann **Öffnen**.
           2. Die Erlaubnis für diese Quelle **zulassen** (Pixel: „Dieser Quelle vertrauen“ bzw. „Nur dieses Mal“ / „Immer zulassen“), dann **Installieren**.
           3. Meldet sich Play Protect: **nicht** auf „OK“, sondern **Weitere Details → Trotzdem installieren** (oder **App scannen**).
@@ -249,7 +249,7 @@ jobs:
 
           ### Automatisch aktuell bleiben (optional)
           Die freie App [Obtainium](https://github.com/ImranR98/Obtainium/releases) installieren, dann auf dem Android-Gerät diesen Link öffnen und den Import bestätigen:
-          [Drink With Me in Obtainium hinzufügen](${OBTAINIUM_LINK}). Obtainium meldet dann jede neue Testversion.
+          [DrinkWithMe in Obtainium hinzufügen](${OBTAINIUM_LINK}). Obtainium meldet dann jede neue Testversion.
 
           ### Hinweise
           - Testversion, mit dem öffentlichen Test-Schlüssel signiert. Neue Testversionen lassen sich einfach drüber installieren.
@@ -370,7 +370,7 @@ jobs:
           cp -R "$RUNNER_TEMP/fdroidwork/repo" "$PUB/fdroid/repo"
           LINK="https://fdroid.link/#https://raw.githubusercontent.com/${GH_REPO}/fdroid-repo/fdroid/repo?fingerprint=${FDROID_REPO_FINGERPRINT^^}"
           cat > "$PUB/README.md" <<EOF
-          # F-Droid-Paketquelle für die Testversionen von Drink With Me
+          # F-Droid-Paketquelle für die Testversionen von DrinkWithMe
 
           Dieser Zweig wird automatisch von \`.github/workflows/android.yml\` erzeugt und bei jedem Build ersetzt –
           bitte nicht von Hand ändern. Er enthält die aktuelle Testversion (2.0.0-test.${GITHUB_RUN_NUMBER}) und die

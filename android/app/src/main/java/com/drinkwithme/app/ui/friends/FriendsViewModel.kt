@@ -172,7 +172,7 @@ class FriendsViewModel(
     companion object {
         const val FEED_LIMIT = 50
         const val INVALID_EMAIL = "Bitte gib eine gültige E-Mail-Adresse ein."
-        const val EMAIL_SENT = "Danke! Falls es zu dieser Adresse ein Konto bei Drink With Me gibt, bekommt die Person " +
+        const val EMAIL_SENT = "Danke! Falls es zu dieser Adresse ein Konto bei DrinkWithMe gibt, bekommt die Person " +
             "jetzt eine Anfrage."
         private val EMAIL_PATTERN = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 

@@ -28,16 +28,16 @@ describe("Sicherungsdatei", () => {
   });
 
   it("weist fremde, kaputte, zu große und zu neue Dateien mit deutscher Meldung ab", () => {
-    expect(parseBackup("kein json", NOW)).toEqual({ ok: false, error: "Die Datei ist keine Sicherung von Drink With Me." });
+    expect(parseBackup("kein json", NOW)).toEqual({ ok: false, error: "Die Datei ist keine Sicherung von DrinkWithMe." });
     expect(parseBackup(JSON.stringify({ format: "andere-app", version: 1, bar: [], history: [] }), NOW)).toMatchObject({ ok: false });
     expect(parseBackup(JSON.stringify([1, 2, 3]), NOW)).toMatchObject({ ok: false });
     expect(parseBackup(JSON.stringify({ format: BACKUP_FORMAT, version: 2, bar: [], history: [] }), NOW)).toEqual({
       ok: false,
-      error: "Diese Sicherung stammt aus einer neueren Version von Drink With Me. Bitte aktualisiere die App und versuche es erneut.",
+      error: "Diese Sicherung stammt aus einer neueren Version von DrinkWithMe. Bitte aktualisiere die App und versuche es erneut.",
     });
     expect(parseBackup(" ".repeat(MAX_BACKUP_CHARACTERS + 1), NOW)).toEqual({
       ok: false,
-      error: "Die Datei ist zu groß für eine Sicherung von Drink With Me.",
+      error: "Die Datei ist zu groß für eine Sicherung von DrinkWithMe.",
     });
     expect(parseBackup(JSON.stringify({ format: BACKUP_FORMAT, version: 1, bar: "x", history: [] }), NOW)).toMatchObject({ ok: false });
   });
@@ -126,7 +126,7 @@ describe("BackupService: Zusammenführen, nichts geht verloren", () => {
 
   it("eine ungültige Datei ändert nichts", async () => {
     const { service, barRepository, history } = setUp([item("wasser", "Wasser", 0)]);
-    await expect(service.importJson("{}")).rejects.toThrow("Die Datei ist keine Sicherung von Drink With Me.");
+    await expect(service.importJson("{}")).rejects.toThrow("Die Datei ist keine Sicherung von DrinkWithMe.");
     expect(await barRepository.items()).toHaveLength(1);
     expect(await history.entries(HISTORY_EARLIEST, HISTORY_LATEST)).toHaveLength(1);
   });

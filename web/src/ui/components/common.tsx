@@ -125,7 +125,7 @@ export function IosHomeScreenHint() {
         <strong>Zum Home-Bildschirm hinzufügen</strong>
       </p>
       <p>
-        Auf dem iPhone gibt es Benachrichtigungen nur, wenn Drink With Me auf dem Home-Bildschirm liegt: Tippe in Safari auf „Teilen“ und
+        Auf dem iPhone gibt es Benachrichtigungen nur, wenn DrinkWithMe auf dem Home-Bildschirm liegt: Tippe in Safari auf „Teilen“ und
         dann auf „Zum Home-Bildschirm“. Öffne die App danach über das neue Symbol.
       </p>
       <p>
@@ -145,7 +145,7 @@ export function IosInstallFirstHint() {
         <strong>Tipp fürs iPhone: zuerst auf den Home-Bildschirm</strong>
       </p>
       <p>
-        Lege Drink With Me am besten jetzt auf den Home-Bildschirm (in Safari „Teilen“ → „Zum Home-Bildschirm“) und richte die Bar dort
+        Lege DrinkWithMe am besten jetzt auf den Home-Bildschirm (in Safari „Teilen“ → „Zum Home-Bildschirm“) und richte die Bar dort
         ein. Die App auf dem Home-Bildschirm hat einen eigenen Speicher: Was du hier im Safari-Tab einträgst, ist dort nicht zu sehen. Nur
         dort gibt es auch Benachrichtigungen.
       </p>

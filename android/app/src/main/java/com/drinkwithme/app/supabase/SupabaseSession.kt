@@ -210,7 +210,7 @@ class SupabaseSession(
 
     companion object {
         /** Wie der Server-Trigger: ohne Namen nie die E-Mail-Adresse zeigen. */
-        const val DEFAULT_DISPLAY_NAME = "Drink-With-Me-Nutzer"
+        const val DEFAULT_DISPLAY_NAME = "DrinkWithMe-Nutzer"
         private const val KEY_PKCE_VERIFIER = "pkce_verifier"
         private val EXPIRY_MARGIN: Duration = Duration.ofSeconds(60)
 

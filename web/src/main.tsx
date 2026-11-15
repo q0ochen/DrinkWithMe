@@ -59,7 +59,7 @@ async function start(): Promise<void> {
     pendingShareStore: new IndexedDbStoredValue(db, "pendingShares"),
     persistentStorage: createPersistentStorage(),
     onBackgroundError: (error) => {
-      console.warn("Drink With Me: Hintergrundaufgabe fehlgeschlagen", error);
+      console.warn("DrinkWithMe: Hintergrundaufgabe fehlgeschlagen", error);
     },
   });
 
@@ -85,7 +85,7 @@ async function start(): Promise<void> {
 
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
     navigator.serviceWorker.register(`${config.basePath}sw.js`, { scope: config.basePath }).catch((error: unknown) => {
-      console.warn("Drink With Me: Service Worker nicht registriert", error);
+      console.warn("DrinkWithMe: Service Worker nicht registriert", error);
     });
   }
 }
@@ -95,6 +95,6 @@ start().catch((error: unknown) => {
   const root = document.getElementById("app");
   if (root) {
     root.innerHTML =
-      '<main class="content"><h1>Drink With Me</h1><p>Die App konnte nicht starten. Bitte erlaube den Website-Speicher (z. B. nicht im privaten Modus) und lade die Seite neu.</p></main>';
+      '<main class="content"><h1>DrinkWithMe</h1><p>Die App konnte nicht starten. Bitte erlaube den Website-Speicher (z. B. nicht im privaten Modus) und lade die Seite neu.</p></main>';
   }
 });

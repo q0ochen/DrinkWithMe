@@ -46,6 +46,17 @@ object DefaultBarCatalog {
     const val SCHNAPS = "${ID_PREFIX}schnaps"
     const val LONGDRINK = "${ID_PREFIX}longdrink"
     const val COCKTAIL = "${ID_PREFIX}cocktail"
+    const val ESPRESSO = "${ID_PREFIX}espresso"
+    const val CAPPUCCINO = "${ID_PREFIX}cappuccino"
+    const val LATTE_MACCHIATO = "${ID_PREFIX}latte-macchiato"
+    const val MILCHKAFFEE = "${ID_PREFIX}milchkaffee"
+    const val EISKAFFEE = "${ID_PREFIX}eiskaffee"
+    const val SPEZI = "${ID_PREFIX}spezi"
+    const val KAKAO = "${ID_PREFIX}kakao"
+    const val ALKOHOLFREIES_BIER_0_0 = "${ID_PREFIX}alkoholfreies-bier-0-0"
+    const val ALKOHOLFREIES_WEISSBIER_0_0 = "${ID_PREFIX}alkoholfreies-weissbier-0-0"
+    const val ALKOHOLFREIES_RADLER_0_0 = "${ID_PREFIX}alkoholfreies-radler-0-0"
+    const val WEINSCHORLE = "${ID_PREFIX}weinschorle"
 
     /** Alle Vorschläge in Anzeigereihenfolge ([BarItem.sortOrder] = Position). */
     val entries: List<CatalogEntry> = listOf(
@@ -54,12 +65,24 @@ object DefaultBarCatalog {
         entry(MINERALWASSER, "Mineralwasser", DrinkIcon.SPARKLING_WATER, DrinkCategory.WATER, sugar = 0.0, alcohol = 0.0,
             serving = 250, aliases = listOf("Sprudel", "Sprudelwasser")),
         entry(KAFFEE, "Kaffee", DrinkIcon.COFFEE, DrinkCategory.COFFEE, sugar = 0.0, alcohol = 0.0, serving = 200,
-            aliases = listOf("Filterkaffee")),
+            aliases = listOf("Filterkaffee", "Café", "Café Crema", "Americano", "Schwarzer Kaffee")),
+        entry(ESPRESSO, "Espresso", DrinkIcon.ESPRESSO, DrinkCategory.COFFEE, sugar = 0.0, alcohol = 0.0,
+            serving = 30, aliases = listOf("Ristretto")),
+        entry(CAPPUCCINO, "Cappuccino", DrinkIcon.CAPPUCCINO, DrinkCategory.COFFEE, sugar = 3.4, alcohol = 0.0,
+            serving = 200, aliases = listOf("Cappu"), note = "Zucker = Milchzucker (Schätzwert)", isEstimate = true),
+        entry(LATTE_MACCHIATO, "Latte Macchiato", DrinkIcon.LATTE_MACCHIATO, DrinkCategory.COFFEE, sugar = 3.8, alcohol = 0.0,
+            serving = 300, aliases = listOf("Latte", "Caffè Latte"), note = "Zucker = Milchzucker (Schätzwert)", isEstimate = true),
+        entry(MILCHKAFFEE, "Milchkaffee", DrinkIcon.CAPPUCCINO, DrinkCategory.COFFEE, sugar = 2.4, alcohol = 0.0,
+            serving = 300, aliases = listOf("Café au Lait", "Kaffee mit Milch"), note = "Zucker = Milchzucker (Schätzwert)", isEstimate = true),
+        entry(EISKAFFEE, "Eiskaffee", DrinkIcon.ICED_COFFEE, DrinkCategory.COFFEE, sugar = 9.0, alcohol = 0.0,
+            serving = 300, aliases = listOf("Kaffee mit Eis"), note = "Mit Vanilleeis und Sahne (Schätzwert)", isEstimate = true),
         entry(TEE, "Tee", DrinkIcon.TEA, DrinkCategory.TEA, sugar = 0.0, alcohol = 0.0, serving = 250,
             aliases = listOf("Kräutertee", "Früchtetee")),
         entry(COLA, "Cola", DrinkIcon.COLA, DrinkCategory.SOFT_DRINK, sugar = 10.6, alcohol = 0.0, serving = 330),
         entry(COLA_ZERO, "Cola zero", DrinkIcon.COLA, DrinkCategory.SOFT_DRINK, sugar = 0.0, alcohol = 0.0, serving = 330,
             aliases = listOf("Cola light", "Zuckerfreie Cola")),
+        entry(SPEZI, "Spezi", DrinkIcon.COLA_MIX, DrinkCategory.SOFT_DRINK, sugar = 9.0, alcohol = 0.0,
+            serving = 500, aliases = listOf("Cola-Mix", "Cola Mix", "Colamix"), note = "Cola-Mix"),
         entry(LIMONADE, "Limonade", DrinkIcon.LEMONADE, DrinkCategory.SOFT_DRINK, sugar = 8.0, alcohol = 0.0, serving = 330,
             aliases = listOf("Limo", "Brause")),
         entry(EISTEE, "Eistee", DrinkIcon.ICED_TEA, DrinkCategory.SOFT_DRINK, sugar = 7.5, alcohol = 0.0, serving = 500,
@@ -75,20 +98,30 @@ object DefaultBarCatalog {
             aliases = listOf("Malztrunk")),
         entry(MILCH, "Milch", DrinkIcon.MILK, DrinkCategory.MILK, sugar = 4.8, alcohol = 0.0, serving = 200,
             aliases = listOf("Vollmilch"), note = "Zucker = Milchzucker (Schätzwert)", isEstimate = true),
+        entry(KAKAO, "Kakao", DrinkIcon.HOT_CHOCOLATE, DrinkCategory.MILK, sugar = 10.0, alcohol = 0.0,
+            serving = 250, aliases = listOf("Heiße Schokolade", "Trinkschokolade", "Kakaomilch", "Schokomilch"), note = "Mit Milch und Kakaopulver (Schätzwert)", isEstimate = true),
         entry(PILS, "Pils", DrinkIcon.BEER, DrinkCategory.BEER, sugar = 0.3, alcohol = 4.9, serving = 500,
             aliases = listOf("Bier", "Pilsener", "Pilsner")),
         entry(WEIZENBIER, "Weizenbier", DrinkIcon.WHEAT_BEER, DrinkCategory.BEER, sugar = 0.3, alcohol = 5.4, serving = 500,
             aliases = listOf("Weizen", "Weißbier", "Hefeweizen")),
         entry(ALKOHOLFREIES_BIER, "Alkoholfreies Bier", DrinkIcon.BEER, DrinkCategory.BEER, sugar = 2.5, alcohol = 0.4,
             serving = 500, aliases = listOf("Alkoholfrei")),
+        entry(ALKOHOLFREIES_BIER_0_0, "Alkoholfreies Bier 0,0 %", DrinkIcon.ALCOHOL_FREE_BEER, DrinkCategory.BEER, sugar = 3.5, alcohol = 0.0,
+            serving = 500, aliases = listOf("Alkoholfreies Pils")),
+        entry(ALKOHOLFREIES_WEISSBIER_0_0, "Alkoholfreies Weißbier 0,0 %", DrinkIcon.ALCOHOL_FREE_BEER, DrinkCategory.BEER, sugar = 3.0, alcohol = 0.0,
+            serving = 500, aliases = listOf("Alkoholfreies Weizen", "Weißbier alkoholfrei")),
         entry(RADLER, "Radler", DrinkIcon.RADLER, DrinkCategory.BEER, sugar = 5.0, alcohol = 2.5, serving = 500,
             aliases = listOf("Alster")),
+        entry(ALKOHOLFREIES_RADLER_0_0, "Alkoholfreies Radler 0,0 %", DrinkIcon.RADLER, DrinkCategory.BEER, sugar = 4.5, alcohol = 0.0,
+            serving = 500, aliases = listOf("Radler alkoholfrei")),
         entry(ROTWEIN, "Rotwein trocken", DrinkIcon.RED_WINE, DrinkCategory.WINE, sugar = 0.3, alcohol = 12.0, serving = 125,
             aliases = listOf("Rotwein")),
         entry(WEISSWEIN, "Weißwein trocken", DrinkIcon.WHITE_WINE, DrinkCategory.WINE, sugar = 0.3, alcohol = 11.5,
             serving = 125, aliases = listOf("Weißwein")),
+        entry(WEINSCHORLE, "Weinschorle", DrinkIcon.WINE_SPRITZER, DrinkCategory.WINE, sugar = 0.2, alcohol = 5.8,
+            serving = 250, aliases = listOf("Weißweinschorle", "Spritzer", "Gespritzter"), note = "Weißwein und Wasser 1:1 (Schätzwert)", isEstimate = true),
         entry(SEKT, "Sekt trocken", DrinkIcon.SPARKLING_WINE, DrinkCategory.SPARKLING_WINE, sugar = 2.5, alcohol = 11.0,
-            serving = 100, aliases = listOf("Sekt", "Prosecco")),
+            serving = 100, aliases = listOf("Sekt", "Prosecco", "Secco")),
         entry(SCHNAPS, "Schnaps", DrinkIcon.SHOT, DrinkCategory.SPIRIT, sugar = 0.0, alcohol = 40.0, serving = 20,
             aliases = listOf("Kurzer", "Klarer", "Shot")),
         entry(LONGDRINK, "Longdrink", DrinkIcon.LONGDRINK, DrinkCategory.SPIRIT, sugar = 8.7, alcohol = 5.3, serving = 240,

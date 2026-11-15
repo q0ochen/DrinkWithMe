@@ -17,9 +17,9 @@ export function importSummaryText(summary: ImportSummary): string {
   return parts.join(" ");
 }
 
-/** Dateiname mit dem heutigen Datum, z. B. drink-with-me-sicherung-2026-11-10.json. */
+/** Dateiname mit dem heutigen Datum, z. B. drinkwithme-sicherung-2026-11-10.json. */
 export function backupFileName(isoDate: string): string {
-  return `drink-with-me-sicherung-${isoDate}.json`;
+  return `drinkwithme-sicherung-${isoDate}.json`;
 }
 
 /** „Sicherung speichern“: JSON-Datei mit Bar und Verlauf – iPhone über „Teilen“ (In Dateien sichern), sonst Download. */
@@ -35,7 +35,7 @@ export function ExportBackupButton() {
     const file = new File([blob], name, { type: "application/json" });
     if (services.platform.isIos && services.imageSharer.canShareFiles(file)) {
       try {
-        if (!(await services.imageSharer.share(file, "Drink With Me – Sicherung", "Bar und Verlauf aus Drink With Me"))) return;
+        if (!(await services.imageSharer.share(file, "DrinkWithMe – Sicherung", "Bar und Verlauf aus DrinkWithMe"))) return;
         setStatus("Sicherung geteilt. Bewahre die Datei gut auf – sie enthält deinen ganzen Verlauf.");
         return;
       } catch {

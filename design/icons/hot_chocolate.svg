@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Kakao</title>
+  <!-- DrinkWithMe · eigenes Werk · CC0 1.0 -->
+  <g fill="none" stroke="#90A4AE" stroke-width="2" stroke-linecap="round">
+    <path d="M35.5 14 C33.7 12.2 37.3 10.4 35.5 8.2 C34.5 7 35.1 6 35.9 5.4"/>
+    <path d="M41 16 C39.2 14.2 42.8 12.4 41 10.2 C40 9 40.6 8 41.4 7.4"/>
+  </g>
+  <path fill="none" stroke="#263238" stroke-width="7" stroke-linejoin="round" d="M31 23.5 H34 Q38 23.5 38 27.5 V31 Q38 35 34 35 H31"/>
+  <path fill="none" stroke="#5BA4D9" stroke-width="3" stroke-linejoin="round" d="M31 23.5 H34 Q38 23.5 38 27.5 V31 Q38 35 34 35 H31"/>
+  <path fill="#5BA4D9" d="M11 18 H32 V37 Q32 43 26 43 H17 Q11 43 11 37 Z"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2" stroke-linecap="round" d="M15 29.5 V37"/>
+  <!-- Schokolade läuft über den Rand -->
+  <path fill="#7A4529" d="M11 18 H32 V23 C30.8 23.8 29.8 23.2 29 23.8 V28 A1.6 1.6 0 0 1 25.8 28 V24 C24 23 22.4 24.6 20.6 23.6 V25.4 A1.5 1.5 0 0 1 17.6 25.4 V23.6 C15.6 22.8 13.2 24.4 11 23.2 Z"/>
+  <path fill="none" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M11 18 H32 V37 Q32 43 26 43 H17 Q11 43 11 37 Z"/>
+  <!-- Sahnehaube -->
+  <rect x="10" y="13.5" width="23" height="5.5" rx="2.75" fill="#FFFFFF" stroke="#263238" stroke-width="2"/>
+  <rect x="13.5" y="9" width="16" height="5" rx="2.5" fill="#FFFFFF" stroke="#263238" stroke-width="2"/>
+  <rect x="16.5" y="5" width="10" height="4.5" rx="2.25" fill="#FFFFFF" stroke="#263238" stroke-width="2"/>
+  <path fill="#FFFFFF" stroke="#263238" stroke-width="2" stroke-linejoin="round" d="M19 5.4 C19.5 3.4 21.5 2.4 23.8 2.6 C22.6 3.4 22.6 4.6 23.4 5.2"/>
+  <g fill="#7A4529">
+    <circle cx="16" cy="16.2" r="0.9"/>
+    <circle cx="23" cy="16.4" r="0.9"/>
+    <circle cx="28.5" cy="16" r="0.9"/>
+    <circle cx="19.5" cy="11.5" r="0.9"/>
+    <circle cx="25.5" cy="11.3" r="0.9"/>
+  </g>
+</svg>

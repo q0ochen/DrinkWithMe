@@ -19,7 +19,7 @@ import { UNDO_WINDOW_MILLIS } from "../log/logUseCases";
 import { SharingTexts } from "../sharing/sharingPolicy";
 import { ARTICLE_CONTAINERS, ARTICLE_DETERMINERS, FEMININE_ENDINGS, MASCULINE_ENDINGS, NEUTER_ENDINGS } from "../speech/germanArticles";
 import { StatisticsDefaults } from "../stats/statisticsCalculator";
-import { COMPOUND_PART_SCORE, MIN_COMPOUND_PART_LENGTH, MINIMUM_GAP, MINIMUM_SIMILARITY } from "../voice/voiceCommandMatcher";
+import { COMPOUND_PART_SCORE, EXACT_SCORE, MIN_COMPOUND_PART_LENGTH, MINIMUM_GAP, MINIMUM_SIMILARITY } from "../voice/voiceCommandMatcher";
 import { FILLER_WORDS, NUMBER_WORDS } from "../voice/voiceVocabulary";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -150,6 +150,7 @@ describe.skipIf(!available)("Kotlin-Quelltext und TypeScript-Port sind gleich", 
     expect(matcher.get("MINIMUM_GAP")).toBe(MINIMUM_GAP);
     expect(matcher.get("COMPOUND_PART_SCORE")).toBe(COMPOUND_PART_SCORE);
     expect(matcher.get("MIN_COMPOUND_PART_LENGTH")).toBe(MIN_COMPOUND_PART_LENGTH);
+    expect(matcher.get("EXACT_SCORE")).toBe(EXACT_SCORE);
 
     const vocabulary = source("voice/VoiceVocabulary.kt");
     expect(new Set(stringLiterals(block(vocabulary, "FILLER_WORDS: Set<String> = setOf(")))).toEqual(FILLER_WORDS);

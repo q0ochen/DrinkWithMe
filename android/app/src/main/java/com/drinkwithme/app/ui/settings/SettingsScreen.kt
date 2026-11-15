@@ -128,7 +128,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, signingIn: Boolean, actions: Se
                 Text(HealthReferences.INFO_TEXT)
                 Text(HealthReferences.ADULTS_ONLY_NOTE, style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "Drink With Me ist freie Software. Code und Grafiken stehen unter CC0 1.0 (gemeinfrei). Alle Icons sind " +
+                    "DrinkWithMe ist freie Software. Code und Grafiken stehen unter CC0 1.0 (gemeinfrei). Alle Icons sind " +
                         "selbst gezeichnet. Verwendete freie Bibliotheken (Apache 2.0): AndroidX/Jetpack Compose, OkHttp, " +
                         "UnifiedPush Connector, Tink.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -166,7 +166,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, signingIn: Boolean, actions: Se
 private fun NotificationsCard(state: SettingsUiState, actions: SettingsActions, viewModel: SettingsViewModel) {
     SectionCard("Benachrichtigungen") {
         if (state.user != null && !actions.notificationsAllowed) {
-            Text("Benachrichtigungen sind für Drink With Me ausgeschaltet.")
+            Text("Benachrichtigungen sind für DrinkWithMe ausgeschaltet.")
             BigButton("Benachrichtigungen erlauben", actions.requestNotificationPermission, modifier = Modifier.fillMaxWidth())
         }
         when (val push = state.push) {
@@ -174,7 +174,7 @@ private fun NotificationsCard(state: SettingsUiState, actions: SettingsActions, 
             PushStatus.NoDistributor -> {
                 Text(
                     "Für sofortige Benachrichtigungen empfehlen wir die kostenlose App ntfy aus F-Droid. Ohne ntfy prüft " +
-                        "Drink With Me etwa alle 15 Minuten und beim Öffnen auf neue Getränke deiner Freunde.",
+                        "DrinkWithMe etwa alle 15 Minuten und beim Öffnen auf neue Getränke deiner Freunde.",
                 )
                 BigButton("ntfy bei F-Droid öffnen", { actions.openUrl(PushTexts.NTFY_FDROID_URL) }, modifier = Modifier.fillMaxWidth())
                 SmallTextButton("Erneut prüfen", viewModel::refreshPush)
@@ -228,4 +228,4 @@ private fun speakerText(status: SpeakerStatus): String = when (status) {
 }
 
 private const val POLLING_INFO =
-    "Ohne Push-App prüft Drink With Me etwa alle 15 Minuten und beim Öffnen auf neue Getränke deiner Freunde."
+    "Ohne Push-App prüft DrinkWithMe etwa alle 15 Minuten und beim Öffnen auf neue Getränke deiner Freunde."

@@ -13,7 +13,7 @@ Dieses Dokument ist die Grundlage für den Umbau; offene Entscheidungen stehen a
 
 ## 2. „Bar“ – eigene Getränke verwalten
 
-- Der App-Name bleibt **„Drink With Me“**. **„Bar“** heißt nur der Bereich, in dem man seine Getränke verwaltet.
+- Der App-Name bleibt **„DrinkWithMe“**. **„Bar“** heißt nur der Bereich, in dem man seine Getränke verwaltet.
 - Jeder erstellt sich seine **eigene Bar** und fügt Getränke hinzu (z. B. Wasser, Apfelschorle, …).
 - Getränke werden mit einem **Icon bzw. einer Grafik** dargestellt, die das Getränk zeigt.
 - Die Grafiken werden **selbst erstellt** – keine Grafiken aus dem Internet –, damit sie frei verwendet werden dürfen.
@@ -53,7 +53,7 @@ Dieses Dokument ist die Grundlage für den Umbau; offene Entscheidungen stehen a
 
 ## Entschieden
 
-- App-Name bleibt „Drink With Me“; „Bar“ ist nur der Bereich zur Getränkeverwaltung (10.11.2026).
+- App-Name bleibt „DrinkWithMe“; „Bar“ ist nur der Bereich zur Getränkeverwaltung (10.11.2026).
 
 - **Server: Supabase** (kostenloser Tarif ohne Kreditkarte); Firebase entfällt (10.11.2026).
 - **Benachrichtigungen:** UnifiedPush mit der kostenlosen App **ntfy** (optional, für sofortige Nachrichten);

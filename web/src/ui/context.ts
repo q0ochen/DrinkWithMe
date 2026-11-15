@@ -149,6 +149,6 @@ export function useAction<A extends unknown[]>(action: (...args: A) => Promise<v
 /** Setzt den Seitentitel (für Screenreader und Verlauf des Browsers). */
 export function useDocumentTitle(title: string): void {
   useEffect(() => {
-    document.title = title === "Drink With Me" ? title : `${title} – Drink With Me`;
+    document.title = title === "DrinkWithMe" ? title : `${title} – DrinkWithMe`;
   }, [title]);
 }

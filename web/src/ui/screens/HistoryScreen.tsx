@@ -75,7 +75,7 @@ export function HistoryScreen() {
         footer: [HealthReferences.ALCOHOL_MANDATORY_NOTE, HealthReferences.SUGAR_NOTE + " " + HealthReferences.ADULTS_ONLY_NOTE, HealthReferences.INFO_TEXT],
         appIconUrl: `${services.config.basePath}icons/app-512.png`,
       });
-      const file = new File([blob], `drink-with-me-verlauf-${today.toString()}.png`, { type: "image/png" });
+      const file = new File([blob], `drinkwithme-verlauf-${today.toString()}.png`, { type: "image/png" });
       setPreview({ blob, url: URL.createObjectURL(blob), file });
     } catch {
       setShareError("Das Bild konnte nicht erzeugt werden.");
@@ -268,7 +268,7 @@ export function HistoryScreen() {
                 onClick={async () => {
                   if (!preview) return;
                   try {
-                    if (await services.imageSharer.share(preview.file, "Mein Getränke-Verlauf", "Mein Verlauf aus Drink With Me")) closePreview();
+                    if (await services.imageSharer.share(preview.file, "Mein Getränke-Verlauf", "Mein Verlauf aus DrinkWithMe")) closePreview();
                   } catch {
                     setShareError("Teilen hat nicht geklappt. Du kannst das Bild stattdessen speichern.");
                   }

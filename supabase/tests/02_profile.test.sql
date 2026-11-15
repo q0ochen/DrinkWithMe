@@ -84,7 +84,7 @@ select is(
 );
 select is(
   (select row(display_name, avatar_url)::text from public.profiles where id = pg_temp.id('clara')),
-  row('Drink-With-Me-Nutzer', null::text)::text,
+  row('DrinkWithMe-Nutzer', null::text)::text,
   'Trigger: ohne Namen ein neutraler Name (nie die E-Mail-Adresse), kein Bild'
 );
 select is(
@@ -99,7 +99,7 @@ select is(
 );
 select is(
   (select display_name from public.profiles where id = pg_temp.id('fritz')),
-  'Drink-With-Me-Nutzer',
+  'DrinkWithMe-Nutzer',
   'Trigger: auch ohne raw_user_meta_data entsteht ein Profil'
 );
 select is(

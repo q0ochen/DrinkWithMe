@@ -39,7 +39,7 @@ export function OnboardingScreen() {
 
   return (
     <div class="screen">
-      <PageHeader title="Willkommen bei Drink With Me">
+      <PageHeader title="Willkommen bei DrinkWithMe">
         <p class="lead">
           Stell dir deine <strong>Bar</strong> zusammen: Wähle die Getränke, die du oft trinkst. Danach trägst du mit einem Tipp ein, was
           du gerade trinkst. Alles bleibt auf diesem Gerät.
@@ -84,7 +84,7 @@ export function OnboardingScreen() {
         </div>
       </form>
       <Section title="Schon eine Sicherung?" id="sicherung">
-        <p>Du hast Drink With Me schon in einem anderen Browser oder auf einem anderen Gerät benutzt? Lies die Sicherungsdatei ein – Bar und Verlauf werden übernommen.</p>
+        <p>Du hast DrinkWithMe schon in einem anderen Browser oder auf einem anderen Gerät benutzt? Lies die Sicherungsdatei ein – Bar und Verlauf werden übernommen.</p>
         <ImportBackupButton
           onImported={async (summary) => {
             if (summary.addedBarItems + summary.updatedBarItems + summary.addedEntries > 0) await done();

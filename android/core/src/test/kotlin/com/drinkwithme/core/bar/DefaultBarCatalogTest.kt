@@ -20,9 +20,15 @@ class DefaultBarCatalogTest {
         Row("Wasser", 0.0, 0.0, 250, DrinkIcon.WATER, DrinkCategory.WATER),
         Row("Mineralwasser", 0.0, 0.0, 250, DrinkIcon.SPARKLING_WATER, DrinkCategory.WATER),
         Row("Kaffee", 0.0, 0.0, 200, DrinkIcon.COFFEE, DrinkCategory.COFFEE),
+        Row("Espresso", 0.0, 0.0, 30, DrinkIcon.ESPRESSO, DrinkCategory.COFFEE),
+        Row("Cappuccino", 3.4, 0.0, 200, DrinkIcon.CAPPUCCINO, DrinkCategory.COFFEE),
+        Row("Latte Macchiato", 3.8, 0.0, 300, DrinkIcon.LATTE_MACCHIATO, DrinkCategory.COFFEE),
+        Row("Milchkaffee", 2.4, 0.0, 300, DrinkIcon.CAPPUCCINO, DrinkCategory.COFFEE),
+        Row("Eiskaffee", 9.0, 0.0, 300, DrinkIcon.ICED_COFFEE, DrinkCategory.COFFEE),
         Row("Tee", 0.0, 0.0, 250, DrinkIcon.TEA, DrinkCategory.TEA),
         Row("Cola", 10.6, 0.0, 330, DrinkIcon.COLA, DrinkCategory.SOFT_DRINK),
         Row("Cola zero", 0.0, 0.0, 330, DrinkIcon.COLA, DrinkCategory.SOFT_DRINK),
+        Row("Spezi", 9.0, 0.0, 500, DrinkIcon.COLA_MIX, DrinkCategory.SOFT_DRINK),
         Row("Limonade", 8.0, 0.0, 330, DrinkIcon.LEMONADE, DrinkCategory.SOFT_DRINK),
         Row("Eistee", 7.5, 0.0, 500, DrinkIcon.ICED_TEA, DrinkCategory.SOFT_DRINK),
         Row("Energydrink", 11.0, 0.0, 250, DrinkIcon.ENERGY_DRINK, DrinkCategory.ENERGY_DRINK),
@@ -31,12 +37,17 @@ class DefaultBarCatalogTest {
         Row("Apfelschorle", 5.5, 0.0, 500, DrinkIcon.APPLE_SPRITZER, DrinkCategory.JUICE),
         Row("Malzbier", 9.0, 0.0, 330, DrinkIcon.MALT_BEER, DrinkCategory.SOFT_DRINK),
         Row("Milch", 4.8, 0.0, 200, DrinkIcon.MILK, DrinkCategory.MILK),
+        Row("Kakao", 10.0, 0.0, 250, DrinkIcon.HOT_CHOCOLATE, DrinkCategory.MILK),
         Row("Pils", 0.3, 4.9, 500, DrinkIcon.BEER, DrinkCategory.BEER),
         Row("Weizenbier", 0.3, 5.4, 500, DrinkIcon.WHEAT_BEER, DrinkCategory.BEER),
         Row("Alkoholfreies Bier", 2.5, 0.4, 500, DrinkIcon.BEER, DrinkCategory.BEER),
+        Row("Alkoholfreies Bier 0,0 %", 3.5, 0.0, 500, DrinkIcon.ALCOHOL_FREE_BEER, DrinkCategory.BEER),
+        Row("Alkoholfreies Weißbier 0,0 %", 3.0, 0.0, 500, DrinkIcon.ALCOHOL_FREE_BEER, DrinkCategory.BEER),
         Row("Radler", 5.0, 2.5, 500, DrinkIcon.RADLER, DrinkCategory.BEER),
+        Row("Alkoholfreies Radler 0,0 %", 4.5, 0.0, 500, DrinkIcon.RADLER, DrinkCategory.BEER),
         Row("Rotwein trocken", 0.3, 12.0, 125, DrinkIcon.RED_WINE, DrinkCategory.WINE),
         Row("Weißwein trocken", 0.3, 11.5, 125, DrinkIcon.WHITE_WINE, DrinkCategory.WINE),
+        Row("Weinschorle", 0.2, 5.8, 250, DrinkIcon.WINE_SPRITZER, DrinkCategory.WINE),
         Row("Sekt trocken", 2.5, 11.0, 100, DrinkIcon.SPARKLING_WINE, DrinkCategory.SPARKLING_WINE),
         Row("Schnaps", 0.0, 40.0, 20, DrinkIcon.SHOT, DrinkCategory.SPIRIT),
         Row("Longdrink", 8.7, 5.3, 240, DrinkIcon.LONGDRINK, DrinkCategory.SPIRIT),
@@ -52,9 +63,11 @@ class DefaultBarCatalogTest {
     }
 
     @Test
-    fun onlyMilkAndCocktailAreMarkedAsEstimates() {
+    fun estimatedValuesAreMarked() {
         val estimates = DefaultBarCatalog.entries.filter { it.isEstimate }
-        assertEquals(listOf("Milch", "Cocktail"), estimates.map { it.item.name })
+        assertEquals(listOf("Cappuccino", "Latte Macchiato", "Milchkaffee", "Eiskaffee", "Milch", "Kakao", "Weinschorle", "Cocktail"), estimates.map { it.item.name })
+        assertEquals("Zucker = Milchzucker (Schätzwert)", DefaultBarCatalog.entry(DefaultBarCatalog.CAPPUCCINO)?.note)
+        assertEquals("Cola-Mix", DefaultBarCatalog.entry(DefaultBarCatalog.SPEZI)?.note)
         assertEquals("Zucker = Milchzucker (Schätzwert)", DefaultBarCatalog.entry(DefaultBarCatalog.MILCH)?.note)
         assertEquals("Schätzwert", DefaultBarCatalog.entry(DefaultBarCatalog.COCKTAIL)?.note)
         assertEquals("Spirituose + Cola", DefaultBarCatalog.entry(DefaultBarCatalog.LONGDRINK)?.note)

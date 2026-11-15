@@ -1,4 +1,4 @@
-# Drink With Me – Architektur & Schnittstellenvertrag (Version 2)
+# DrinkWithMe – Architektur & Schnittstellenvertrag (Version 2)
 
 Verbindlicher Vertrag für Kotlin-Kern, Android-App, Web-App und Supabase-Backend. **Namen, Tabellen, Spalten,
 Funktionen und Pfade sind exakt so zu verwenden.** Ersetzt die frühere Trinkrunden/Firebase-Architektur.
@@ -37,7 +37,10 @@ enum class DrinkIcon(val key: String) {
     JUICE("juice"), APPLE_SPRITZER("apple_spritzer"), COLA("cola"), LEMONADE("lemonade"),
     ICED_TEA("iced_tea"), ENERGY_DRINK("energy_drink"), MILK("milk"), MALT_BEER("malt_beer"),
     BEER("beer"), WHEAT_BEER("wheat_beer"), RADLER("radler"), RED_WINE("red_wine"), WHITE_WINE("white_wine"),
-    SPARKLING_WINE("sparkling_wine"), SHOT("shot"), LONGDRINK("longdrink"), COCKTAIL("cocktail"), OTHER("other"),
+    SPARKLING_WINE("sparkling_wine"), SHOT("shot"), LONGDRINK("longdrink"), COCKTAIL("cocktail"),
+    ESPRESSO("espresso"), CAPPUCCINO("cappuccino"), LATTE_MACCHIATO("latte_macchiato"), ICED_COFFEE("iced_coffee"),
+    HOT_CHOCOLATE("hot_chocolate"), COLA_MIX("cola_mix"), ALCOHOL_FREE_BEER("alcohol_free_beer"),
+    WINE_SPRITZER("wine_spritzer"), OTHER("other"),
 }
 
 enum class ValueSource { DEFAULT, USER }
@@ -57,12 +60,19 @@ data class BarItem(
 ```
 
 - `DefaultBarCatalog`: Vorschlagsliste (eigene, CC0-Werte; Zucker g/100 ml · Vol.-% · Standardportion):
-  Wasser 0·0·250 · Mineralwasser 0·0·250 · Kaffee 0·0·200 · Tee 0·0·250 · Cola 10,6·0·330 · Cola zero 0·0·330 ·
-  Limonade 8·0·330 · Eistee 7,5·0·500 · Energydrink 11·0·250 · Orangensaft 9·0·200 · Apfelsaft 10·0·200 ·
-  Apfelschorle 5,5·0·500 · Malzbier 9·0·330 · Milch 4,8·0·200 (Zucker = Milchzucker, als Schätzwert markiert) ·
-  Pils 0,3·4,9·500 · Weizenbier 0,3·5,4·500 · Alkoholfreies Bier 2,5·0,4·500 · Radler 5·2,5·500 ·
-  Rotwein trocken 0,3·12·125 · Weißwein trocken 0,3·11,5·125 · Sekt trocken 2,5·11·100 · Schnaps 0·40·20 ·
-  Longdrink (Spirituose + Cola) 8,7·5,3·240 · Cocktail (Schätzwert) 8·10·200.
+  Wasser 0·0·250 · Mineralwasser 0·0·250 · Kaffee 0·0·200 · Espresso 0·0·30 · Cappuccino 3,4·0·200 ·
+  Latte Macchiato 3,8·0·300 · Milchkaffee 2,4·0·300 (die drei: Zucker = Milchzucker, Schätzwert) ·
+  Eiskaffee (mit Vanilleeis und Sahne, Schätzwert) 9·0·300 · Tee 0·0·250 · Cola 10,6·0·330 · Cola zero 0·0·330 ·
+  Spezi (Cola-Mix) 9·0·500 · Limonade 8·0·330 · Eistee 7,5·0·500 · Energydrink 11·0·250 · Orangensaft 9·0·200 ·
+  Apfelsaft 10·0·200 · Apfelschorle 5,5·0·500 · Malzbier 9·0·330 · Milch 4,8·0·200 (Zucker = Milchzucker, als
+  Schätzwert markiert) · Kakao (mit Milch und Kakaopulver, Schätzwert) 10·0·250 · Pils 0,3·4,9·500 ·
+  Weizenbier 0,3·5,4·500 · Alkoholfreies Bier 2,5·0,4·500 · Alkoholfreies Bier 0,0 % 3,5·0·500 ·
+  Alkoholfreies Weißbier 0,0 % 3·0·500 · Radler 5·2,5·500 · Alkoholfreies Radler 0,0 % 4,5·0·500 ·
+  Rotwein trocken 0,3·12·125 · Weißwein trocken 0,3·11,5·125 · Weinschorle (Weißwein und Wasser 1:1, Schätzwert)
+  0,2·5,8·250 · Sekt trocken 2,5·11·100 · Schnaps 0·40·20 · Longdrink (Spirituose + Cola) 8,7·5,3·240 ·
+  Cocktail (Schätzwert) 8·10·200.
+- Sprachsteuerung: Zahlen wie „0,0“ zählen beim Abgleich nicht. „alkoholfreies Bier“ ist deshalb mehrdeutig (die App
+  fragt nach); eindeutig sind z. B. „alkoholfreies Pils“, „alkoholfreies Weizen“ und „alkoholfreies Radler“.
 - Beim ersten Start wählt der Nutzer aus dem Katalog seine Bar (Vorauswahl: Wasser, Kaffee, Tee, Apfelschorle, Cola,
   Pils, Rotwein). Alles ist änderbar; eigene Getränke sind möglich.
 - Ports: `BarRepository { fun items(): List<BarItem>; fun save(item); fun delete(id); fun reorder(ids) }`.
@@ -132,6 +142,11 @@ data class DrinkEntry(
   Normalisierung: Kleinschreibung, ä→ae, ö→oe, ü→ue, ß→ss, Füllwörter entfernen („ich trinke/nehme/hatte“,
   „ein/eine/einen“, „glas/flasche/tasse“, „bitte“), Zahlwörter. Abgleich gegen Name **und** Aliase mit
   Kölner Phonetik + Jaro-Winkler; eindeutiger Treffer ab Ähnlichkeit 0,88 und Abstand ≥ 0,05 zum Zweiten.
+  Ein einzelnes Wort als Wortende (0,94) zählt beim **Namen** voll („Wein“ → „Rotwein“); ist es nur Wortende eines
+  **Alias** („Eis“ in „Kaffee mit Eis“), gewinnt das Getränk damit nie, löst als Zweitbestes aber eine Rückfrage aus
+  („Weizen“ bei alkoholfreiem Weißbier und Weißwein). Passt das Gesprochene genau zum **Namen** eines Getränks und beim Zweiten
+  nichts genau, gilt dieses Getränk auch bei kleinerem Abstand („alkoholfreies Weißbier“ vor „Alkoholfreies Bier“);
+  ein genauer Alias reicht dafür nicht (er könnte eine andere Schreibweise eines eigenen Getränks sein).
 - `SpeechTexts`: erzeugt **Vorlese-Sätze** getrennt von Anzeige-Texten: ganze deutsche Sätze, Zahlen und Einheiten
   ausgeschrieben („zweihundertfünfzig Milliliter“, „siebenundzwanzig Gramm“), keine Emojis/Abkürzungen. Beispiele:
   „Anna trinkt eine Apfelschorle.“ · „Apfelschorle eingetragen.“ · „Heute aus Getränken: fünfunddreißig Gramm Zucker.“

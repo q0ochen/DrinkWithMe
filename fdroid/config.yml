@@ -1,10 +1,10 @@
-# Eigene F-Droid-Paketquelle für die Testversionen von Drink With Me (nicht das offizielle F-Droid).
+# Eigene F-Droid-Paketquelle für die Testversionen von DrinkWithMe (nicht das offizielle F-Droid).
 # Wird von .github/workflows/android.yml mit fdroid/build-repo.sh gebaut und auf dem Zweig „fdroid-repo“
 # veröffentlicht. Erklärung: docs/F-DROID.md, Abschnitt 11.3.
 repo_url: https://raw.githubusercontent.com/q0ochen/DrinkWithMe/fdroid-repo/fdroid/repo
-repo_name: Drink With Me – Testversionen
+repo_name: DrinkWithMe – Testversionen
 repo_description: >-
-  Testversionen von Drink With Me, automatisch aus dem öffentlichen Quellcode auf GitHub gebaut.
+  Testversionen von DrinkWithMe, automatisch aus dem öffentlichen Quellcode auf GitHub gebaut.
   Das ist nicht das offizielle F-Droid-Verzeichnis.
 archive_older: 2
 repo_keyalias: drinkwithme-fdroid

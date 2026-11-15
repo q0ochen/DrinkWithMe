@@ -1,4 +1,4 @@
-# Supabase-Backend von Drink With Me
+# Supabase-Backend von DrinkWithMe
 
 Das Backend ist nur für die **Vernetzung** da (Freunde, Benachrichtigungen). Bar, Trinkhistorie und Statistik
 liegen ausschließlich auf dem Gerät. Der Server kennt nur Profil (Name, Bild), Freundschaften, Push-Abos und
@@ -64,7 +64,7 @@ Die CI (`.github/workflows/supabase.yml`) macht dasselbe bei jedem Push auf `sup
 ### 2. Google-Anmeldung
 
 1. In der [Google Cloud Console](https://console.cloud.google.com/) ein Projekt anlegen (kostenlos).
-2. **APIs & Dienste → OAuth-Zustimmungsbildschirm**: Typ „Extern“, App-Name „Drink With Me“, Scopes nur
+2. **APIs & Dienste → OAuth-Zustimmungsbildschirm**: Typ „Extern“, App-Name „DrinkWithMe“, Scopes nur
    `openid`, `email`, `profile`. Danach **„In Produktion“** veröffentlichen (für diese Scopes ist keine
    Google-Prüfung nötig).
 3. **APIs & Dienste → Anmeldedaten → OAuth-Client-ID erstellen**, Typ **Webanwendung**.

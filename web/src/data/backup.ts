@@ -28,9 +28,9 @@ const FUTURE_TOLERANCE_MILLIS = 24 * 60 * 60 * 1000;
 const EARLIEST_PLAUSIBLE = Date.UTC(2000, 0, 1);
 
 export const BackupTexts = {
-  NOT_A_BACKUP: "Die Datei ist keine Sicherung von Drink With Me.",
-  TOO_NEW: "Diese Sicherung stammt aus einer neueren Version von Drink With Me. Bitte aktualisiere die App und versuche es erneut.",
-  TOO_LARGE: "Die Datei ist zu groß für eine Sicherung von Drink With Me.",
+  NOT_A_BACKUP: "Die Datei ist keine Sicherung von DrinkWithMe.",
+  TOO_NEW: "Diese Sicherung stammt aus einer neueren Version von DrinkWithMe. Bitte aktualisiere die App und versuche es erneut.",
+  TOO_LARGE: "Die Datei ist zu groß für eine Sicherung von DrinkWithMe.",
 } as const;
 
 export type BackupParseResult =
