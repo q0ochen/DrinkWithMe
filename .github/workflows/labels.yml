@@ -1,0 +1,43 @@
+# Legt die Labels aus .github/labels.json an oder aktualisiert Farbe und Beschreibung. Andere Labels bleiben
+# unverändert, gelöscht wird nichts. Läuft, sobald sich die Liste oder dieser Workflow auf einem Zweig ändert
+# (nicht bei Tags – dort gelten keine Pfadfilter), und auf Wunsch manuell.
+name: Labels
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".github/labels.json"
+      - ".github/workflows/labels.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  labels:
+    name: Labels anlegen oder aktualisieren
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Labels anlegen oder aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          jq -e 'type == "array" and all(.[]; (.name | type == "string" and length > 0)
+                 and (.color | test("^[0-9a-fA-F]{6}$")) and ((.description // "") | length <= 100))' \
+            .github/labels.json > /dev/null || { echo "::error::.github/labels.json ist ungültig"; exit 1; }
+          jq -c '.[]' .github/labels.json | while read -r label; do
+            name=$(jq -r '.name' <<<"$label")
+            gh label create "$name" \
+              --color "$(jq -r '.color' <<<"$label")" \
+              --description "$(jq -r '.description // ""' <<<"$label")" \
+              --force
+            echo "Label „$name“ ist da."
+          done

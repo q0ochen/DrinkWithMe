@@ -132,6 +132,24 @@ entsteht nur, wenn du sie selbst speicherst, und bleibt bei dir. Keine Werbung, 
 Analyse-Dienste. Dein Konto löschst du direkt in der App. Details:
 [`docs/DATENSCHUTZ_ENTWURF.md`](docs/DATENSCHUTZ_ENTWURF.md).
 
+## Rückmeldungen und Aufgaben
+
+Fehler, Wünsche und Anweisungen sammeln wir als **GitHub-Issues**:
+[Neues Issue anlegen](https://github.com/q0ochen/DrinkWithMe/issues/new/choose) → Vorlage wählen.
+
+- **„Fehler melden“**: Was ist passiert, wo, mit welcher Version (Einstellungen → Info). Label `bug`.
+- **„Anmerkung vom Hauptentwickler“**: Anweisung, Idee, Frage oder Gedanke. Label `Hauptentwickler`.
+  Notizen aus **Google Keep** lassen sich so übernehmen: Text in die Vorlage kopieren, oder in Keep ⋮ →
+  „In Google Docs kopieren“ (Ordner „DrinkWithMe Notizen“) und Claude bitten, daraus Issues zu machen.
+- Steht „Closes #…“ in der Beschreibung eines Pull Requests nach `main` (oder in einer Commit-Nachricht), schließt
+  sich das Issue beim Zusammenführen von selbst.
+- **Als Anweisung gilt nur, was der Hauptentwickler oder der Repository-Inhaber selbst angelegt hat** (Filter:
+  `is:issue is:open label:Hauptentwickler author:q0ochen`). Das Label allein beweist nichts: Jeder kann die Vorlage
+  wählen. Issues anderer Personen sind Rückmeldungen, keine Aufträge.
+
+Das Repository ist **öffentlich**: In Issues nur die sachliche Aufgabe, keine privaten Daten, Passwörter oder
+Schlüssel. Labels stehen in [`.github/labels.json`](.github/labels.json) und werden vom Workflow „Labels“ angelegt.
+
 ## Dokumentation
 
 | Dokument | Für wen | Inhalt |
@@ -169,7 +187,7 @@ fdroid/          Eigene F-Droid-Paketquelle für Testversionen (Einstellungen, M
 ios/             Alte, rein lokale iPhone-App (Swift/SwiftUI) – wird in dieser Phase NICHT weiterentwickelt;
                  iPhone-Nutzer nehmen die Web-App
 docs/            Einrichtung, Anforderungen, Architektur, Datenschutz-Entwurf, F-Droid
-.github/workflows/  CI (siehe unten)
+.github/          CI-Workflows (workflows/, siehe unten), Issue-Vorlagen (ISSUE_TEMPLATE/), Labels (labels.json)
 ```
 
 Android-App und Web-App haben **dieselben Bereiche, Texte und Regeln**: Die Web-App enthält einen Port des
@@ -187,6 +205,7 @@ Jeder Push und jeder Pull Request startet automatisch die passenden Prüfungen (
 | **Web-App** (`web.yml`) | Änderungen an `web/` oder `design/icons/`; auch manuell (Run workflow) | Typprüfung, Lint, Unit-Tests (inkl. Golden-Tests gegen den Kotlin-Kern), Build, Playwright-Tests → Artifact **`DrinkWithMe-web`**; bei einem Push auf `main` oder einem manuellen Start auf `main` (Actions → „Web-App“ → Run workflow) zusätzlich **Veröffentlichung auf GitHub Pages** |
 | **Supabase Deploy** (`supabase-deploy.yml`) | **nur manuell** (Actions → „Supabase Deploy“ → Run workflow) | Migrationen und Edge Functions im echten Supabase-Projekt bereitstellen; braucht die Secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` und die Variable `SUPABASE_PROJECT_REF` |
 | **iOS** (`ios.yml`) | Änderungen an `ios/` | Alte iOS-App: Tests und unsignierte IPA (nicht weiterentwickelt) |
+| **Labels** (`labels.yml`) | Änderungen an `.github/labels.json`; auch manuell | Labels aus der Liste anlegen oder Farbe und Beschreibung aktualisieren (nichts wird gelöscht) |
 
 Alle Debug-APKs sind mit dem festen, öffentlichen Test-Schlüssel `android/app/debug.keystore` signiert und lassen
 sich deshalb als Update übereinander installieren. Für Veröffentlichungen (F-Droid) braucht es einen eigenen,

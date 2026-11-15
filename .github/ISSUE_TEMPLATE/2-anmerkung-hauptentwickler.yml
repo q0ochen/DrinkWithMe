@@ -1,0 +1,62 @@
+name: Anmerkung vom Hauptentwickler
+description: Gedanke, Anmerkung oder Anweisung – zum Beispiel aus einer Google-Keep-Notiz übernommen.
+title: "[Anmerkung] "
+labels: ["Hauptentwickler"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Diese Vorlage ist für den **Hauptentwickler**. Einen Fehler gefunden? Bitte die Vorlage „Fehler melden“ nehmen.
+
+        **Achtung, öffentlich:** Dieses Repository kann jeder lesen. Bitte nur die sachliche Aufgabe eintragen –
+        keine privaten Gedanken, Namen, E-Mail-Adressen, Passwörter oder Schlüssel.
+
+        Mehrere unabhängige Punkte am besten als **eigene** Anmerkungen anlegen, dann lässt sich jeder einzeln erledigen.
+  - type: dropdown
+    id: art
+    attributes:
+      label: Art
+      options:
+        - Anweisung / Aufgabe
+        - Fehler
+        - Idee / Wunsch
+        - Frage
+        - Gedanke / Notiz
+    validations:
+      required: true
+  - type: checkboxes
+    id: bereich
+    attributes:
+      label: Betrifft
+      description: Alles ankreuzen, was passt.
+      options:
+        - label: Android-App
+        - label: Web-App (iPhone, Browser)
+        - label: Server (Supabase)
+        - label: Verteilung (F-Droid, Testversion, Obtainium)
+        - label: Grafik / Design
+        - label: Dokumentation
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Worum geht es?
+      description: Die Anmerkung in eigenen Worten. Was soll anders werden, und warum?
+    validations:
+      required: true
+  - type: dropdown
+    id: dringlichkeit
+    attributes:
+      label: Wie dringend?
+      options:
+        - Sofort (blockiert das Testen)
+        - Bald
+        - Irgendwann
+      default: 1
+    validations:
+      required: true
+  - type: input
+    id: quelle
+    attributes:
+      label: Quelle
+      description: Woher stammt die Anmerkung?
+      placeholder: z. B. Keep-Notiz vom 15.11.2026
