@@ -192,6 +192,7 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(match("Malzbier")).toEqual(drink(CatalogIds.MALZBIER));
     expect(match("Ich hatte eine Tasse Kaffee")).toEqual(drink(CatalogIds.KAFFEE));
     expect(match("einen Café")).toEqual(drink(CatalogIds.KAFFEE));
+    expect(match("ein Glas Secco")).toEqual(drink(CatalogIds.SEKT));
   });
 
   it("wordEndingMatchesAnUnambiguousCompound", () => {
@@ -226,21 +227,33 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     expect(matcher.match(["Bier"], [pils, beers])).toEqual({ kind: "Ambiguous", first: pils, second: beers });
   });
 
-  it("aliasesCountOnlyAsAWhole", () => {
-    // Ein einzelnes Wort zählt als Wortende nur beim Namen – nicht bei Aliasen wie „Schorle mit Wein“.
+  it("aliasWordEndingsAskButNeverDecide", () => {
+    // Ein Wortende eines Alias („Eis“ in „Kaffee mit Eis“) trägt allein nichts ein …
     const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
     const spezi = catalogItem(CatalogIds.SPEZI);
     const zero = catalogItem(CatalogIds.COLA_ZERO);
-    expect(matcher.match(["Wein"], [spritzer])).toEqual({ kind: "NoMatch" });
-    expect(matcher.match(["eine Schorle mit Wein"], [spritzer])).toEqual({ kind: "Drink", item: spritzer });
-    expect(matcher.match(["Orange"], [spezi])).toEqual({ kind: "NoMatch" });
-    expect(matcher.match(["Mix"], [spezi])).toEqual({ kind: "NoMatch" });
-    // „Rum Cola“ ist ein Alias von Longdrink – „Cola“ meint trotzdem die Cola zero.
-    const longdrink = catalogItem(CatalogIds.LONGDRINK);
-    expect(matcher.match(["eine Cola"], [longdrink, zero])).toEqual({ kind: "Drink", item: zero });
-    // Der Name zählt weiter: „Cola“ ist ein Wort von „Cola zero“.
-    expect(matcher.match(["Cola"], [zero])).toEqual({ kind: "Drink", item: zero });
+    const noMatch: VoiceMatch = { kind: "NoMatch" };
+    expect(matcher.match(["Eis"], [catalogItem(CatalogIds.EISKAFFEE)])).toEqual(noMatch);
+    expect(matcher.match(["Wein"], [spritzer])).toEqual(noMatch);
+    expect(matcher.match(["Orange"], [spezi])).toEqual(noMatch);
+    expect(matcher.match(["Mix"], [spezi])).toEqual(noMatch);
+    // … und keine Schorle mit etwas anderem wird zur Weinschorle.
+    expect(matcher.match(["eine Schorle mit Apfel"], [spritzer])).toEqual(noMatch);
+    expect(matcher.match(["Schorle ohne Wein"], [spritzer])).toEqual(noMatch);
+    // … löst aber eine Rückfrage aus, statt ein knapp ähnliches Getränk still zu nehmen.
+    const wheat00 = catalogItem(CatalogIds.ALKOHOLFREIES_WEISSBIER_0_0);
+    const white = catalogItem(CatalogIds.WEISSWEIN);
+    expect(matcher.match(["ein Weizen"], [wheat00, white])).toEqual({ kind: "Ambiguous", first: white, second: wheat00 });
+    const ownHelles = barItem("Helles", { aliases: ["Helles Bier"] });
+    const alcoholFree = catalogItem(CatalogIds.ALKOHOLFREIES_BIER);
+    expect(matcher.match(["ein Bier"], [ownHelles, alcoholFree])).toEqual({ kind: "Ambiguous", first: alcoholFree, second: ownHelles });
+    const milkCoffee = catalogItem(CatalogIds.MILCHKAFFEE);
     const cocoa = catalogItem(CatalogIds.KAKAO);
+    expect(matcher.match(["Milch"], [milkCoffee, cocoa])).toEqual({ kind: "Ambiguous", first: milkCoffee, second: cocoa });
+    const longdrink = catalogItem(CatalogIds.LONGDRINK);
+    expect(matcher.match(["eine Cola"], [longdrink, zero])).toEqual({ kind: "Ambiguous", first: zero, second: longdrink });
+    // Der Name zählt weiter voll: „Cola“ ist ein Wort von „Cola zero“.
+    expect(matcher.match(["Cola"], [zero])).toEqual({ kind: "Drink", item: zero });
     const defaultBarWithCocoa = [...defaultSelection(), cocoa];
     const spritzerInBar = defaultBarWithCocoa.find((item) => item.id === CatalogIds.APFELSCHORLE);
     expect(matcher.match(["Schorle"], defaultBarWithCocoa)).toEqual({ kind: "Drink", item: spritzerInBar });
@@ -252,8 +265,6 @@ describe("Kotlin-Kern: VoiceCommandMatcherTest", () => {
     const spritzer = catalogItem(CatalogIds.WEINSCHORLE);
     expect(matcher.match(["ein Glas Wein"], [red, spritzer])).toEqual({ kind: "Drink", item: red });
     expect(matcher.match(["Weinschorle"], [red, spritzer])).toEqual({ kind: "Drink", item: spritzer });
-    const defaultBarWithSpritzer = [...defaultSelection(), spritzer];
-    expect(matcher.match(["eine Schorle mit Wein"], defaultBarWithSpritzer)).toEqual({ kind: "Drink", item: spritzer });
     const cola = catalogItem(CatalogIds.COLA);
     const zero = catalogItem(CatalogIds.COLA_ZERO);
     const spezi = catalogItem(CatalogIds.SPEZI);

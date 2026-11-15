@@ -54,9 +54,9 @@ export interface VoiceMatcherOptions {
  *
  * Je Kandidat (in der gelieferten Reihenfolge; das erste Ergebnis außer `NoMatch` gilt): normalisieren;
  * Befehle prüfen; Füll- und Zahlwörter entfernen und gegen Name **und** Aliase vergleichen
- * (Jaro-Winkler + Kölner Phonetik; ein einzelnes Wort zählt als Wortende nur beim Namen, Aliase nur als Ganzes);
- * eindeutig ab 0,88 mit Abstand ≥ 0,05, sonst `Ambiguous`. Eine genaue Übereinstimmung mit dem **Namen** gilt
- * immer, wenn beim Zweitbesten nichts genau passt; ein genauer Alias reicht dafür nicht.
+ * (Jaro-Winkler + Kölner Phonetik; ein einzelnes Wort als Wortende zählt beim Namen voll, beim Alias nur für eine
+ * Rückfrage als Zweitbestes); eindeutig ab 0,88 mit Abstand ≥ 0,05, sonst `Ambiguous`. Eine genaue Übereinstimmung
+ * mit dem **Namen** gilt immer, wenn beim Zweitbesten nichts genau passt; ein genauer Alias reicht dafür nicht.
  */
 export class VoiceCommandMatcher implements VoiceMatcher {
   private readonly similarity: TextSimilarity;
@@ -88,22 +88,27 @@ export class VoiceCommandMatcher implements VoiceMatcher {
     const ranked = labelled.map((entry) => this.scored(spoken, entry)).sort((a, b) => b.score - a.score);
     const best = ranked[0];
     if (best === undefined || best.score < this.minimumSimilarity - EPSILON) return NO_MATCH;
-    const runnerUp = ranked[1];
+    // Zweitbestes nach `contender` (mit Alias-Wortenden); bei Gleichstand das zuerst gereihte.
+    let runnerUp: Scored | undefined;
+    for (const candidateScore of ranked.slice(1)) {
+      if (runnerUp === undefined || candidateScore.contender > runnerUp.contender) runnerUp = candidateScore;
+    }
     if (runnerUp === undefined) return { kind: "Drink", item: best.item };
-    const onlyExact = isExact(best.nameScore) && !isExact(runnerUp.score);
-    if (!onlyExact && best.score - runnerUp.score < this.minimumGap - EPSILON) {
+    const onlyExact = isExact(best.nameScore) && !isExact(runnerUp.contender);
+    if (!onlyExact && best.score - runnerUp.contender < this.minimumGap - EPSILON) {
       return { kind: "Ambiguous", first: best.item, second: runnerUp.item };
     }
     return { kind: "Drink", item: best.item };
   }
 
-  /** `score`: bester Wert über Name und Aliase; `nameScore`: Wert des Namens allein. */
-  private scored(spoken: Phrase, entry: Labelled): { item: BarItem; score: number; nameScore: number } {
+  private scored(spoken: Phrase, entry: Labelled): Scored {
     const name = entry.name;
     const nameScore =
       name === null ? 0.0 : Math.max(this.direct(spoken, name), isWordEnding(spoken, name) ? COMPOUND_PART_SCORE : 0.0);
     const aliasScore = entry.aliases.length === 0 ? 0.0 : Math.max(...entry.aliases.map((alias) => this.direct(spoken, alias)));
-    return { item: entry.item, score: Math.max(nameScore, aliasScore), nameScore };
+    const aliasPart = entry.aliases.some((alias) => isWordEnding(spoken, alias)) ? COMPOUND_PART_SCORE : 0.0;
+    const score = Math.max(nameScore, aliasScore);
+    return { item: entry.item, score, nameScore, contender: Math.max(score, aliasPart) };
   }
 
   private direct(spoken: Phrase, label: Phrase): number {
@@ -115,6 +120,17 @@ interface Labelled {
   readonly item: BarItem;
   readonly name: Phrase | null;
   readonly aliases: readonly Phrase[];
+}
+
+/**
+ * `score`: bester Wert über Name und Aliase (damit gewinnt ein Getränk); `nameScore`: Wert des Namens allein;
+ * `contender`: zusätzlich Alias-Wortenden – zählt nur als Zweitbestes, also nur für eine Rückfrage.
+ */
+interface Scored {
+  readonly item: BarItem;
+  readonly score: number;
+  readonly nameScore: number;
+  readonly contender: number;
 }
 
 function isExact(score: number): boolean {

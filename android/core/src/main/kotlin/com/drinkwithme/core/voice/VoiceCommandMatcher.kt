@@ -22,8 +22,9 @@ fun interface VoiceMatcher {
  * 3. Füll- und Zahlwörter entfernen ([VoiceVocabulary]), dann gegen Name **und** Aliase jedes Getränks
  *    vergleichen ([similarity], Standard: Jaro-Winkler + Kölner Phonetik). Ein einzelnes gesprochenes Wort,
  *    das ein Wortende des **Namens** ist („Wein“ in „Rotwein“, „Bier“ in „Weizenbier“), zählt [COMPOUND_PART_SCORE].
- *    Aliase zählen nur als Ganzes: „Wein“ trifft nicht „Schorle mit Wein“ (Weinschorle), „Milch“ nicht „Kaffee mit
- *    Milch“ (Milchkaffee).
+ *    Ist es nur Wortende eines **Alias** („Eis“ in „Kaffee mit Eis“, „Bier“ in „Helles Bier“), kann das Getränk
+ *    damit nicht gewinnen, wohl aber als Zweitbestes eine Rückfrage auslösen: „Eis“ allein trägt keinen Eiskaffee
+ *    ein, „Weizen“ fragt bei alkoholfreiem Weißbier und Weißwein nach, statt still den Wein zu nehmen.
  * 4. Eindeutig ab [minimumSimilarity] (0,88) mit Abstand ≥ [minimumGap] (0,05) zum Zweitbesten, sonst
  *    [VoiceMatch.Ambiguous]. Ausnahme: Stimmt das Gesprochene genau mit dem **Namen** eines Getränks überein
  *    ([EXACT_SCORE]) und beim Zweitbesten nichts genau, gilt dieses Getränk („alkoholfreies Weißbier“ vor
@@ -55,9 +56,9 @@ class VoiceCommandMatcher(
         val ranked = labelled.map { scored(spoken, it) }.sortedByDescending { it.score }
         val best = ranked.firstOrNull() ?: return VoiceMatch.NoMatch
         if (best.score < minimumSimilarity - EPSILON) return VoiceMatch.NoMatch
-        val runnerUp = ranked.getOrNull(1) ?: return VoiceMatch.Drink(best.item)
-        val onlyExact = isExact(best.nameScore) && !isExact(runnerUp.score)
-        if (!onlyExact && best.score - runnerUp.score < minimumGap - EPSILON) {
+        val runnerUp = ranked.drop(1).maxByOrNull { it.contender } ?: return VoiceMatch.Drink(best.item)
+        val onlyExact = isExact(best.nameScore) && !isExact(runnerUp.contender)
+        if (!onlyExact && best.score - runnerUp.contender < minimumGap - EPSILON) {
             return VoiceMatch.Ambiguous(best.item, runnerUp.item)
         }
         return VoiceMatch.Drink(best.item)
@@ -71,7 +72,9 @@ class VoiceCommandMatcher(
             max(direct(spoken, name), part)
         } ?: 0.0
         val aliasScore = labelled.aliases.maxOfOrNull { direct(spoken, it) } ?: 0.0
-        return Scored(labelled.item, max(nameScore, aliasScore), nameScore)
+        val aliasPart = if (labelled.aliases.any { isWordEnding(spoken, it) }) COMPOUND_PART_SCORE else 0.0
+        val score = max(nameScore, aliasScore)
+        return Scored(labelled.item, score, nameScore, max(score, aliasPart))
     }
 
     private fun direct(spoken: Phrase, label: Phrase): Double = similarity.similarity(spoken.compact, label.compact)
@@ -115,8 +118,11 @@ class VoiceCommandMatcher(
 
     private data class Labelled(val item: BarItem, val name: Phrase?, val aliases: List<Phrase>)
 
-    /** [score]: bester Wert über Name und Aliase; [nameScore]: Wert des Namens allein. */
-    private data class Scored(val item: BarItem, val score: Double, val nameScore: Double)
+    /**
+     * [score]: bester Wert über Name und Aliase (damit gewinnt ein Getränk); [nameScore]: Wert des Namens allein;
+     * [contender]: zusätzlich Alias-Wortenden – zählt nur als Zweitbestes, also nur für eine Rückfrage.
+     */
+    private data class Scored(val item: BarItem, val score: Double, val nameScore: Double, val contender: Double)
 
     /** Vertragswerte und Standard-Abgleicher (erlaubt `VoiceCommandMatcher.match(kandidaten, bar)`). */
     companion object : VoiceMatcher {
