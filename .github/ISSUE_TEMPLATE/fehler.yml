@@ -1,0 +1,58 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet.
+title: "[Fehler] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Achtung, öffentlich:** Dieses Repository kann jeder lesen. Auf Bildschirmfotos bitte Namen, E-Mail-Adressen
+        und Einladungs-Links schwärzen. Keine Passwörter oder Schlüssel eintragen.
+
+        Viele Installationsfehler sind in der Anleitung schon erklärt:
+        [Fehlerbehebung in docs/EINRICHTUNG.md](https://github.com/q0ochen/DrinkWithMe/blob/main/docs/EINRICHTUNG.md).
+  - type: dropdown
+    id: wo
+    attributes:
+      label: Wo ist der Fehler aufgetreten?
+      options:
+        - Android-App
+        - Web-App auf dem iPhone (Home-Bildschirm)
+        - Web-App im Browser
+        - Installation (APK, F-Droid, Obtainium)
+        - Anmeldung mit Google
+        - Freunde, Feed oder Benachrichtigungen
+        - Anderes
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: In der App unter Einstellungen → Info, ganz unten („Version …“).
+      placeholder: z. B. 2.0.0-test.34
+  - type: input
+    id: geraet
+    attributes:
+      label: Gerät und System
+      placeholder: z. B. Pixel 9, Android 16 · iPhone 15, iOS 26
+  - type: textarea
+    id: passiert
+    attributes:
+      label: Was ist passiert?
+      description: Die Fehlermeldung bitte genau abschreiben oder ein Bildschirmfoto hier hineinziehen.
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hätte passieren sollen?
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Wie kommt man dahin?
+      description: Schritt für Schritt, damit sich der Fehler nachstellen lässt.
+      value: |
+        1.
+        2.
+        3.
