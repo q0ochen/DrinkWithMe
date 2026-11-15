@@ -1,9 +1,11 @@
 # Legt die Labels aus .github/labels.json an oder aktualisiert Farbe und Beschreibung. Andere Labels bleiben
-# unverändert, gelöscht wird nichts. Läuft, sobald sich die Liste oder dieser Workflow ändert, und auf Wunsch manuell.
+# unverändert, gelöscht wird nichts. Läuft, sobald sich die Liste oder dieser Workflow auf einem Zweig ändert
+# (nicht bei Tags – dort gelten keine Pfadfilter), und auf Wunsch manuell.
 name: Labels
 
 on:
   push:
+    branches: ["**"]
     paths:
       - ".github/labels.json"
       - ".github/workflows/labels.yml"

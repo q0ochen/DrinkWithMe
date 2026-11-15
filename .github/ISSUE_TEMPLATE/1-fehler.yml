@@ -10,7 +10,7 @@ body:
         und Einladungs-Links schwärzen. Keine Passwörter oder Schlüssel eintragen.
 
         Viele Installationsfehler sind in der Anleitung schon erklärt:
-        [Fehlerbehebung in docs/EINRICHTUNG.md](https://github.com/q0ochen/DrinkWithMe/blob/main/docs/EINRICHTUNG.md).
+        [„Wenn etwas nicht klappt“ in docs/EINRICHTUNG.md](https://github.com/q0ochen/DrinkWithMe/blob/main/docs/EINRICHTUNG.md#13-wenn-etwas-nicht-klappt).
   - type: dropdown
     id: wo
     attributes:
@@ -40,7 +40,7 @@ body:
     id: passiert
     attributes:
       label: Was ist passiert?
-      description: Die Fehlermeldung bitte genau abschreiben oder ein Bildschirmfoto hier hineinziehen.
+      description: Die Fehlermeldung bitte genau abschreiben oder ein Bildschirmfoto anhängen (hineinziehen, einfügen oder unten im Feld antippen).
     validations:
       required: true
   - type: textarea

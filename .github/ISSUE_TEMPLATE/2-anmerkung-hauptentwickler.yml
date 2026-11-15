@@ -6,6 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
+        Diese Vorlage ist für den **Hauptentwickler**. Einen Fehler gefunden? Bitte die Vorlage „Fehler melden“ nehmen.
+
         **Achtung, öffentlich:** Dieses Repository kann jeder lesen. Bitte nur die sachliche Aufgabe eintragen –
         keine privaten Gedanken, Namen, E-Mail-Adressen, Passwörter oder Schlüssel.
 
@@ -46,10 +48,10 @@ body:
     attributes:
       label: Wie dringend?
       options:
+        - Sofort (blockiert das Testen)
         - Bald
         - Irgendwann
-        - Sofort (blockiert das Testen)
-      default: 0
+      default: 1
     validations:
       required: true
   - type: input
